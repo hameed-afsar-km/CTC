@@ -1,65 +1,1017 @@
-import Image from "next/image";
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { CustomEase } from "gsap/CustomEase";
+import EventsShowcase from "@/components/EventsShowcase";
+import AboutSection from "@/components/AboutSection";
+import TeamSection from "@/components/TeamSection";
+
+gsap.registerPlugin(ScrollTrigger, CustomEase);
+
+CustomEase.create("smooth", "0.43, 0.13, 0.23, 0.96");
+CustomEase.create("smoothOut", "0.65, 0, 0.35, 1");
 
 export default function Home() {
+  const [splashDone, setSplashDone] = useState(false);
+  const [splashReveal, setSplashReveal] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+
+  // Detect touch/pointer-coarse devices (mobile/Android) — run once on mount
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    const t = window.setTimeout(() => setIsTouchDevice(mq.matches), 0);
+    const handler = (e: MediaQueryListEvent) => setIsTouchDevice(e.matches);
+    mq.addEventListener("change", handler);
+    return () => {
+      window.clearTimeout(t);
+      mq.removeEventListener("change", handler);
+    };
+  }, []);
+
+  const navRef = useRef<HTMLElement>(null);
+  const navWrapRef = useRef<HTMLDivElement>(null);
+  const pinRef = useRef<HTMLDivElement>(null);
+  const textWrapRef = useRef<HTMLDivElement>(null);
+  const crescentRef = useRef<HTMLHeadingElement>(null);
+  const technocratsRef = useRef<HTMLHeadingElement>(null);
+  const clubRef = useRef<HTMLHeadingElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null);
+  const sparkleRef = useRef<HTMLDivElement>(null);
+  const splashRef = useRef<HTMLDivElement>(null);
+  const splashGlowRef = useRef<HTMLDivElement>(null);
+  const splashTitleRef = useRef<HTMLHeadingElement>(null);
+  const splashLaserRef = useRef<HTMLDivElement>(null);
+  const splashCapsuleRef = useRef<HTMLDivElement>(null);
+  const orbitalRingsRef = useRef<HTMLDivElement[]>([]);
+  const heroParticlesRef = useRef<HTMLCanvasElement>(null);
+  const heroGlowRef = useRef<HTMLDivElement>(null);
+
+  // Orbital rings configuration
+  const orbitalRings = useMemo(() => [
+    { id: 0, size: 340, speed: 25, tiltX: 55, tiltY: 0, borderOpacity: 0.4, delay: 0 },
+    { id: 1, size: 260, speed: -20, tiltX: 0, tiltY: 40, borderOpacity: 0.5, delay: 0.5 },
+    { id: 2, size: 420, speed: 18, tiltX: 35, tiltY: 25, borderOpacity: 0.35, delay: 1.0 },
+    { id: 3, size: 180, speed: -35, tiltX: 25, tiltY: -15, borderOpacity: 0.55, delay: 0.3 },
+    { id: 4, size: 300, speed: 22, tiltX: 45, tiltY: -30, borderOpacity: 0.4, delay: 0.8 },
+  ], []);
+
+  const cursorLensRef = useRef<HTMLDivElement>(null);
+  const cursorPngRef = useRef<HTMLDivElement>(null);
+  const cursorDisplacementRef = useRef<SVGFEDisplacementMapElement>(null);
+  const cursorAllowedRef = useRef(false);
+  const navHoverRef = useRef(false);
+  const macHoverRef = useRef(false);
+  const [cursorVisible, setCursorVisible] = useState(false);
+  const [navHover, setNavHover] = useState(false);
+  const [macHover, setMacHover] = useState(false);
+
+  // Keep the custom cursor hidden for the first 4 seconds after load
+  useEffect(() => {
+    const t = setTimeout(() => {
+      cursorAllowedRef.current = true;
+      setCursorVisible(true);
+    }, 4000);
+    return () => clearTimeout(t);
+  }, []);
+
+  // Global Liquid Smudge Cursor Effect — distorts page content directly under mouse pointer on movement, decaying back to sharp 0 on stop
+  useEffect(() => {
+    if (!splashDone) return;
+
+    let prevX = 0;
+    let prevY = 0;
+    let stopTimer: NodeJS.Timeout | null = null;
+    const animProxy = { scale: 0, lensSize: 0.8 };
+
+    const handleWindowMouseMove = (e: MouseEvent) => {
+      const x = e.clientX;
+      const y = e.clientY;
+
+      if (cursorAllowedRef.current && !cursorVisible) setCursorVisible(true);
+
+      // Hide the smudge orb while hovering over the navbar
+      const overNav = !!navRef.current && navRef.current.contains(e.target as Node);
+      if (overNav !== navHoverRef.current) {
+        navHoverRef.current = overNav;
+        setNavHover(overNav);
+      }
+
+      // Mac UI: swap to the rotated cursor PNG and drop the smudge lens
+      const targetEl = e.target as Element | null;
+      const overMac = !!targetEl && typeof targetEl.closest === "function" && !!targetEl.closest("[data-mac-ui]");
+      if (overMac !== macHoverRef.current) {
+        macHoverRef.current = overMac;
+        setMacHover(overMac);
+      }
+
+      // Position cursor PNG overlay and liquid lens centered exactly on cursor pointer
+      if (cursorPngRef.current) {
+        gsap.to(cursorPngRef.current, {
+          x: x,
+          y: y,
+          xPercent: -50,
+          yPercent: -50,
+          duration: 0.08,
+          ease: "power2.out",
+        });
+      }
+      if (cursorLensRef.current) {
+        gsap.to(cursorLensRef.current, {
+          x: x,
+          y: y,
+          xPercent: -50,
+          yPercent: -50,
+          duration: 0.18,
+          ease: "power2.out",
+        });
+      }
+
+      // Compute cursor velocity
+      const vx = x - prevX;
+      const vy = y - prevY;
+      const speed = Math.sqrt(vx * vx + vy * vy);
+      prevX = x;
+      prevY = y;
+
+      if (speed > 0.8) {
+        const targetScale = Math.min(speed * 1.6 + 14, 52);
+
+        gsap.to(animProxy, {
+          scale: targetScale,
+          lensSize: 1.12,
+          duration: 0.12,
+          ease: "power1.out",
+          onUpdate: () => {
+            if (cursorDisplacementRef.current) {
+              cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
+            }
+          },
+        });
+
+        // Decay scale back to 0 when cursor stops
+        if (stopTimer) clearTimeout(stopTimer);
+        stopTimer = setTimeout(() => {
+          gsap.to(animProxy, {
+            scale: 0,
+            lensSize: 0.8,
+            duration: 0.6,
+            ease: "power3.out",
+            onUpdate: () => {
+              if (cursorDisplacementRef.current) {
+                cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
+              }
+            },
+          });
+        }, 55);
+      }
+    };
+
+    const handleMouseLeave = () => {
+      setCursorVisible(false);
+      if (stopTimer) clearTimeout(stopTimer);
+      gsap.to(animProxy, {
+        scale: 0,
+        lensSize: 0.5,
+        duration: 0.5,
+        ease: "power2.out",
+        onUpdate: () => {
+          if (cursorDisplacementRef.current) {
+            cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
+          }
+        },
+      });
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    document.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      document.removeEventListener("mouseleave", handleMouseLeave);
+      if (stopTimer) clearTimeout(stopTimer);
+    };
+  }, [splashDone, cursorVisible]);
+
+  // Mac UI hover — rotate the cursor PNG 40° counter-clockwise and drop the smudge lens
+  useEffect(() => {
+    if (!splashDone || !cursorPngRef.current) return;
+    gsap.to(cursorPngRef.current, {
+      rotation: macHover ? -40 : 0,
+      duration: 0.3,
+      ease: "power2.out",
+    });
+  }, [macHover, splashDone]);
+
+  // Interactive Particle Constellation + Mouse Spotlight — drifting particles link into a constellation,
+  // scatter away from the cursor, and a soft mint glow follows the mouse around the hero
+  useEffect(() => {
+    if (!splashDone) return;
+
+    const canvas = heroParticlesRef.current;
+    const glow = heroGlowRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const mouse = { x: -9999, y: -9999, active: false };
+    let width = 0;
+    let height = 0;
+    let raf = 0;
+    let particles: { x: number; y: number; vx: number; vy: number; r: number; o: number; tw: number }[] = [];
+
+    const resize = () => {
+      const parent = canvas.parentElement;
+      if (!parent) return;
+      width = parent.clientWidth;
+      height = parent.clientHeight;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const makeParticles = () => {
+      const count = Math.min(Math.round((width * height) / 16000), 90);
+      particles = Array.from({ length: count }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.35,
+        r: Math.random() * 1.8 + 0.6,
+        o: Math.random() * 0.35 + 0.08,
+        tw: Math.random() * Math.PI * 2,
+      }));
+    };
+
+    const onResize = () => {
+      resize();
+      makeParticles();
+    };
+    onResize();
+
+    const onMouseMove = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left;
+      mouse.y = e.clientY - rect.top;
+      mouse.active = true;
+      if (glow) {
+        glow.style.setProperty("--mouse-x", `${mouse.x}px`);
+        glow.style.setProperty("--mouse-y", `${mouse.y}px`);
+      }
+    };
+    const onMouseLeave = () => {
+      mouse.x = -9999;
+      mouse.y = -9999;
+      mouse.active = false;
+    };
+
+    const REPEL = 110;
+    const LINK = 115;
+
+    const draw = () => {
+      raf = requestAnimationFrame(draw);
+      ctx.clearRect(0, 0, width, height);
+
+      const links: { ax: number; ay: number; bx: number; by: number; a: number }[] = [];
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        p.tw += 0.02;
+
+        if (mouse.active) {
+          const dx = p.x - mouse.x;
+          const dy = p.y - mouse.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < REPEL * REPEL && d2 > 0.0001) {
+            const d = Math.sqrt(d2);
+            const force = (REPEL - d) / REPEL;
+            p.x += (dx / d) * force * 2.4;
+            p.y += (dy / d) * force * 2.4;
+          }
+        }
+
+        if (p.x < -10) p.x = width + 10;
+        else if (p.x > width + 10) p.x = -10;
+        if (p.y < -10) p.y = height + 10;
+        else if (p.y > height + 10) p.y = -10;
+
+        const alpha = p.o * (0.6 + 0.4 * Math.sin(p.tw));
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(16, 185, 129, ${alpha})`;
+        ctx.fill();
+
+        for (let j = i + 1; j < particles.length; j++) {
+          const q = particles[j];
+          const dx = p.x - q.x;
+          const dy = p.y - q.y;
+          const d2 = dx * dx + dy * dy;
+          if (d2 < LINK * LINK) {
+            links.push({
+              ax: p.x,
+              ay: p.y,
+              bx: q.x,
+              by: q.y,
+              a: (1 - Math.sqrt(d2) / LINK) * 0.13,
+            });
+          }
+        }
+      }
+
+      for (const l of links) {
+        ctx.beginPath();
+        ctx.moveTo(l.ax, l.ay);
+        ctx.lineTo(l.bx, l.by);
+        ctx.strokeStyle = `rgba(52, 211, 153, ${l.a})`;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
+    };
+
+    draw();
+
+    window.addEventListener("resize", onResize);
+    window.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseleave", onMouseLeave);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("mousemove", onMouseMove);
+      document.addEventListener("mouseleave", onMouseLeave);
+    };
+  }, [splashDone]);
+
+  // Splash Screen Timeline — Cyber Holographic Capsule Reveal
+  useEffect(() => {
+    if (!splashRef.current || !splashCapsuleRef.current) return;
+
+    let tl: gsap.core.Timeline | null = null;
+    let disposed = false;
+
+    const build = () => {
+      if (disposed) return;
+
+      const splashTl = gsap.timeline({
+        onComplete: () => {
+          if (splashRef.current) splashRef.current.style.display = "none";
+          setSplashDone(true);
+        },
+      });
+      tl = splashTl;
+
+      // 1. Glow & Laser beam line sweep horizontally
+      if (splashGlowRef.current) {
+        splashTl.fromTo(
+          splashGlowRef.current,
+          { scale: 0.3, opacity: 0 },
+          { scale: 1.3, opacity: 1, duration: 1.6, ease: "power2.out" },
+          0
+        );
+      }
+
+      if (splashLaserRef.current) {
+        splashTl.fromTo(
+          splashLaserRef.current,
+          { width: "0%" },
+          { width: "80%", duration: 0.8, ease: "power3.inOut" },
+          0.1
+        );
+        splashTl.to(
+          splashLaserRef.current,
+          { width: "100%", opacity: 0, duration: 0.5, ease: "power2.out" },
+          0.9
+        );
+      }
+
+      // 2. Holographic Capsule scale snap reveal
+      splashTl.fromTo(
+        splashCapsuleRef.current,
+        { scale: 0.85, opacity: 0, filter: "blur(12px)" },
+        { scale: 1, opacity: 1, filter: "blur(0px)", duration: 1.0, ease: "back.out(1.4)" },
+        0.5
+      );
+
+      // 3. Hold beat
+      splashTl.to({}, { duration: 1.0 });
+
+      // 4. Exit dissolve & portal expand
+      const exitTl = gsap.timeline();
+      exitTl.call(() => setSplashReveal(true), [], 0);
+
+      exitTl.to(
+        splashCapsuleRef.current,
+        { scale: 1.15, opacity: 0, filter: "blur(16px)", duration: 0.8, ease: "power2.in" },
+        0
+      );
+
+      exitTl.to(
+        splashRef.current,
+        { opacity: 0, duration: 0.8, ease: "power2.inOut" },
+        0.2
+      );
+
+      splashTl.add(exitTl);
+    };
+
+    build();
+
+    return () => {
+      disposed = true;
+      if (tl) tl.kill();
+    };
+  }, []);
+
+  // Hero Animations Timeline — runs as the splash mask-out begins so the hero is revealed beneath the closing mask
+  useEffect(() => {
+    if (!splashReveal) return;
+
+    const ctx = gsap.context(() => {
+      const entranceTl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+      });
+
+      // 1. Navbar entrance — expands outward from the center line, then buttons blur in
+      if (navWrapRef.current) {
+        const expandProxy = { p: 0 };
+        entranceTl.to(expandProxy, {
+          p: 1,
+          duration: 1.0,
+          ease: "smooth",
+          onUpdate: () => {
+            if (navWrapRef.current) {
+              const side = (1 - expandProxy.p) * 50;
+              navWrapRef.current.style.clipPath = `inset(0% ${side}% 0% ${side}%)`;
+            }
+          },
+          onComplete: () => {
+            if (navWrapRef.current) {
+              navWrapRef.current.style.clipPath = "";
+            }
+          },
+        }, 0);
+      }
+      if (navRef.current) {
+        entranceTl.fromTo(
+          navRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 0.8, ease: "smooth" },
+          0.15
+        );
+
+        const navItems = navRef.current.querySelectorAll(".nav-item");
+        if (navItems.length > 0) {
+          entranceTl.fromTo(
+            navItems,
+            { y: -12, opacity: 0, filter: "blur(8px)" },
+            { y: 0, opacity: 1, filter: "blur(0px)", duration: 0.6, stagger: 0.04 },
+            0.45
+          );
+        }
+      }
+
+      // 2. Logo entrance
+      if (crescentRef.current) {
+        entranceTl.fromTo(
+          crescentRef.current,
+          { y: -30, opacity: 0, filter: "blur(8px)" },
+          { y: 0, opacity: 1, filter: "blur(0px)", duration: 1.2, ease: "smooth" },
+          0.1
+        );
+      }
+      if (technocratsRef.current) {
+        entranceTl.fromTo(
+          technocratsRef.current,
+          { scale: 0.95, opacity: 0, filter: "blur(15px)" },
+          { scale: 1, opacity: 1, filter: "blur(0px)", duration: 1.4, ease: "smooth" },
+          0.2
+        );
+      }
+      if (clubRef.current) {
+        entranceTl.fromTo(
+          clubRef.current,
+          { y: 30, opacity: 0, filter: "blur(8px)" },
+          { y: 0, opacity: 1, filter: "blur(0px)", duration: 1.2, ease: "smooth" },
+          0.3
+        );
+      }
+
+      // 3. Accent elements entrance
+      if (sparkleRef.current) {
+        entranceTl.fromTo(
+          sparkleRef.current,
+          { opacity: 0, scale: 0.5, rotation: -45 },
+          { opacity: 0.25, scale: 1, rotation: 0, duration: 1.5, ease: "power3.out" },
+          0.5
+        );
+      }
+      if (indicatorRef.current) {
+        entranceTl.fromTo(
+          indicatorRef.current,
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 1.0, ease: "power3.out" },
+          0.6
+        );
+      }
+
+      // 3b. Particle constellation & mouse spotlight fade in
+      if (heroParticlesRef.current) {
+        entranceTl.fromTo(
+          heroParticlesRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 1.6, ease: "power3.out" },
+          0.4
+        );
+      }
+      if (heroGlowRef.current) {
+        entranceTl.fromTo(
+          heroGlowRef.current,
+          { opacity: 0 },
+          { opacity: 1, duration: 1.2, ease: "power3.out" },
+          0.5
+        );
+      }
+
+      // 4. Orbital rings entrance & rotation animation
+      const ringEls = orbitalRingsRef.current.filter(Boolean);
+      if (ringEls.length) {
+        ringEls.forEach((el, i) => {
+          gsap.set(el, {
+            rotationX: orbitalRings[i].tiltX,
+            rotationY: orbitalRings[i].tiltY,
+          });
+        });
+
+        entranceTl.fromTo(
+          ringEls,
+          { opacity: 0, scale: 0.7 },
+          { opacity: 1, scale: 1, duration: 1.5, ease: "power3.out", stagger: 0.15 },
+          0.3
+        );
+
+        ringEls.forEach((el, i) => {
+          gsap.to(el, {
+            rotation: 360,
+            duration: orbitalRings[i].speed,
+            repeat: -1,
+            ease: "none",
+            delay: orbitalRings[i].delay,
+          });
+        });
+      }
+    });
+
+    return () => ctx.revert();
+  }, [splashReveal]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
+    <>
+      {/* Splash Screen — Cyber-Holographic Capsule Reveal */}
+      <div
+        ref={splashRef}
+        className="fixed inset-0 z-[100] flex flex-col items-center justify-center overflow-hidden bg-[#040706] select-none"
+      >
+        {/* Ambient Grid Background */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-20"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, rgba(52,211,153,0.15) 1px, transparent 1px)",
+            backgroundSize: "32px 32px",
+          }}
         />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+
+        {/* Glowing Ambient Radial Glow */}
+        <div
+          ref={splashGlowRef}
+          className="absolute w-[600px] h-[600px] rounded-full pointer-events-none opacity-0"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(52,211,153,0.2) 0%, rgba(99,102,241,0.1) 45%, transparent 70%)",
+          }}
+        />
+
+        {/* Laser Beam Line */}
+        <div
+          ref={splashLaserRef}
+          className="absolute h-[2px] w-0 bg-gradient-to-r from-transparent via-emerald-400 to-transparent shadow-[0_0_20px_rgba(52,211,153,0.9)] z-20"
+        />
+
+        {/* Holographic Capsule Container */}
+        <div
+          ref={splashCapsuleRef}
+          className="relative z-10 opacity-0 scale-90"
+        >
+          <div className="flex items-center gap-3.5 px-8 sm:px-12 py-4 sm:py-5 rounded-full bg-emerald-950/30 border border-emerald-500/30 backdrop-blur-2xl shadow-[0_0_60px_rgba(52,211,153,0.18)]">
+            <span className="text-emerald-400 text-lg sm:text-xl animate-pulse">✦</span>
+            <h1
+              ref={splashTitleRef}
+              className="font-syne text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-teal-300 drop-shadow-[0_0_25px_rgba(52,211,153,0.4)] whitespace-nowrap"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              Hey Technocrat!
+            </h1>
+            <span className="text-emerald-400 text-lg sm:text-xl animate-pulse">✦</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </div>
+
+      {/* ── Full-Screen Mobile Overlay Menu ── */}
+      <div
+        aria-modal="true"
+        role="dialog"
+        className={`fixed inset-0 z-[80] md:hidden transition-all duration-500 ease-in-out flex flex-col ${
+          mobileMenuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
+        style={{
+          background: "rgba(8,12,11,0.97)",
+          backdropFilter: "blur(28px)",
+          WebkitBackdropFilter: "blur(28px)",
+        }}
+      >
+        {/* Grid decoration */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right,rgba(52,211,153,0.04) 1px,transparent 1px),linear-gradient(to bottom,rgba(52,211,153,0.04) 1px,transparent 1px)",
+            backgroundSize: "40px 40px",
+          }}
+        />
+        {/* Ambient glow orbs */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(52,211,153,0.08) 0%, transparent 70%)" }} />
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)" }} />
+
+        {/* Close button — top right */}
+        <div className="flex items-center justify-between px-6 pt-8 pb-4 relative z-10">
+          {/* Brand in overlay */}
+          <div className="flex items-center gap-2">
+            <span className="text-mint text-sm">✦</span>
+            <span className="font-syne text-xl font-black tracking-widest" style={{ background: "linear-gradient(135deg,#34d399,#6366f1,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>CTC</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+          </div>
+          <button
+            aria-label="Close menu"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex items-center justify-center w-11 h-11 rounded-full border border-white/10 hover:border-mint/40 hover:bg-mint/10 transition-all duration-300 focus:outline-none"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Thin separator */}
+        <div className="mx-6 h-px" style={{ background: "linear-gradient(90deg,transparent,rgba(52,211,153,0.25),transparent)" }} />
+
+        {/* Nav Links — large centered */}
+        <nav className="flex-1 flex flex-col justify-center gap-1 px-6 py-8 relative z-10">
+          {[
+            { href: "#",      label: "Home",   num: "01" },
+            { href: "#events", label: "Events", num: "02" },
+            { href: "#about",  label: "About",  num: "03" },
+            { href: "#team",   label: "Team",   num: "04" },
+          ].map(({ href, label, num }, i) => (
+            <a
+              key={label}
+              href={href}
+              onClick={() => setMobileMenuOpen(false)}
+              className="group flex items-center gap-4 py-4 border-b border-white/5 hover:border-mint/20 transition-all duration-300"
+              style={{
+                transform: mobileMenuOpen ? "translateX(0)" : "translateX(-24px)",
+                opacity: mobileMenuOpen ? 1 : 0,
+                transition: `transform 500ms cubic-bezier(0.16,1,0.3,1) ${100 + i * 80}ms, opacity 450ms ease ${80 + i * 80}ms, border-color 300ms ease`,
+              }}
+            >
+              <span className="text-[10px] font-mono text-mint/40 group-hover:text-mint/80 transition-colors duration-300 w-6 shrink-0">{num}</span>
+              <span className="font-syne text-4xl font-black tracking-tight text-white/80 group-hover:text-white transition-colors duration-300">{label}</span>
+              <span className="ml-auto w-0 group-hover:w-8 h-[1.5px] rounded-full transition-all duration-400 shrink-0" style={{ background: "linear-gradient(90deg,#34d399,#6366f1)" }} />
+            </a>
+          ))}
+        </nav>
+
+        {/* CTA row at the bottom */}
+        <div
+          className="flex gap-3 px-6 pb-12 relative z-10"
+          style={{
+            transform: mobileMenuOpen ? "translateY(0)" : "translateY(16px)",
+            opacity: mobileMenuOpen ? 1 : 0,
+            transition: "transform 500ms cubic-bezier(0.16,1,0.3,1) 420ms, opacity 400ms ease 400ms",
+          }}
+        >
+          <a
+            href="#join"
+            onClick={() => setMobileMenuOpen(false)}
+            className="flex-1 text-center px-5 py-3.5 rounded-full border border-white/15 hover:border-mint/40 hover:bg-mint/5 font-syne text-sm font-bold tracking-wider uppercase text-white/70 hover:text-white transition-all duration-300"
+          >
+            <span className="text-gradient-loop">HOST&apos;IT</span>
+          </a>
+          <a
+            href="#join"
+            onClick={() => setMobileMenuOpen(false)}
+            className="group flex-1 relative flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-mint text-black font-syne text-sm font-bold tracking-wider uppercase overflow-hidden shadow-lg shadow-mint/20 hover:shadow-mint/40 hover:scale-[1.03] transition-all duration-300"
+          >
+            <span className="relative z-10">Join Us</span>
+            <svg className="relative z-10 w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7V17" />
+            </svg>
+          </a>
+        </div>
+
+        {/* Bottom tagline */}
+        <p
+          className="text-center pb-8 text-[10px] font-mono tracking-[0.3em] text-white/20 uppercase relative z-10"
+          style={{
+            opacity: mobileMenuOpen ? 1 : 0,
+            transition: "opacity 600ms ease 500ms",
+          }}
+        >
+          Crescent Technical Club
+        </p>
+      </div>
+
+      {/* Floating Holographic 3D Glass Pill Navbar */}
+      <div
+        ref={navWrapRef}
+        className="fixed top-5 left-1/2 -translate-x-1/2 z-[85] w-[92%] max-w-5xl holo-border-wrapper shadow-2xl transition-transform duration-500 hover:scale-[1.01] rounded-full"
+        style={{ clipPath: "inset(0% 50% 0% 50%)" }}
+      >
+        <nav
+          ref={navRef}
+          className="relative w-full opacity-0 text-black transition-all duration-500"
+        >
+          {/* ── Desktop Row (md+) — unchanged ── */}
+          <div className="hidden md:flex items-center justify-between px-6 py-2.5 holo-pill-glass rounded-full">
+            {/* Left Navigation Links */}
+            <div className="flex flex-1 items-center gap-1 sm:gap-2 text-xs md:text-sm font-semibold text-black/80 font-syne tracking-wider uppercase">
+              <a
+                href="#"
+                className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
+              >
+                <span>Home</span>
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
+              </a>
+              <a
+                href="#events"
+                className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
+              >
+                <span>Events</span>
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
+              </a>
+              <a
+                href="#about"
+                className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
+              >
+                <span>About</span>
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
+              </a>
+            </div>
+
+            {/* Centered Holographic Brand Badge */}
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
+              <div className="nav-item pointer-events-auto flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/40 border border-black/10 hover:bg-white/70 transition-all duration-300 group cursor-pointer shadow-sm">
+                <span className="text-emerald-600 group-hover:rotate-180 transition-transform duration-700 text-sm">✦</span>
+                <span className="nav-item-text text-lg md:text-xl font-black tracking-widest text-holo-gradient font-syne select-none group-hover:scale-105 transition-transform">
+                  CTC
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+              </div>
+            </div>
+
+            {/* Right Navigation Links & Holographic CTA */}
+            <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4 text-xs md:text-sm font-semibold text-black/80 font-syne tracking-wider uppercase">
+              <a
+                href="#team"
+                className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
+              >
+                <span>Team</span>
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
+              </a>
+
+              <a
+                href="#join"
+                className="nav-item group relative inline-flex items-center px-3.5 py-1.5 rounded-full border border-transparent hover:border-black/10 hover:bg-white/40 font-syne text-xs md:text-sm font-bold tracking-wider uppercase transition-all duration-300"
+              >
+                <span className="text-gradient-loop">HOST&apos;IT</span>
+              </a>
+
+              <a
+                href="#join"
+                className="nav-item group relative inline-flex items-center gap-2 px-5 py-2 rounded-full bg-black text-white font-syne text-xs font-bold tracking-wider uppercase overflow-hidden shadow-lg hover:shadow-purple-500/25 hover:scale-[1.04] transition-all duration-300"
+              >
+                <span className="relative z-10">Join Us</span>
+                <svg
+                  className="relative z-10 w-3.5 h-3.5 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300 text-emerald-400"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7V17" />
+                </svg>
+                <div className="absolute inset-0 gradient-overlay-loop opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              </a>
+            </div>
+          </div>
+
+          {/* ── Mobile Row (< md) ── */}
+          <div className={`flex md:hidden items-center justify-between px-4 py-2.5 holo-pill-glass transition-all duration-300 ${mobileMenuOpen ? "rounded-t-3xl" : "rounded-3xl"}`}>
+            {/* Mobile Brand Badge */}
+            <div className="nav-item flex items-center gap-2 px-3 py-1 rounded-full bg-white/40 border border-black/10 group cursor-pointer shadow-sm">
+              <span className="text-emerald-600 group-hover:rotate-180 transition-transform duration-700 text-sm">✦</span>
+              <span className="nav-item-text text-base font-black tracking-widest text-holo-gradient font-syne select-none">CTC</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+            </div>
+
+            {/* Burger Button */}
+            <button
+              id="mobile-menu-toggle"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className="nav-item relative flex items-center justify-center w-10 h-10 rounded-full bg-white/30 border border-black/10 hover:bg-white/60 transition-all duration-300 focus:outline-none"
+            >
+              <span className="sr-only">{mobileMenuOpen ? "Close" : "Menu"}</span>
+              {/* Animated burger → X */}
+              <span className="flex flex-col items-center justify-center w-5 h-5 gap-[5px]">
+                <span
+                  className="block h-[2px] rounded-full bg-black/80 transition-all duration-300 origin-center"
+                  style={{
+                    width: mobileMenuOpen ? "18px" : "18px",
+                    transform: mobileMenuOpen ? "translateY(7px) rotate(45deg)" : "none",
+                  }}
+                />
+                <span
+                  className="block h-[2px] rounded-full bg-black/80 transition-all duration-300"
+                  style={{
+                    width: "14px",
+                    opacity: mobileMenuOpen ? 0 : 1,
+                    transform: mobileMenuOpen ? "scaleX(0)" : "none",
+                  }}
+                />
+                <span
+                  className="block h-[2px] rounded-full bg-black/80 transition-all duration-300 origin-center"
+                  style={{
+                    width: mobileMenuOpen ? "18px" : "18px",
+                    transform: mobileMenuOpen ? "translateY(-7px) rotate(-45deg)" : "none",
+                  }}
+                />
+              </span>
+            </button>
+          </div>
+
+          {/* Mobile dropdown removed — full-screen overlay is used instead */}
+        </nav>
+      </div>
+
+      {/* Main Hero Container */}
+      <div
+        ref={pinRef}
+        className="relative sticky top-0 z-10 min-h-screen bg-hero-gradient overflow-x-hidden overflow-y-visible flex flex-col justify-center items-center"
+      >
+        {/* Grain Texture Overlay */}
+        <div className="bg-grain opacity-60" />
+
+        {/* Mouse Spotlight Glow */}
+        <div
+          ref={heroGlowRef}
+          className="absolute inset-0 pointer-events-none select-none z-[1] hero-spotlight opacity-0"
+          style={{ "--mouse-x": "50%", "--mouse-y": "40%" } as React.CSSProperties}
+        />
+
+        {/* Interactive Particle Constellation */}
+        <canvas
+          ref={heroParticlesRef}
+          className="absolute inset-0 w-full h-full pointer-events-none select-none z-[1] opacity-0"
+        />
+
+        {/* Orbital Rings */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-[1]" style={{ perspective: "800px" }}>
+          {orbitalRings.map((ring) => (
+            <div
+              key={ring.id}
+              ref={(ref) => { if (ref) orbitalRingsRef.current[ring.id] = ref; }}
+              className="absolute rounded-full"
+              style={{
+                width: ring.size,
+                height: ring.size,
+                border: `${ring.size > 300 ? 1.5 : 2}px solid rgba(52, 211, 153, ${ring.borderOpacity})`,
+                boxShadow: `0 0 ${ring.size * 0.04}px rgba(52, 211, 153, ${ring.borderOpacity * 0.5})`,
+                opacity: 0,
+              }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          ))}
         </div>
-      </main>
-    </div>
+
+        {/* Logo Text Stack — Pristine, Crisp Fixed Text */}
+        <main ref={textWrapRef} className="flex flex-col items-center justify-center text-center select-none z-10 py-12 px-6">
+          <h2
+            ref={crescentRef}
+            className="font-inversionz text-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl tracking-[0.2em] pl-[0.2em] mb-0 uppercase leading-none opacity-0"
+          >
+            Crescent
+          </h2>
+          <h1
+            ref={technocratsRef}
+            className="font-nechlas text-black text-6xl sm:text-8xl md:text-[7rem] lg:text-[8rem] xl:text-[10rem] font-normal tracking-[0.08em] leading-none uppercase opacity-0"
+          >
+            Technocrats
+          </h1>
+          <h2
+            ref={clubRef}
+            className="font-gameshow text-black text-4xl sm:text-5xl md:text-6xl lg:text-7xl tracking-[0.15em] pl-[0.15em] mt-0 uppercase leading-none opacity-0"
+          >
+            Club
+          </h2>
+        </main>
+
+        {/* Sparkle Icon (Bottom Right, matching mockup) */}
+        <div
+          ref={sparkleRef}
+          className="absolute bottom-10 right-10 opacity-0 text-black/25 pointer-events-none"
+        >
+          <svg className="w-8 h-8 animate-pulse-glow" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0L14.6 9.4L24 12L14.6 14.6L12 24L9.4 14.6L0 12L9.4 9.4L12 0Z" />
+          </svg>
+        </div>
+
+        {/* Scroll Down Indicator */}
+        <div
+          ref={indicatorRef}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 opacity-0 text-black/40 pointer-events-none select-none z-10"
+        >
+          <span className="text-[10px] font-mono tracking-widest uppercase">Scroll to Discover</span>
+          <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Events Showcase Section */}
+      <EventsShowcase />
+
+      {/* About Section (Light Theme, 8x8 Expanding Grid) */}
+      <AboutSection />
+
+      {/* Team Section (Circle Mask Reveal & 45-degree Diagonal Wipe Reveal) */}
+      <TeamSection />
+
+      {/* Liquid Smudge Cursor Lens — hidden on touch/mobile devices */}
+      {!isTouchDevice && (
+        <div
+          ref={cursorLensRef}
+          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[90] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
+          style={{
+            backdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
+            WebkitBackdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
+            opacity: cursorVisible && !navHover && !macHover ? 1 : 0,
+          }}
+        />
+      )}
+
+      {/* Cursor PNG Overlay — hidden on touch/mobile devices */}
+      {!isTouchDevice && (
+        <div
+          ref={cursorPngRef}
+          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[92] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
+          style={{ opacity: cursorVisible ? 1 : 0 }}
+        >
+          <img
+            src="/assets/cursor.png"
+            alt=""
+            className="w-full h-full object-contain"
+            draggable={false}
+          />
+        </div>
+      )}
+
+      {/* SVG Liquid Smudge Displacement Filter */}
+      <svg className="fixed w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true" style={{ position: "fixed", width: 0, height: 0 }}>
+        <defs>
+          <filter id="cursor-liquid-smudge" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.035 0.035"
+              numOctaves="2"
+              result="noise"
+            />
+            <feDisplacementMap
+              ref={cursorDisplacementRef}
+              in="SourceGraphic"
+              in2="noise"
+              scale="0"
+              xChannelSelector="R"
+              yChannelSelector="G"
+              result="displaced"
+            />
+            <feGaussianBlur in="displaced" stdDeviation="2" />
+          </filter>
+        </defs>
+      </svg>
+    </>
   );
 }

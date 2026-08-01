@@ -1,0 +1,53 @@
+export interface ClubEvent {
+  id: string;
+  title: string;
+  description: string;
+  image: string;
+  category: string;
+  venue: string;
+  date: string;
+  registerUrl: string;
+}
+
+export const defaultEvents: ClubEvent[] = [
+  {
+    id: "codestorm-2026",
+    title: "CodeStorm Hackathon",
+    description: "24 hours of pure innovation. Form a team, pick a track, and ship a product from zero to hero.",
+    image: "/assets/hero_3d.png",
+    category: "Hackathon",
+    venue: "Main Auditorium",
+    date: "2026-08-14T09:00:00+05:30",
+    registerUrl: "#",
+  },
+  {
+    id: "ai-summit-2026",
+    title: "AI Innovation Summit",
+    description: "A full day of talks, demos, and networking with researchers building the future of intelligent systems.",
+    image: "/assets/hero_crystal.png",
+    category: "Summit",
+    venue: "Seminar Hall B",
+    date: "2026-08-28T10:00:00+05:30",
+    registerUrl: "#",
+  },
+  {
+    id: "webforge-2026",
+    title: "WebForge Workshop",
+    description: "Hands-on workshop covering modern full-stack development, performance, and deployment best practices.",
+    image: "/assets/hero_glass_sphere.png",
+    category: "Workshop",
+    venue: "Innovation Lab",
+    date: "2026-09-12T14:00:00+05:30",
+    registerUrl: "#",
+  },
+  {
+    id: "techtalk-scaling-2026",
+    title: "TechTalk: Scaling Systems",
+    description: "Engineers from leading startups break down how real products scale from a prototype to millions of users.",
+    image: "/assets/bento_3d.png",
+    category: "Tech Talk",
+    venue: "Crescent Theater",
+    date: "2026-09-26T17:00:00+05:30",
+    registerUrl: "#",
+  },
+];
