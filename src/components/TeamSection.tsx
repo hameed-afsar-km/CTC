@@ -13,6 +13,7 @@ interface TeamMember {
   id: number;
   name: string;
   role: string;
+  designation?: string;
   bio: string;
   image: string;
   email?: string;
@@ -22,8 +23,8 @@ interface TeamMember {
 }
 
 const teamMembers: TeamMember[] = [
-  { id: 1, name: "Alex Vance", role: "Club President", bio: "Pioneering community growth, strategic vision, and technical excellence across all club initiatives.", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800", email: "alex.vance@ctc.club", github: "https://github.com", linkedin: "https://linkedin.com", twitter: "https://twitter.com" },
-  { id: 2, name: "Sarah Chen", role: "Vice President", bio: "Overseeing operations, inter-departmental synergy, and scaling technical workshop programs.", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=800", email: "sarah.chen@ctc.club", github: "https://github.com", linkedin: "https://linkedin.com" },
+  { id: 1, name: "Alex Vance", role: "Club President", designation: "HOD CSE Department", bio: "Pioneering community growth, strategic vision, and technical excellence across all club initiatives.", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800", email: "alex.vance@ctc.club", github: "https://github.com", linkedin: "https://linkedin.com", twitter: "https://twitter.com" },
+  { id: 2, name: "Sarah Chen", role: "Vice President", designation: "Dean Student Affairs", bio: "Overseeing operations, inter-departmental synergy, and scaling technical workshop programs.", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=800", email: "sarah.chen@ctc.club", github: "https://github.com", linkedin: "https://linkedin.com" },
   { id: 3, name: "Marcus Brody", role: "Head of Web Dev", bio: "Architecting web platforms, modern UI systems, and guiding members through frontend mastery.", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800", email: "marcus.brody@ctc.club", github: "https://github.com", twitter: "https://twitter.com" },
   { id: 4, name: "Elena Rostova", role: "Head of AI & ML", bio: "Leading deep learning research, intelligent automation projects, and AI hackathon tracks.", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800", email: "elena.rostova@ctc.club", linkedin: "https://linkedin.com" },
   { id: 5, name: "David Kim", role: "Head of UI/UX Design", bio: "Designing slick user experiences, modern visual identities, and interactive motion systems.", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800", email: "david.kim@ctc.club", twitter: "https://twitter.com" },
@@ -55,13 +56,13 @@ function TeamHeader({
   onNext?: () => void;
 }) {
   return (
-    <div className="relative z-30 mx-auto mt-24 flex w-full max-w-6xl items-center justify-between sm:mt-6 lg:mt-8">
+    <div className="relative z-30 mx-auto mt-24 flex w-full max-w-6xl items-center justify-between sm:mt-6 lg:mt-20">
       <div className="inline-flex items-center gap-2 rounded-full border border-[#1d4f3a]/15 bg-[#c9e6d2] px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#174630] sm:text-xs">
         <Sparkles className="h-3.5 w-3.5 text-[#28704d]" />
         {title && <span>{title}</span>}
       </div>
       <div className="flex items-center gap-3">
-        <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 font-mono text-xs font-bold tracking-[0.18em] text-white backdrop-blur-sm sm:text-sm">
+        <span className="inline-flex items-center gap-1 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 font-mono text-xs font-bold tracking-[0.18em] text-white sm:text-sm">
           {String(activeIndex + 1).padStart(2, "0")} <span className="text-emerald-300">/</span> {String(totalSlides).padStart(2, "0")}
         </span>
         {onPrevious && onNext && (
@@ -108,6 +109,8 @@ function MemberCard({ member }: { member: TeamMember }) {
             <img
               src={member.image}
               alt={member.name}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-80" />
@@ -122,16 +125,22 @@ function MemberCard({ member }: { member: TeamMember }) {
 
         {/* Middle: Role Badge & Member Name */}
         <div className="flex flex-col items-center text-center gap-1 px-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-3 py-0.5 font-mono text-[9px] min-[400px]:text-[10px] font-black uppercase tracking-widest text-emerald-900 shadow-sm border border-emerald-200/50">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-700/30 bg-transparent px-3 py-0.5 font-mono text-[9px] min-[400px]:text-[10px] font-black uppercase tracking-widest text-emerald-900">
             <svg className="h-2.5 w-2.5 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
             {member.role}
           </span>
-          
+
           <h3 className="font-syne text-xl min-[400px]:text-2xl font-black leading-tight tracking-tight text-slate-900">
             {member.name}
           </h3>
+
+          {member.designation && (
+            <span className="bg-gradient-to-r from-lime-600 via-emerald-600 to-teal-500 bg-clip-text font-mono text-[10px] min-[400px]:text-[11px] font-black uppercase tracking-[0.2em] text-transparent">
+              {member.designation}
+            </span>
+          )}
         </div>
 
         {/* Bottom: Glass Bio Card & Social Bar */}
@@ -182,6 +191,8 @@ function MemberCard({ member }: { member: TeamMember }) {
             <img
               src={member.image}
               alt={member.name}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-1000 ease-[0.22,1,0.36,1] group-hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-90 mix-blend-multiply" />
@@ -197,17 +208,25 @@ function MemberCard({ member }: { member: TeamMember }) {
         <div className="relative flex flex-col justify-center rounded-[2rem] bg-white p-6 sm:p-8 md:col-span-7 md:row-span-1 shadow-sm border border-slate-100">
           <div className="flex flex-col gap-4">
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-50 px-4 py-2 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-700/30 bg-transparent px-4 py-2 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800">
                 <svg className="h-3 w-3 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 {member.role}
               </span>
             </div>
-            
-            <h3 className="font-syne text-4xl font-black leading-none tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
-              {member.name}
-            </h3>
+
+            <div>
+              <h3 className="font-syne text-4xl font-black leading-none tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+                {member.name}
+              </h3>
+
+              {member.designation && (
+                <span className="mt-4 inline-block bg-gradient-to-r from-lime-600 via-emerald-600 to-teal-500 bg-clip-text font-mono text-sm font-black uppercase tracking-[0.25em] text-transparent">
+                  {member.designation}
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -332,14 +351,14 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
     <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
       {/* Swirl Dithering Shader Background */}
       <div className="absolute inset-0">
-        <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} />
+        <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
       </div>
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.08)_1px,transparent_1px)] [background-size:36px_36px]" />
       <TeamHeader title="Core Leadership" activeIndex={activeIndex} totalSlides={totalSlides} onPrevious={() => navigateToMember(activeIndex - 1)} onNext={() => navigateToMember(activeIndex + 1)} />
       
-      <div ref={contentRef} className="relative z-20 mx-auto my-auto flex h-[580px] min-[400px]:h-[620px] w-full max-w-6xl items-center justify-center sm:h-[560px] lg:h-[540px]">
+      <div ref={contentRef} className="relative z-20 mx-auto my-auto grid w-full max-w-6xl grid-cols-1 md:h-[560px] lg:h-[540px]">
         {members.map((member, index) => (
-          <div key={member.id} ref={(element) => { memberCardsRef.current[index] = element; }} className="absolute inset-0 h-full w-full overflow-hidden" style={{ zIndex: index + 1, clipPath: index === 0 ? "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)" : "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }}>
+          <div key={member.id} ref={(element) => { memberCardsRef.current[index] = element; }} className="col-start-1 row-start-1 h-full w-full overflow-hidden" style={{ zIndex: index + 1, clipPath: index === 0 ? "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)" : "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }}>
             <MemberCard member={member} />
           </div>
         ))}
@@ -432,14 +451,14 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
     <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
       {/* Swirl Dithering Shader Background */}
       <div className="absolute inset-0">
-        <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} />
+        <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
       </div>
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.08)_1px,transparent_1px)] [background-size:36px_36px]" />
       <TeamHeader title="Student Presidents" activeIndex={activeIndex} totalSlides={totalSlides} onPrevious={() => navigateToMember(activeIndex - 1)} onNext={() => navigateToMember(activeIndex + 1)} />
       
-      <div className="relative z-20 mx-auto my-auto flex h-[580px] min-[400px]:h-[620px] w-full max-w-6xl items-center justify-center sm:h-[560px] lg:h-[540px]">
+      <div className="relative z-20 mx-auto my-auto grid w-full max-w-6xl grid-cols-1 md:h-[560px] lg:h-[540px]">
         {members.map((member, index) => (
-          <div key={member.id} ref={(element) => { memberCardsRef.current[index] = element; }} className="absolute inset-0 h-full w-full overflow-hidden" style={{ zIndex: index + 1, clipPath: index === 0 ? "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)" : "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }}>
+          <div key={member.id} ref={(element) => { memberCardsRef.current[index] = element; }} className="col-start-1 row-start-1 h-full w-full overflow-hidden" style={{ zIndex: index + 1, clipPath: index === 0 ? "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)" : "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }}>
             <MemberCard member={member} />
           </div>
         ))}

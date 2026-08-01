@@ -46,15 +46,6 @@ const aboutCards: AboutCardData[] = [
   },
 ];
 
-interface LaserRipple {
-  x: number;
-  y: number;
-  r: number;
-  maxR: number;
-  alpha: number;
-  speed: number;
-}
-
 export default function AboutSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -77,8 +68,6 @@ export default function AboutSection() {
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
-    const ripples: LaserRipple[] = [];
-
     const handleMouseMove = (e: MouseEvent) => {
       const rect = canvas.getBoundingClientRect();
       const m = mouseRef.current;
@@ -89,18 +78,6 @@ export default function AboutSection() {
         const dx = currentX - m.prevX;
         const dy = currentY - m.prevY;
         m.speed = Math.hypot(dx, dy);
-
-        // Spawn interactive laser ripple if cursor is moving
-        if (m.speed > 5 && ripples.length < 25) {
-          ripples.push({
-            x: currentX,
-            y: currentY,
-            r: 5,
-            maxR: Math.min(250, m.speed * 8 + 60),
-            alpha: 0.6,
-            speed: Math.max(1.5, m.speed * 0.1),
-          });
-        }
       }
 
       m.x = currentX;
@@ -158,27 +135,7 @@ export default function AboutSection() {
         ctx.stroke();
       }
 
-      // 2. Draw & Update Interactive Cursor Speed Laser Ripples
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const r = ripples[i];
-        r.r += r.speed;
-        r.alpha *= 0.95;
 
-        ctx.save();
-        ctx.strokeStyle = `rgba(52, 211, 153, ${r.alpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.shadowColor = "rgba(52, 211, 153, 0.8)";
-        ctx.shadowBlur = 10;
-
-        ctx.beginPath();
-        ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.restore();
-
-        if (r.alpha < 0.02 || r.r > r.maxR) {
-          ripples.splice(i, 1);
-        }
-      }
 
       // 3. Floating Particles inside Wavefront
       particles.forEach((p) => {
@@ -203,9 +160,8 @@ export default function AboutSection() {
       ctx.fillText(
         `[HOLO_WAVEFRONT_ACTIVE // VELOCITY: ${m.speed.toFixed(1)}PX/S]`,
         40,
-        height - 70
+        height - 50
       );
-      ctx.fillText(`[RIPPLE_INSTANCES: ${ripples.length}]`, 40, height - 50);
 
       animationFrameId = requestAnimationFrame(animate);
     };

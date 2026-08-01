@@ -474,6 +474,8 @@ export function DitheringShader({
 		// the CPU and report the fraction of pixels closer to the foreground colour.
 		const fgRgb = hexToRgba(colorFront);
 		const bgRgb = hexToRgba(colorBack);
+		const fgUniform = new Float32Array(fgRgb);
+		const bgUniform = new Float32Array(bgRgb);
 		const fg255 = [fgRgb[0] * 255, fgRgb[1] * 255, fgRgb[2] * 255];
 		const bg255 = [bgRgb[0] * 255, bgRgb[1] * 255, bgRgb[2] * 255];
 		let lastSample = 0;
@@ -541,10 +543,8 @@ export function DitheringShader({
 			if (locations.u_time) context.uniform1f(locations.u_time, currentTime);
 			if (locations.u_resolution)
 				context.uniform2f(locations.u_resolution, w, h);
-			if (locations.u_colorBack)
-				context.uniform4fv(locations.u_colorBack, hexToRgba(colorBack));
-			if (locations.u_colorFront)
-				context.uniform4fv(locations.u_colorFront, hexToRgba(colorFront));
+			if (locations.u_colorBack) context.uniform4fv(locations.u_colorBack, bgUniform);
+			if (locations.u_colorFront) context.uniform4fv(locations.u_colorFront, fgUniform);
 			if (locations.u_shape)
 				context.uniform1f(locations.u_shape, DitheringShapes[shape]);
 			if (locations.u_type)
@@ -583,7 +583,7 @@ export function DitheringShader({
 						startAnimation();
 					}
 				},
-				{ rootMargin: "200px" },
+				{ rootMargin: "0px" },
 			);
 			visibilityObserver.observe(canvas.parentElement ?? canvas);
 		}
