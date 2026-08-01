@@ -646,25 +646,6 @@ export default function Home() {
         <div className="absolute top-1/4 left-1/4 w-64 h-64 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(52,211,153,0.08) 0%, transparent 70%)" }} />
         <div className="absolute bottom-1/4 right-1/4 w-48 h-48 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(99,102,241,0.07) 0%, transparent 70%)" }} />
 
-        {/* Close button — top right */}
-        <div className="flex items-center justify-between px-6 pt-8 pb-4 relative z-10">
-          {/* Brand in overlay */}
-          <div className="flex items-center gap-2">
-            <span className="text-mint text-sm">✦</span>
-            <span className="font-syne text-xl font-black tracking-widest" style={{ background: "linear-gradient(135deg,#34d399,#6366f1,#8b5cf6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>CTC</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
-          </div>
-          <button
-            aria-label="Close menu"
-            onClick={() => setMobileMenuOpen(false)}
-            className="flex items-center justify-center w-11 h-11 rounded-full border border-white/10 hover:border-mint/40 hover:bg-mint/10 transition-all duration-300 focus:outline-none"
-          >
-            <svg className="w-5 h-5 text-white/70" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
         {/* Thin separator */}
         <div className="mx-6 h-px" style={{ background: "linear-gradient(90deg,transparent,rgba(52,211,153,0.25),transparent)" }} />
 
@@ -775,7 +756,7 @@ export default function Home() {
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
               <div className="nav-item pointer-events-auto flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/40 border border-black/10 hover:bg-white/70 transition-all duration-300 group cursor-pointer shadow-sm">
                 <span className="text-emerald-600 group-hover:rotate-180 transition-transform duration-700 text-sm">✦</span>
-                <span className="nav-item-text text-lg md:text-xl font-black tracking-widest text-holo-gradient font-syne select-none group-hover:scale-105 transition-transform">
+                <span className="nav-item-text text-lg md:text-xl font-black tracking-widest text-gradient-loop font-syne select-none">
                   CTC
                 </span>
                 <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
@@ -823,7 +804,7 @@ export default function Home() {
             {/* Mobile Brand Badge */}
             <div className="nav-item flex items-center gap-2 px-3 py-1 rounded-full bg-white/40 border border-black/10 group cursor-pointer shadow-sm">
               <span className="text-emerald-600 group-hover:rotate-180 transition-transform duration-700 text-sm">✦</span>
-              <span className="nav-item-text text-base font-black tracking-widest text-holo-gradient font-syne select-none">CTC</span>
+              <span className="nav-item-text text-base font-black tracking-widest text-gradient-loop font-syne select-none">CTC</span>
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
             </div>
 

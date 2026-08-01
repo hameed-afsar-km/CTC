@@ -257,7 +257,8 @@ export default function AboutSection() {
       {/* Light Tagline ONLY above the box */}
       <div className="relative z-10 mb-8 text-center">
         <p className="font-mono text-xs sm:text-sm text-emerald-900/70 uppercase tracking-[0.35em] font-bold">
-          Hover to Explore About Us
+          <span className="sm:hidden">Click to Explore About Us</span>
+          <span className="hidden sm:inline">Hover to Explore About Us</span>
         </p>
       </div>
 
