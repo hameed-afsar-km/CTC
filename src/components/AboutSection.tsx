@@ -49,15 +49,8 @@ const aboutCards: AboutCardData[] = [
 export default function AboutSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({
-    x: -1000,
-    y: -1000,
-    prevX: -1000,
-    prevY: -1000,
-    speed: 0,
-  });
 
-  // Bento Holographic Wavefront Canvas with Interactive Cursor Speed Ripples
+  // Bento Holographic Wavefront Canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -68,23 +61,7 @@ export default function AboutSection() {
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      const m = mouseRef.current;
-      const currentX = e.clientX - rect.left;
-      const currentY = e.clientY - rect.top;
-
-      if (m.prevX > 0) {
-        const dx = currentX - m.prevX;
-        const dy = currentY - m.prevY;
-        m.speed = Math.hypot(dx, dy);
-      }
-
-      m.x = currentX;
-      m.y = currentY;
-      m.prevX = currentX;
-      m.prevY = currentY;
-    };
+    let t = 0;
 
     const handleResize = () => {
       if (!canvas) return;
@@ -92,7 +69,6 @@ export default function AboutSection() {
       height = canvas.height = window.innerHeight;
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("resize", handleResize);
 
     // Floating particles inside wave mesh
@@ -105,8 +81,6 @@ export default function AboutSection() {
       vy: (Math.random() - 0.5) * 0.5,
       alpha: Math.random() * 0.5 + 0.2,
     }));
-
-    let t = 0;
 
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
@@ -153,23 +127,12 @@ export default function AboutSection() {
         ctx.fill();
       });
 
-      // 4. Live Holographic Wavefront Metadata Tag
-      const m = mouseRef.current;
-      ctx.fillStyle = "rgba(16, 185, 129, 0.35)";
-      ctx.font = "bold 11px monospace";
-      ctx.fillText(
-        `[HOLO_WAVEFRONT_ACTIVE // VELOCITY: ${m.speed.toFixed(1)}PX/S]`,
-        40,
-        height - 50
-      );
-
       animationFrameId = requestAnimationFrame(animate);
     };
 
     animate();
 
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
     };

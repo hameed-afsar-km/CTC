@@ -42,6 +42,25 @@ const totalDuration = memberStart + (teamMembers.length - 1) * memberTransitionD
 const introScrollLength = 45;
 const memberScrollLength = 38;
 
+// Mirrors the `md:` Tailwind breakpoint. Used to skip the WebGL shader on
+// Android/mobile, where it is the single biggest GPU/memory consumer.
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const t = window.setTimeout(() => setIsMobile(mq.matches), 0);
+    const onChange = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => {
+      window.clearTimeout(t);
+      mq.removeEventListener("change", onChange);
+    };
+  }, []);
+
+  return isMobile;
+}
+
 function TeamHeader({
   title = "",
   activeIndex,
@@ -274,6 +293,7 @@ function MemberCard({ member }: { member: TeamMember }) {
 
 function FacultyShowcase({ members }: { members: TeamMember[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const isMobile = useIsMobile();
   const introRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLDivElement>(null);
   const showcaseRef = useRef<HTMLDivElement>(null);
@@ -289,37 +309,86 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
     const context = gsap.context(() => {
       if (!showcaseRef.current) return;
 
-      const timeline = gsap.timeline({
-        scrollTrigger: {
-          id: "faculty-showcase",
-          trigger: showcaseRef.current,
-          start: "top top",
-          end: `+=${introScrollLength + (totalSlides - 1) * memberScrollLength}%`,
-          pin: true,
-          scrub: 0.8,
-          onUpdate: (self) => {
-            const elapsed = self.progress * currentTotalDuration;
-            const index = elapsed < memberStart ? 0 : Math.min(totalSlides - 1, Math.floor((elapsed - memberStart) / memberTransitionDuration) + 1);
-            setActiveIndex(index);
+      const mm = gsap.matchMedia();
+
+      // Desktop: pinned full-screen clip-path wipe (unchanged).
+      mm.add("(min-width: 768px)", () => {
+        const timeline = gsap.timeline({
+          scrollTrigger: {
+            id: "faculty-showcase",
+            trigger: showcaseRef.current,
+            start: "top top",
+            end: `+=${introScrollLength + (totalSlides - 1) * memberScrollLength}%`,
+            pin: true,
+            scrub: 0.8,
+            onUpdate: (self) => {
+              const elapsed = self.progress * currentTotalDuration;
+              const index = elapsed < memberStart ? 0 : Math.min(totalSlides - 1, Math.floor((elapsed - memberStart) / memberTransitionDuration) + 1);
+              setActiveIndex(index);
+            },
           },
-        },
+        });
+
+        // Intro teaser words — plain opacity + translate (no blur/rotateX).
+        timeline.fromTo(wordsRef.current, { opacity: 0, y: 24 }, { opacity: 1, y: 0, stagger: 0.07, duration: 0.5, ease: "power3.out" }, 0);
+        timeline.to(headlineRef.current, { y: -40, opacity: 0, duration: 0.4, ease: "power2.in" }, 0.6);
+        // Optimized reveal: the black panel wipes away with a pure-transform
+        // curtain lift (compositor-friendly) instead of an expensive full-screen
+        // clip-path circle + blur fade, then the member content scales in.
+        timeline.to(introRef.current, { yPercent: -100, duration: 0.5, ease: "power4.inOut" }, 0.7);
+        timeline.fromTo(contentRef.current, { scale: 0.94, opacity: 0.6 }, { scale: 1, opacity: 1, duration: 0.45, ease: "power2.out" }, 0.85);
+
+        for (let index = 1; index < totalSlides; index++) {
+          const card = memberCardsRef.current[index];
+          if (card) {
+            timeline.fromTo(card, { clipPath: "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }, { clipPath: "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)", duration: memberTransitionDuration, ease: "none" }, memberStart + (index - 1) * memberTransitionDuration);
+          }
+        }
       });
 
-      // Intro teaser words — plain opacity + translate (no blur/rotateX).
-      timeline.fromTo(wordsRef.current, { opacity: 0, y: 24 }, { opacity: 1, y: 0, stagger: 0.07, duration: 0.5, ease: "power3.out" }, 0);
-      timeline.to(headlineRef.current, { y: -40, opacity: 0, duration: 0.4, ease: "power2.in" }, 0.6);
-      // Optimized reveal: the black panel wipes away with a pure-transform
-      // curtain lift (compositor-friendly) instead of an expensive full-screen
-      // clip-path circle + blur fade, then the member content scales in.
-      timeline.to(introRef.current, { yPercent: -100, duration: 0.5, ease: "power4.inOut" }, 0.7);
-      timeline.fromTo(contentRef.current, { scale: 0.94, opacity: 0.6 }, { scale: 1, opacity: 1, duration: 0.45, ease: "power2.out" }, 0.85);
+      // Mobile/Android: pinned transform card-stack — each new card rises over
+      // the previous one, which recedes into a visible deck behind it. Pure
+      // transforms (no clip-path compositing) and cheap on GPU.
+      mm.add("(max-width: 767px)", () => {
+        // Drop the clip-path wipe entirely on mobile: clear the inline hidden
+        // polygon and start non-first cards hidden by opacity instead.
+        memberCardsRef.current.forEach((card, i) => {
+          if (card) gsap.set(card, { clipPath: "none", opacity: i === 0 ? 1 : 0 });
+        });
 
-      for (let index = 1; index < totalSlides; index++) {
-        const card = memberCardsRef.current[index];
-        if (card) {
-          timeline.fromTo(card, { clipPath: "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }, { clipPath: "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)", duration: memberTransitionDuration, ease: "none" }, memberStart + (index - 1) * memberTransitionDuration);
+        const timeline = gsap.timeline({
+          scrollTrigger: {
+            id: "faculty-showcase",
+            trigger: showcaseRef.current,
+            start: "top top",
+            end: `+=${introScrollLength + (totalSlides - 1) * memberScrollLength}%`,
+            pin: true,
+            scrub: 0.8,
+            onUpdate: (self) => {
+              const elapsed = self.progress * currentTotalDuration;
+              const index = elapsed < memberStart ? 0 : Math.min(totalSlides - 1, Math.floor((elapsed - memberStart) / memberTransitionDuration) + 1);
+              setActiveIndex(index);
+            },
+          },
+        });
+
+        timeline.fromTo(wordsRef.current, { opacity: 0, y: 24 }, { opacity: 1, y: 0, stagger: 0.07, duration: 0.5, ease: "power3.out" }, 0);
+        timeline.to(headlineRef.current, { y: -40, opacity: 0, duration: 0.4, ease: "power2.in" }, 0.6);
+        timeline.to(introRef.current, { yPercent: -100, duration: 0.5, ease: "power4.inOut" }, 0.7);
+        timeline.fromTo(contentRef.current, { scale: 0.94, opacity: 0.6 }, { scale: 1, opacity: 1, duration: 0.45, ease: "power2.out" }, 0.85);
+
+        for (let index = 1; index < totalSlides; index++) {
+          const card = memberCardsRef.current[index];
+          if (card) {
+            timeline.fromTo(
+              card,
+              { yPercent: 100, opacity: 0 },
+              { yPercent: 0, opacity: 1, duration: memberTransitionDuration, ease: "power2.out" },
+              memberStart + (index - 1) * memberTransitionDuration
+            );
+          }
         }
-      }
+      });
     }, showcaseRef);
 
     return () => context.revert();
@@ -349,9 +418,14 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
 
   return (
     <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
-      {/* Swirl Dithering Shader Background */}
+      {/* Swirl Dithering Shader Background — desktop only. WebGL is the largest
+          GPU/memory consumer, so Android gets a cheap static gradient instead. */}
       <div className="absolute inset-0">
-        <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
+        {isMobile ? (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0d2b1d] via-[#081a12] to-[#123629]" />
+        ) : (
+          <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
+        )}
       </div>
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.08)_1px,transparent_1px)] [background-size:36px_36px]" />
       <TeamHeader title="Core Leadership" activeIndex={activeIndex} totalSlides={totalSlides} onPrevious={() => navigateToMember(activeIndex - 1)} onNext={() => navigateToMember(activeIndex + 1)} />
@@ -382,6 +456,7 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
 
 function StudentShowcase({ members }: { members: TeamMember[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const isMobile = useIsMobile();
   const showcaseRef = useRef<HTMLDivElement>(null);
   const memberCardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const scrollTweenRef = useRef<gsap.core.Tween | null>(null);
@@ -393,33 +468,77 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
     const context = gsap.context(() => {
       if (!showcaseRef.current) return;
 
-      const timeline = gsap.timeline({
-        scrollTrigger: {
-          id: "student-showcase",
-          trigger: showcaseRef.current,
-          start: "top top",
-          end: `+=${(totalSlides - 1) * memberScrollLength}%`,
-          pin: true,
-          scrub: 0.8,
-          onUpdate: (self) => {
-            const elapsed = self.progress * currentTotalDuration;
-            const index = Math.min(totalSlides - 1, Math.floor(elapsed / memberTransitionDuration));
-            setActiveIndex(index);
+      const mm = gsap.matchMedia();
+
+      // Desktop: pinned full-screen clip-path wipe (unchanged).
+      mm.add("(min-width: 768px)", () => {
+        const timeline = gsap.timeline({
+          scrollTrigger: {
+            id: "student-showcase",
+            trigger: showcaseRef.current,
+            start: "top top",
+            end: `+=${(totalSlides - 1) * memberScrollLength}%`,
+            pin: true,
+            scrub: 0.8,
+            onUpdate: (self) => {
+              const elapsed = self.progress * currentTotalDuration;
+              const index = Math.min(totalSlides - 1, Math.floor(elapsed / memberTransitionDuration));
+              setActiveIndex(index);
+            },
           },
-        },
+        });
+
+        for (let index = 1; index < totalSlides; index++) {
+          const card = memberCardsRef.current[index];
+          if (card) {
+            timeline.fromTo(
+              card,
+              { clipPath: "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" },
+              { clipPath: "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)", duration: memberTransitionDuration, ease: "none" },
+              (index - 1) * memberTransitionDuration
+            );
+          }
+        }
       });
 
-      for (let index = 1; index < totalSlides; index++) {
-        const card = memberCardsRef.current[index];
-        if (card) {
-          timeline.fromTo(
-            card,
-            { clipPath: "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" },
-            { clipPath: "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)", duration: memberTransitionDuration, ease: "none" },
-            (index - 1) * memberTransitionDuration
-          );
+      // Mobile/Android: pinned transform card-stack — each new card rises over
+      // the previous one, which recedes into a visible deck behind it. Pure
+      // transforms (no clip-path compositing) and cheap on GPU.
+      mm.add("(max-width: 767px)", () => {
+        // Drop the clip-path wipe entirely on mobile: clear the inline hidden
+        // polygon and start non-first cards hidden by opacity instead.
+        memberCardsRef.current.forEach((card, i) => {
+          if (card) gsap.set(card, { clipPath: "none", opacity: i === 0 ? 1 : 0 });
+        });
+
+        const timeline = gsap.timeline({
+          scrollTrigger: {
+            id: "student-showcase",
+            trigger: showcaseRef.current,
+            start: "top top",
+            end: `+=${(totalSlides - 1) * memberScrollLength}%`,
+            pin: true,
+            scrub: 0.8,
+            onUpdate: (self) => {
+              const elapsed = self.progress * currentTotalDuration;
+              const index = Math.min(totalSlides - 1, Math.floor(elapsed / memberTransitionDuration));
+              setActiveIndex(index);
+            },
+          },
+        });
+
+        for (let index = 1; index < totalSlides; index++) {
+          const card = memberCardsRef.current[index];
+          if (card) {
+            timeline.fromTo(
+              card,
+              { yPercent: 100, opacity: 0 },
+              { yPercent: 0, opacity: 1, duration: memberTransitionDuration, ease: "power2.out" },
+              (index - 1) * memberTransitionDuration
+            );
+          }
         }
-      }
+      });
     }, showcaseRef);
 
     return () => context.revert();
@@ -449,9 +568,14 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
 
   return (
     <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
-      {/* Swirl Dithering Shader Background */}
+      {/* Swirl Dithering Shader Background — desktop only. WebGL is the largest
+          GPU/memory consumer, so Android gets a cheap static gradient instead. */}
       <div className="absolute inset-0">
-        <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
+        {isMobile ? (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0d2b1d] via-[#081a12] to-[#123629]" />
+        ) : (
+          <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
+        )}
       </div>
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.08)_1px,transparent_1px)] [background-size:36px_36px]" />
       <TeamHeader title="Student Presidents" activeIndex={activeIndex} totalSlides={totalSlides} onPrevious={() => navigateToMember(activeIndex - 1)} onNext={() => navigateToMember(activeIndex + 1)} />
