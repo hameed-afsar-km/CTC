@@ -212,7 +212,7 @@ export default function EventsShowcase() {
         </div>
 
         {/* Mac UI Flex Centering Wrapper — anchors Mac header in the hero bottom edge on desktop, flows naturally on mobile */}
-        <div className="relative md:absolute top-0 md:-top-32 inset-x-0 w-full flex justify-center z-45 pointer-events-none px-4 sm:px-6 mb-6 md:mb-0">
+        <div className="relative md:absolute top-0 md:-top-32 inset-x-0 w-full flex justify-center z-45 pointer-events-none px-4 sm:px-6 mb-2 md:mb-0">
           <div
             ref={macWindowRef}
             data-mac-ui
@@ -255,7 +255,7 @@ export default function EventsShowcase() {
 
               {/* Hero / Landing Card Interior */}
               {nextEvent && (
-                <div className="relative min-h-[340px] sm:min-h-[400px] text-white overflow-hidden">
+                <div className="relative min-h-[300px] sm:min-h-[400px] text-white overflow-hidden">
                   {/* Full-bleed backdrop image */}
                   <img
                     src={nextEvent.image}
@@ -268,9 +268,9 @@ export default function EventsShowcase() {
                   <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(70%_55%_at_50%_38%,rgba(52,211,153,0.14),transparent_72%)]" />
 
                   {/* Centered landing content */}
-                  <div className="relative h-full min-h-[340px] sm:min-h-[400px] flex flex-col items-center justify-center text-center px-6 sm:px-10 py-6">
+                  <div className="relative h-full min-h-[300px] sm:min-h-[400px] flex flex-col items-center justify-center text-center px-6 sm:px-10 py-3 sm:py-6">
                     {/* Badge row */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 mb-4">
+                    <div className="flex flex-wrap items-center justify-center gap-2 mb-2.5">
                       <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 text-black font-mono text-[11px] font-black uppercase tracking-wider shadow-[0_0_18px_rgba(52,211,153,0.45)] transition-transform duration-300 hover:scale-105 cursor-default">
                         {nextEvent.category}
                       </span>
@@ -285,12 +285,12 @@ export default function EventsShowcase() {
                     </h3>
 
                     {/* Tagline / description */}
-                    <p className="mt-4 max-w-xl text-sm sm:text-base text-slate-300 leading-relaxed transition-colors duration-300 hover:text-white cursor-default">
+                    <p className="mt-2.5 max-w-xl text-[13px] sm:text-base text-slate-300 leading-snug sm:leading-relaxed transition-colors duration-300 hover:text-white cursor-default">
                       {nextEvent.description}
                     </p>
 
                     {/* Meta pills */}
-                    <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-xs font-mono text-emerald-300 font-semibold">
+                    <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2.5 text-xs font-mono text-emerald-300 font-semibold">
                       <span className="inline-flex items-center gap-1.5 bg-black/50 border border-emerald-500/25 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-400/10 hover:-translate-y-0.5 cursor-pointer">
                         <Calendar className="w-3.5 h-3.5 text-emerald-400" />
                         {formatDate(nextEvent.date)}
@@ -303,19 +303,19 @@ export default function EventsShowcase() {
                     </div>
 
                     {/* CTA row */}
-                    <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+                    <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
                       <a
                         href={nextEvent.registerUrl}
                         target={nextEvent.registerUrl.startsWith("http") ? "_blank" : undefined}
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-black font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_32px_rgba(52,211,153,0.5)] hover:shadow-[0_0_48px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
+                        className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-black font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_32px_rgba(52,211,153,0.5)] hover:shadow-[0_0_48px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
                       >
                         Register Now
                         <ExternalLink className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
                       </a>
                       <a
                         href="/events"
-                        className="inline-flex items-center gap-1.5 px-6 py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white font-semibold text-xs sm:text-sm hover:border-white/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 sm:px-6 sm:py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white font-semibold text-xs sm:text-sm hover:border-white/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
                       >
                         See More Events
                         <ArrowRight className="w-4 h-4 transition-transform duration-300 hover:translate-x-1" />
@@ -323,16 +323,16 @@ export default function EventsShowcase() {
                     </div>
 
                     {/* Stat strip */}
-                    <div className="mt-7 w-full max-w-md grid grid-cols-3 divide-x divide-white/10 rounded-full border border-white/10 bg-black/40 backdrop-blur-sm overflow-hidden">
-                      <div className="group/stat flex flex-col items-center gap-1 py-2.5 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
+                    <div className="mt-3 w-full max-w-md grid grid-cols-3 divide-x divide-white/10 rounded-full border border-white/10 bg-black/40 backdrop-blur-sm overflow-hidden">
+                      <div className="group/stat flex flex-col items-center gap-1 py-2 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
                         <Users className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover/stat:scale-125" />
                         <span className="text-[10px] font-mono text-emerald-300 font-bold uppercase tracking-wider">Free Entry</span>
                       </div>
-                      <div className="group/stat flex flex-col items-center gap-1 py-2.5 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
+                      <div className="group/stat flex flex-col items-center gap-1 py-2 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
                         <Trophy className="w-4 h-4 text-amber-400 transition-transform duration-300 group-hover/stat:scale-125" />
                         <span className="text-[10px] font-mono text-amber-300 font-bold uppercase tracking-wider">Prizes</span>
                       </div>
-                      <div className="group/stat flex flex-col items-center gap-1 py-2.5 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
+                      <div className="group/stat flex flex-col items-center gap-1 py-2 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
                         <ShieldCheck className="w-4 h-4 text-cyan-400 transition-transform duration-300 group-hover/stat:scale-125" />
                         <span className="text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider">Certified</span>
                       </div>

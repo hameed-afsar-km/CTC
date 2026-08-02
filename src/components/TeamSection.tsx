@@ -61,6 +61,34 @@ function useIsMobile() {
   return isMobile;
 }
 
+// Lightweight CSS-only animated background for the team section on Android.
+// Pure transform/opacity keyframe animations (no WebGL, no canvas, no filter
+// blur) so it stays cheap on low-end devices while the heavier DitheringShader
+// is desktop-only. Glows are pre-blurred radial gradients instead of blurred
+// solid layers — visually similar but far cheaper to composite.
+function MobileAuroraBackground() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden contain-paint" aria-hidden="true">
+      {/* Base gradient */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#0d2b1d] via-[#081a12] to-[#123629]" />
+
+      {/* Slow drifting glow blobs — pre-blurred radial gradients, small layers */}
+      <div
+        className="animate-aurora-blob absolute -left-20 -top-20 h-64 w-64 will-change-transform"
+        style={{ background: "radial-gradient(circle, rgba(52,211,153,0.26) 0%, rgba(52,211,153,0.1) 45%, transparent 70%)" }}
+      />
+      <div
+        className="animate-aurora-blob animation-delay-4000 absolute -right-16 top-1/3 h-56 w-56 will-change-transform"
+        style={{ background: "radial-gradient(circle, rgba(45,212,191,0.2) 0%, rgba(45,212,191,0.08) 45%, transparent 70%)" }}
+      />
+      <div
+        className="animate-aurora-blob animation-delay-6000 absolute -bottom-16 left-1/4 h-60 w-60 will-change-transform"
+        style={{ background: "radial-gradient(circle, rgba(163,230,53,0.14) 0%, rgba(163,230,53,0.06) 45%, transparent 70%)" }}
+      />
+    </div>
+  );
+}
+
 function TeamHeader({
   title = "",
   activeIndex,
@@ -418,11 +446,10 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
 
   return (
     <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
-      {/* Swirl Dithering Shader Background — desktop only. WebGL is the largest
-          GPU/memory consumer, so Android gets a cheap static gradient instead. */}
+      {/* Dithering shader on desktop; lightweight animated aurora on Android. */}
       <div className="absolute inset-0">
         {isMobile ? (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0d2b1d] via-[#081a12] to-[#123629]" />
+          <MobileAuroraBackground />
         ) : (
           <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
         )}
@@ -568,11 +595,10 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
 
   return (
     <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
-      {/* Swirl Dithering Shader Background — desktop only. WebGL is the largest
-          GPU/memory consumer, so Android gets a cheap static gradient instead. */}
+      {/* Dithering shader on desktop; lightweight animated aurora on Android. */}
       <div className="absolute inset-0">
         {isMobile ? (
-          <div className="absolute inset-0 bg-gradient-to-br from-[#0d2b1d] via-[#081a12] to-[#123629]" />
+          <MobileAuroraBackground />
         ) : (
           <DitheringShader fill shape="swirl" type="4x4" colorBack="#081a12" colorFront="#6ee7b7" pxSize={4} speed={0.9} pixelRatio={0.5} />
         )}

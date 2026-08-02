@@ -607,15 +607,15 @@ export default function Home() {
           ref={splashCapsuleRef}
           className="relative z-10 opacity-0 scale-90"
         >
-          <div className="flex items-center gap-3.5 px-8 sm:px-12 py-4 sm:py-5 rounded-full bg-emerald-950/30 border border-emerald-500/30 backdrop-blur-2xl shadow-[0_0_60px_rgba(52,211,153,0.18)]">
-            <span className="text-emerald-400 text-lg sm:text-xl animate-pulse">✦</span>
+          <div className="flex items-center gap-3.5 px-5 sm:px-12 py-4 sm:py-5 rounded-full bg-emerald-950/30 border border-emerald-500/30 backdrop-blur-2xl shadow-[0_0_60px_rgba(52,211,153,0.18)]">
+            <span className="text-base sm:text-xl text-emerald-400 animate-pulse">✦</span>
             <h1
               ref={splashTitleRef}
-              className="font-syne text-2xl sm:text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-teal-300 drop-shadow-[0_0_25px_rgba(52,211,153,0.4)] whitespace-nowrap"
+              className="font-syne text-[22px] sm:text-4xl md:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-teal-300 drop-shadow-[0_0_25px_rgba(52,211,153,0.4)] whitespace-nowrap"
             >
               Hey Technocrat!
             </h1>
-            <span className="text-emerald-400 text-lg sm:text-xl animate-pulse">✦</span>
+            <span className="text-base sm:text-xl text-emerald-400 animate-pulse">✦</span>
           </div>
         </div>
       </div>
