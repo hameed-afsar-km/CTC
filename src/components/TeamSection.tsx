@@ -204,6 +204,7 @@ function MemberCard({ member }: { member: TeamMember }) {
                 href={link.href}
                 target="_blank"
                 rel="noreferrer"
+                data-mac-ui
                 className="inline-flex h-8 w-8 min-[400px]:h-8.5 min-[400px]:w-8.5 items-center justify-center rounded-xl border border-emerald-900/10 bg-emerald-50/60 text-emerald-800 transition-all active:scale-95 hover:bg-emerald-100 hover:text-emerald-900"
                 title={link.label}
               >
@@ -292,6 +293,7 @@ function MemberCard({ member }: { member: TeamMember }) {
                 href={link.href}
                 target="_blank"
                 rel="noreferrer"
+                data-mac-ui
                 className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-emerald-900/10 bg-white text-emerald-900/60 transition-all hover:-translate-y-1 hover:border-emerald-900/20 hover:text-emerald-700 hover:shadow-md"
                 title={link.label}
               >
@@ -469,10 +471,10 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
 
       <div ref={introRef} className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-[#030504] px-6">
         <div ref={headlineRef} className="flex w-full max-w-5xl flex-col items-center text-center font-syne font-black uppercase leading-[0.8] tracking-[-0.07em] text-white">
-          <span ref={(element) => { wordsRef.current[0] = element; }} className="text-[clamp(1.5rem,5vw,4rem)] tracking-[-0.045em] text-white/75">{teaserWords[0]}</span>
-          <span ref={(element) => { wordsRef.current[1] = element; }} className="mt-1 text-[clamp(4.25rem,17vw,13rem)] text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,0.8)]">{teaserWords[1]}</span>
+          <span ref={(element) => { wordsRef.current[0] = element; }} className="text-[clamp(1.5rem,5vw,4rem)] tracking-[-0.045em] text-white">{teaserWords[0]}</span>
+          <span ref={(element) => { wordsRef.current[1] = element; }} className="mt-1 text-[clamp(4.25rem,17vw,13rem)] text-transparent [-webkit-text-stroke:1px_rgba(255,255,255,1)]">{teaserWords[1]}</span>
           <span className="mt-3 flex items-baseline gap-x-3 text-[clamp(2rem,7vw,5.8rem)] sm:gap-x-5">
-            <span ref={(element) => { wordsRef.current[2] = element; }} className="text-white/75">{teaserWords[2]}</span>
+            <span ref={(element) => { wordsRef.current[2] = element; }} className="text-white">{teaserWords[2]}</span>
             <span ref={(element) => { wordsRef.current[3] = element; }} className="bg-gradient-to-r from-lime-300 via-emerald-300 to-teal-200 bg-clip-text text-transparent">{teaserWords[3]}</span>
           </span>
         </div>

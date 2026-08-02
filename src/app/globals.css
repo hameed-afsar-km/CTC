@@ -458,6 +458,35 @@ body {
   animation: spin 25s linear infinite;
 }
 
+/* ── HostIt scroll-pin fix (keep these rules) ──
+   The hero is `sticky top-0 z-10` and covers the viewport, so every following
+   section needs a higher z-index to paint above it (events/about/team use z-40).
+   The hostit section must ALSO avoid being an overflow scroll-container: a
+   `position: sticky` child pins relative to the nearest ancestor with
+   `overflow: hidden`, which would make it stick to the section instead of the
+   viewport. These unlayered ID rules beat Tailwind utility classes. */
+#hostit {
+  z-index: 50;
+  overflow: visible;
+}
+#hostit > div.sticky {
+  z-index: 50;
+}
+
+/* Animated gradient text used for the hostit stage keywords (EVENT / IDEA / ONE) */
+@keyframes text-gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+.animate-text-gradient {
+  background-size: 300% 300%;
+  animation: text-gradient-shift 2.5s linear infinite;
+}
+
 
 
 

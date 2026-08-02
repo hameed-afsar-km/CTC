@@ -7,6 +7,7 @@ import { CustomEase } from "gsap/CustomEase";
 import EventsShowcase from "@/components/EventsShowcase";
 import AboutSection from "@/components/AboutSection";
 import TeamSection from "@/components/TeamSection";
+import HostItSection from "@/components/HostItSection";
 
 gsap.registerPlugin(ScrollTrigger, CustomEase);
 
@@ -48,6 +49,8 @@ export default function Home() {
   const orbitalRingsRef = useRef<HTMLDivElement[]>([]);
   const heroParticlesRef = useRef<HTMLCanvasElement>(null);
   const heroGlowRef = useRef<HTMLDivElement>(null);
+  const heroFxRef = useRef<{ covered: boolean; setCovered: (c: boolean) => void } | null>(null);
+  const ringTweensRef = useRef<gsap.core.Tween[]>([]);
 
   // Orbital rings configuration
   const orbitalRings = useMemo(() => [
@@ -67,6 +70,11 @@ export default function Home() {
   const [cursorVisible, setCursorVisible] = useState(false);
   const [navHover, setNavHover] = useState(false);
   const [macHover, setMacHover] = useState(false);
+
+  const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   // Keep the custom cursor hidden for the first 4 seconds after load
   useEffect(() => {
@@ -99,9 +107,14 @@ export default function Home() {
         setNavHover(overNav);
       }
 
-      // Mac UI: swap to the rotated cursor PNG and drop the smudge lens
+      // Interactive elements: swap to the rotated cursor PNG and drop the smudge lens
       const targetEl = e.target as Element | null;
-      const overMac = !!targetEl && typeof targetEl.closest === "function" && !!targetEl.closest("[data-mac-ui]");
+      const overMac =
+        !!targetEl &&
+        typeof targetEl.closest === "function" &&
+        !!targetEl.closest(
+          "a[href], button, [role='button'], input, textarea, select, [data-mac-ui]"
+        );
       if (overMac !== macHoverRef.current) {
         macHoverRef.current = overMac;
         setMacHover(overMac);
@@ -271,8 +284,7 @@ export default function Home() {
     const REPEL = 110;
     const LINK = 115;
 
-    const draw = () => {
-      raf = requestAnimationFrame(draw);
+    const render = () => {
       ctx.clearRect(0, 0, width, height);
 
       const links: { ax: number; ay: number; bx: number; by: number; a: number }[] = [];
@@ -333,7 +345,30 @@ export default function Home() {
       }
     };
 
-    draw();
+    const loop = () => {
+      if (fx.covered) {
+        raf = 0;
+        return;
+      }
+      render();
+      raf = requestAnimationFrame(loop);
+    };
+
+    const fx = {
+      covered: false,
+      setCovered(covered: boolean) {
+        fx.covered = covered;
+        if (covered) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        } else if (raf === 0) {
+          raf = requestAnimationFrame(loop);
+        }
+      },
+    };
+    heroFxRef.current = fx;
+
+    loop();
 
     window.addEventListener("resize", onResize);
     window.addEventListener("mousemove", onMouseMove);
@@ -341,9 +376,55 @@ export default function Home() {
 
     return () => {
       cancelAnimationFrame(raf);
+      heroFxRef.current = null;
       window.removeEventListener("resize", onResize);
       window.removeEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseleave", onMouseLeave);
+      document.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [splashDone]);
+
+  // When the hero is scrolled fully out from under the opaque sections above it,
+  // freeze its particle canvas + orbital rings and hide the canvas — the hero is
+  // visually covered by every following section's opaque background, so nothing
+  // user-visible changes. Restores as soon as the user scrolls back up.
+  useEffect(() => {
+    if (!splashDone) return;
+
+    const hero = pinRef.current;
+    const canvas = heroParticlesRef.current;
+    if (!hero) return;
+
+    const freeze = () => {
+      heroFxRef.current?.setCovered(true);
+      ringTweensRef.current.forEach((t) => t.pause());
+      if (canvas) canvas.style.visibility = "hidden";
+    };
+
+    const update = () => {
+      if (hero.offsetHeight <= 0) return;
+      if (window.scrollY >= hero.offsetHeight - 2) {
+        freeze();
+      } else {
+        heroFxRef.current?.setCovered(false);
+        ringTweensRef.current.forEach((t) => t.resume());
+        if (canvas) canvas.style.visibility = "visible";
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) freeze();
+      else update();
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [splashDone]);
 
@@ -554,15 +635,15 @@ export default function Home() {
           0.3
         );
 
-        ringEls.forEach((el, i) => {
+        ringTweensRef.current = ringEls.map((el, i) =>
           gsap.to(el, {
             rotation: 360,
             duration: orbitalRings[i].speed,
             repeat: -1,
             ease: "none",
             delay: orbitalRings[i].delay,
-          });
-        });
+          })
+        );
       }
     });
 
@@ -652,10 +733,10 @@ export default function Home() {
         {/* Nav Links — large centered */}
         <nav className="flex-1 flex flex-col justify-center gap-1 px-6 py-8 relative z-10">
           {[
-            { href: "#",      label: "Home",   num: "01" },
-            { href: "#events", label: "Events", num: "02" },
-            { href: "#about",  label: "About",  num: "03" },
-            { href: "#team",   label: "Team",   num: "04" },
+            { href: "#events",  label: "Events", num: "01" },
+            { href: "#about",   label: "About",  num: "02" },
+            { href: "#team",    label: "Team",   num: "03" },
+            { href: "#gallery", label: "Gallery", num: "04" },
           ].map(({ href, label, num }, i) => (
             <a
               key={label}
@@ -685,7 +766,7 @@ export default function Home() {
           }}
         >
           <a
-            href="#join"
+            href="#hostit"
             onClick={() => setMobileMenuOpen(false)}
             className="flex-1 text-center px-5 py-3.5 rounded-full border border-white/15 hover:border-mint/40 hover:bg-mint/5 font-syne text-sm font-bold tracking-wider uppercase text-white/70 hover:text-white transition-all duration-300"
           >
@@ -730,13 +811,6 @@ export default function Home() {
             {/* Left Navigation Links */}
             <div className="flex flex-1 items-center gap-1 sm:gap-2 text-xs md:text-sm font-semibold text-black/80 font-syne tracking-wider uppercase">
               <a
-                href="#"
-                className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
-              >
-                <span>Home</span>
-                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
-              </a>
-              <a
                 href="#events"
                 className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
               >
@@ -750,21 +824,6 @@ export default function Home() {
                 <span>About</span>
                 <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
               </a>
-            </div>
-
-            {/* Centered Holographic Brand Badge */}
-            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
-              <div className="nav-item pointer-events-auto flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/40 border border-black/10 hover:bg-white/70 transition-all duration-300 group cursor-pointer shadow-sm">
-                <span className="text-emerald-600 group-hover:rotate-180 transition-transform duration-700 text-sm">✦</span>
-                <span className="nav-item-text text-lg md:text-xl font-black tracking-widest text-gradient-loop font-syne select-none">
-                  CTC
-                </span>
-                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
-              </div>
-            </div>
-
-            {/* Right Navigation Links & Holographic CTA */}
-            <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4 text-xs md:text-sm font-semibold text-black/80 font-syne tracking-wider uppercase">
               <a
                 href="#team"
                 className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
@@ -772,9 +831,36 @@ export default function Home() {
                 <span>Team</span>
                 <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
               </a>
+            </div>
+
+            {/* Centered Holographic Brand Badge */}
+            <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 flex justify-center pointer-events-none">
+              <a
+                href="#top"
+                onClick={scrollToTop}
+                aria-label="Back to top"
+                className="nav-item pointer-events-auto flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/40 border border-black/10 hover:bg-white/70 transition-all duration-300 group cursor-pointer shadow-sm"
+              >
+                <span className="text-emerald-600 group-hover:rotate-180 transition-transform duration-700 text-sm">✦</span>
+                <span className="nav-item-text text-lg md:text-xl font-black tracking-widest text-gradient-loop font-syne select-none">
+                  CTC
+                </span>
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
+              </a>
+            </div>
+
+            {/* Right Navigation Links & Holographic CTA */}
+            <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4 text-xs md:text-sm font-semibold text-black/80 font-syne tracking-wider uppercase">
+              <a
+                href="#gallery"
+                className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
+              >
+                <span>Gallery</span>
+                <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-emerald-500 via-indigo-500 to-purple-500 rounded-full group-hover:w-2/3 transition-all duration-300" />
+              </a>
 
               <a
-                href="#join"
+                href="#hostit"
                 className="nav-item group relative inline-flex items-center px-3.5 py-1.5 rounded-full border border-transparent hover:border-black/10 hover:bg-white/40 font-syne text-xs md:text-sm font-bold tracking-wider uppercase transition-all duration-300"
               >
                 <span className="text-gradient-loop">HOST&apos;IT</span>
@@ -802,11 +888,19 @@ export default function Home() {
           {/* ── Mobile Row (< md) ── */}
           <div className={`flex md:hidden items-center justify-between px-4 py-2.5 holo-pill-glass transition-all duration-300 ${mobileMenuOpen ? "rounded-t-3xl" : "rounded-3xl"}`}>
             {/* Mobile Brand Badge */}
-            <div className="nav-item flex items-center gap-2 px-3 py-1 rounded-full bg-white/40 border border-black/10 group cursor-pointer shadow-sm">
+            <a
+              href="#top"
+              onClick={(e) => {
+                setMobileMenuOpen(false);
+                scrollToTop(e);
+              }}
+              aria-label="Back to top"
+              className="nav-item flex items-center gap-2 px-3 py-1 rounded-full bg-white/40 border border-black/10 group cursor-pointer shadow-sm"
+            >
               <span className="text-emerald-600 group-hover:rotate-180 transition-transform duration-700 text-sm">✦</span>
               <span className="nav-item-text text-base font-black tracking-widest text-gradient-loop font-syne select-none">CTC</span>
               <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
-            </div>
+            </a>
 
             {/* Burger Button */}
             <button
@@ -852,6 +946,7 @@ export default function Home() {
       {/* Main Hero Container */}
       <div
         ref={pinRef}
+        id="top"
         className="relative sticky top-0 z-10 min-h-screen bg-hero-gradient overflow-x-hidden overflow-y-visible flex flex-col justify-center items-center"
       >
         {/* Grain Texture Overlay */}
@@ -940,6 +1035,12 @@ export default function Home() {
 
       {/* Team Section (Circle Mask Reveal & 45-degree Diagonal Wipe Reveal) */}
       <TeamSection />
+
+      {/* HostIt Section (Scroll Scrub Typing Animation & Light Anime Theme) */}
+      <HostItSection />
+
+      {/* Gallery Section (placeholder) */}
+      <section id="gallery" className="relative z-50 w-full" />
 
       {/* Liquid Smudge Cursor Lens — hidden on touch/mobile devices */}
       {!isTouchDevice && (
