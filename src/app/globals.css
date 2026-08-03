@@ -38,6 +38,10 @@
   }
 }
 
+html {
+  scroll-snap-type: y proximity;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -327,6 +331,13 @@ body {
   animation-play-state: paused;
 }
 
+/* Freeze every animation inside an off-screen section so it stops consuming
+   GPU/compositing resources while the user can't see it. */
+.pause-animations,
+.pause-animations * {
+  animation-play-state: paused !important;
+}
+
 /* Kinetic Word Hover Physics */
 .kinetic-word {
   transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), letter-spacing 0.4s ease, filter 0.4s ease, text-shadow 0.4s ease;
@@ -426,7 +437,6 @@ body {
   animation: gradientLoop 4s linear infinite;
   filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.3));
   transition: filter 0.3s ease, transform 0.3s ease;
-  will-change: background-position, transform;
 }
 .group:hover .text-gradient-loop {
   animation-duration: 0.8s;
@@ -438,7 +448,6 @@ body {
   background: var(--theme-gradient);
   background-size: 200% 100%;
   animation: gradientLoop 1.4s linear infinite;
-  will-change: background-position;
 }
 
 @keyframes scan-line {
@@ -473,6 +482,42 @@ body {
   z-index: 50;
 }
 
+/* Background music toggle — equalizer bars (scaleY from the rect center) */
+@keyframes musicBar {
+  0%, 100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.music-bar {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: musicBar 1.1s ease-in-out infinite;
+}
+
+.music-bar-paused {
+  animation: none;
+}
+
+/* Music consent modal entrance */
+@keyframes modalFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-modal-in {
+  animation: modalFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* Animated gradient text used for the hostit stage keywords (EVENT / IDEA / ONE) */
 @keyframes text-gradient-shift {
   0% {
@@ -487,8 +532,20 @@ body {
   animation: text-gradient-shift 2.5s linear infinite;
 }
 
-
-
-
-
-
+@keyframes blob-morph {
+  0%, 100% {
+    border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
+    transform: rotate(0deg);
+  }
+  34% {
+    border-radius: 70% 30% 52% 48% / 60% 40% 60% 40%;
+    transform: rotate(120deg);
+  }
+  67% {
+    border-radius: 50% 50% 30% 70% / 40% 60% 40% 60%;
+    transform: rotate(240deg);
+  }
+}
+.animate-blob-morph {
+  animation: blob-morph 12s ease-in-out infinite alternate;
+}

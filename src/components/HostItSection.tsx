@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useInView } from "@/hooks/useInView";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, ChevronDown, Code2, Wrench, Presentation, MessagesSquare } from "lucide-react";
@@ -48,7 +49,8 @@ function MarqueeTrack({ reverse = false }: { reverse?: boolean }) {
 }
 
 export default function HostItSection() {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
+  const [inViewRef, inView] = useInView<HTMLElement>();
   const pinnedRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -64,10 +66,11 @@ export default function HostItSection() {
   const fill2Ref = useRef<HTMLDivElement>(null);
   const fill3Ref = useRef<HTMLDivElement>(null);
 
-  // 3D Chromatic Grid Canvas Render Loop
+  // 3D Chromatic Grid Canvas Render Loop — runs only while the section is on
+  // screen; leaving releases the canvas backing store.
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !inView) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
@@ -215,8 +218,10 @@ export default function HostItSection() {
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("mousemove", handleMouseMove);
       cancelAnimationFrame(animId);
+      canvas.width = 0;
+      canvas.height = 0;
     };
-  }, []);
+  }, [inView]);
 
   // GSAP Scrub animation connecting outline and fill text
   useEffect(() => {
@@ -247,6 +252,7 @@ export default function HostItSection() {
           end: "+=2000",
           pin: pinnedRef.current,
           scrub: 1.0,
+          invalidateOnRefresh: true,
         },
       });
 
@@ -357,14 +363,19 @@ export default function HostItSection() {
 
   return (
     <section
-      ref={containerRef}
+      ref={(node) => {
+        containerRef.current = node;
+        inViewRef.current = node;
+      }}
       id="hostit"
-      className="relative z-50 w-full select-none bg-[#080c0b] text-[#ecfdf5]"
+      className={`relative z-50 w-full select-none bg-[#080c0b] text-[#ecfdf5] ${
+        inView ? "" : "pause-animations"
+      }`}
     >
       {/* Scroll frame wrapper */}
       <div
         ref={pinnedRef}
-        className="h-screen w-full flex items-center justify-center overflow-hidden relative"
+        className="h-screen supports-[height:100dvh]:h-[100dvh] w-full flex items-center justify-center overflow-hidden relative"
       >
         {/* Glowing 3D Grid Canvas Background */}
         <canvas
@@ -596,10 +607,10 @@ export default function HostItSection() {
               
               {/* Massive Title */}
               <h2 className="flex flex-col items-center leading-[0.85] tracking-tighter mb-12">
-                <span className="font-sans font-black uppercase text-[4rem] sm:text-[6.5rem] text-white" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.1)", color: "transparent" }}>
+                <span className="font-sans font-black uppercase text-[4rem] sm:text-[6.5rem] text-white" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.3)", color: "transparent" }}>
                   HOST
                 </span>
-                <span className="font-sans font-black uppercase text-[4rem] sm:text-[6.5rem] text-white" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.3)", color: "transparent" }}>
+                <span className="font-sans font-black uppercase text-[4rem] sm:text-[6.5rem] text-white" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.65)", color: "transparent" }}>
                   YOURS
                 </span>
                 <span

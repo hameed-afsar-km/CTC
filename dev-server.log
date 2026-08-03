@@ -1,0 +1,19 @@
+
+> ctc-temp@0.1.0 dev
+> next dev
+
+⚠ Port 3000 is in use by process 33252, using available port 3002 instead.
+▲ Next.js 16.2.12 (Turbopack)
+- Local:         http://localhost:3002
+- Network:       http://192.168.56.1:3002
+- Environments: .env.local
+✓ Ready in 1468ms
+⨯ Another next dev server is already running.
+
+- Local:        http://localhost:3000
+- PID:          33252
+- Dir:          D:\Web Dev\CTC 2
+- Log:          .next\dev\logs\next-development.log
+
+Run taskkill /PID 33252 /F to stop it.
+[?25h

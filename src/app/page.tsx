@@ -8,6 +8,9 @@ import EventsShowcase from "@/components/EventsShowcase";
 import AboutSection from "@/components/AboutSection";
 import TeamSection from "@/components/TeamSection";
 import HostItSection from "@/components/HostItSection";
+import IdeasMarquee from "@/components/IdeasMarquee";
+import HomeFooter from "@/components/HomeFooter";
+import MusicToggle from "@/components/MusicToggle";
 
 gsap.registerPlugin(ScrollTrigger, CustomEase);
 
@@ -49,7 +52,12 @@ export default function Home() {
   const orbitalRingsRef = useRef<HTMLDivElement[]>([]);
   const heroParticlesRef = useRef<HTMLCanvasElement>(null);
   const heroGlowRef = useRef<HTMLDivElement>(null);
-  const heroFxRef = useRef<{ covered: boolean; setCovered: (c: boolean) => void } | null>(null);
+  const heroFxRef = useRef<{
+    covered: boolean;
+    setCovered: (c: boolean) => void;
+    releaseBuffer: () => void;
+    restoreBuffer: () => void;
+  } | null>(null);
   const ringTweensRef = useRef<gsap.core.Tween[]>([]);
 
   // Orbital rings configuration
@@ -94,6 +102,23 @@ export default function Home() {
     let stopTimer: NodeJS.Timeout | null = null;
     const animProxy = { scale: 0, lensSize: 0.8 };
 
+    // Pre-create quickTo tweens so moving the cursor never allocates new tweens.
+    let quickPngX: ReturnType<typeof gsap.quickTo> | null = null;
+    let quickPngY: ReturnType<typeof gsap.quickTo> | null = null;
+    let quickLensX: ReturnType<typeof gsap.quickTo> | null = null;
+    let quickLensY: ReturnType<typeof gsap.quickTo> | null = null;
+
+    if (cursorPngRef.current) {
+      gsap.set(cursorPngRef.current, { xPercent: -50, yPercent: -50 });
+      quickPngX = gsap.quickTo(cursorPngRef.current, "x", { duration: 0.08, ease: "power2.out" });
+      quickPngY = gsap.quickTo(cursorPngRef.current, "y", { duration: 0.08, ease: "power2.out" });
+    }
+    if (cursorLensRef.current) {
+      gsap.set(cursorLensRef.current, { xPercent: -50, yPercent: -50 });
+      quickLensX = gsap.quickTo(cursorLensRef.current, "x", { duration: 0.18, ease: "power2.out" });
+      quickLensY = gsap.quickTo(cursorLensRef.current, "y", { duration: 0.18, ease: "power2.out" });
+    }
+
     const handleWindowMouseMove = (e: MouseEvent) => {
       const x = e.clientX;
       const y = e.clientY;
@@ -121,26 +146,10 @@ export default function Home() {
       }
 
       // Position cursor PNG overlay and liquid lens centered exactly on cursor pointer
-      if (cursorPngRef.current) {
-        gsap.to(cursorPngRef.current, {
-          x: x,
-          y: y,
-          xPercent: -50,
-          yPercent: -50,
-          duration: 0.08,
-          ease: "power2.out",
-        });
-      }
-      if (cursorLensRef.current) {
-        gsap.to(cursorLensRef.current, {
-          x: x,
-          y: y,
-          xPercent: -50,
-          yPercent: -50,
-          duration: 0.18,
-          ease: "power2.out",
-        });
-      }
+      quickPngX?.(x);
+      quickPngY?.(y);
+      quickLensX?.(x);
+      quickLensY?.(y);
 
       // Compute cursor velocity
       const vx = x - prevX;
@@ -356,6 +365,7 @@ export default function Home() {
 
     const fx = {
       covered: false,
+      bufferReleased: false,
       setCovered(covered: boolean) {
         fx.covered = covered;
         if (covered) {
@@ -364,6 +374,19 @@ export default function Home() {
         } else if (raf === 0) {
           raf = requestAnimationFrame(loop);
         }
+      },
+      releaseBuffer() {
+        if (fx.bufferReleased) return;
+        fx.bufferReleased = true;
+        canvas.width = 0;
+        canvas.height = 0;
+      },
+      restoreBuffer() {
+        if (!fx.bufferReleased) return;
+        fx.bufferReleased = false;
+        resize();
+        makeParticles();
+        render();
       },
     };
     heroFxRef.current = fx;
@@ -386,7 +409,10 @@ export default function Home() {
   // When the hero is scrolled fully out from under the opaque sections above it,
   // freeze its particle canvas + orbital rings and hide the canvas — the hero is
   // visually covered by every following section's opaque background, so nothing
-  // user-visible changes. Restores as soon as the user scrolls back up.
+  // user-visible changes. Once the second section (About) covers it, hide the
+  // whole hero (keeps the 100vh layout slot — no scroll shift) and zero out the
+  // particle canvas buffer to release its GPU backing memory. Restores as soon
+  // as the user scrolls back up.
   useEffect(() => {
     if (!splashDone) return;
 
@@ -400,14 +426,38 @@ export default function Home() {
       if (canvas) canvas.style.visibility = "hidden";
     };
 
+    const unfreeze = () => {
+      heroFxRef.current?.setCovered(false);
+      ringTweensRef.current.forEach((t) => t.resume());
+      if (canvas) canvas.style.visibility = "visible";
+    };
+
+    const getCoveredAt = () => {
+      const about = document.getElementById("about");
+      return about ? about.offsetTop : hero.offsetHeight * 2;
+    };
+
+    let hidden = false;
+
     const update = () => {
       if (hero.offsetHeight <= 0) return;
+
+      if (window.scrollY >= getCoveredAt() - 2) {
+        if (!hidden) {
+          hidden = true;
+          heroFxRef.current?.releaseBuffer();
+          hero.style.visibility = "hidden";
+        }
+      } else if (hidden) {
+        hidden = false;
+        heroFxRef.current?.restoreBuffer();
+        hero.style.visibility = "visible";
+      }
+
       if (window.scrollY >= hero.offsetHeight - 2) {
         freeze();
       } else {
-        heroFxRef.current?.setCovered(false);
-        ringTweensRef.current.forEach((t) => t.resume());
-        if (canvas) canvas.style.visibility = "visible";
+        unfreeze();
       }
     };
 
@@ -701,6 +751,9 @@ export default function Home() {
         </div>
       </div>
 
+      {/* Background Music Toggle — bottom right, fades in after the splash ends */}
+      <MusicToggle start={splashDone} />
+
       {/* ── Full-Screen Mobile Overlay Menu ── */}
       <div
         aria-modal="true"
@@ -712,6 +765,12 @@ export default function Home() {
           background: "rgba(8,12,11,0.97)",
           backdropFilter: "blur(28px)",
           WebkitBackdropFilter: "blur(28px)",
+          // Drop the full-screen blur surface when closed (visibility hides the
+          // backdrop-filter), while still allowing the fade-out to play.
+          visibility: mobileMenuOpen ? "visible" : "hidden",
+          transition: mobileMenuOpen
+            ? "opacity 500ms ease, visibility 0s linear 0s"
+            : "opacity 500ms ease, visibility 0s linear 500ms",
         }}
       >
         {/* Grid decoration */}
@@ -773,7 +832,7 @@ export default function Home() {
             <span className="text-gradient-loop">HOST&apos;IT</span>
           </a>
           <a
-            href="#join"
+            href="/join"
             onClick={() => setMobileMenuOpen(false)}
             className="group flex-1 relative flex items-center justify-center gap-2 px-5 py-3.5 rounded-full bg-mint text-black font-syne text-sm font-bold tracking-wider uppercase overflow-hidden shadow-lg shadow-mint/20 hover:shadow-mint/40 hover:scale-[1.03] transition-all duration-300"
           >
@@ -867,7 +926,7 @@ export default function Home() {
               </a>
 
               <a
-                href="#join"
+                href="/join"
                 className="nav-item group relative inline-flex items-center gap-2 px-5 py-2 rounded-full bg-black text-white font-syne text-xs font-bold tracking-wider uppercase overflow-hidden shadow-lg hover:shadow-purple-500/25 hover:scale-[1.04] transition-all duration-300"
               >
                 <span className="relative z-10">Join Us</span>
@@ -947,7 +1006,8 @@ export default function Home() {
       <div
         ref={pinRef}
         id="top"
-        className="relative sticky top-0 z-10 min-h-screen bg-hero-gradient overflow-x-hidden overflow-y-visible flex flex-col justify-center items-center"
+        className="relative sticky top-0 z-10 min-h-screen bg-hero-gradient overflow-x-hidden overflow-y-visible flex flex-col justify-center items-center snap-start"
+        data-section-theme="light"
       >
         {/* Grain Texture Overlay */}
         <div className="bg-grain opacity-60" />
@@ -1039,6 +1099,12 @@ export default function Home() {
       {/* HostIt Section (Scroll Scrub Typing Animation & Light Anime Theme) */}
       <HostItSection />
 
+      {/* Ideas Marquee (Light Theme, Sticky + GSAP Horizontal Scroll Text) */}
+      <IdeasMarquee />
+
+      {/* Large Typography Animated Home Footer */}
+      <HomeFooter />
+
       {/* Gallery Section (placeholder) */}
       <section id="gallery" className="relative z-50 w-full" />
 
@@ -1046,7 +1112,7 @@ export default function Home() {
       {!isTouchDevice && (
         <div
           ref={cursorLensRef}
-          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[90] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
+          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[200] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
           style={{
             backdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
             WebkitBackdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
@@ -1059,7 +1125,7 @@ export default function Home() {
       {!isTouchDevice && (
         <div
           ref={cursorPngRef}
-          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[92] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
+          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[200] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           <img

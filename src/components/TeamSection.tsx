@@ -350,6 +350,7 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
             start: "top top",
             end: `+=${introScrollLength + (totalSlides - 1) * memberScrollLength}%`,
             pin: true,
+            invalidateOnRefresh: true,
             scrub: 0.8,
             onUpdate: (self) => {
               const elapsed = self.progress * currentTotalDuration;
@@ -393,6 +394,7 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
             start: "top top",
             end: `+=${introScrollLength + (totalSlides - 1) * memberScrollLength}%`,
             pin: true,
+            invalidateOnRefresh: true,
             scrub: 0.8,
             onUpdate: (self) => {
               const elapsed = self.progress * currentTotalDuration;
@@ -447,7 +449,7 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
   };
 
   return (
-    <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
+    <div ref={showcaseRef} className="relative           flex h-screen supports-[height:100dvh]:h-[100dvh] w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
       {/* Dithering shader on desktop; lightweight animated aurora on Android. */}
       <div className="absolute inset-0">
         {isMobile ? (
@@ -508,6 +510,7 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
             start: "top top",
             end: `+=${(totalSlides - 1) * memberScrollLength}%`,
             pin: true,
+            invalidateOnRefresh: true,
             scrub: 0.8,
             onUpdate: (self) => {
               const elapsed = self.progress * currentTotalDuration;
@@ -547,6 +550,7 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
             start: "top top",
             end: `+=${(totalSlides - 1) * memberScrollLength}%`,
             pin: true,
+            invalidateOnRefresh: true,
             scrub: 0.8,
             onUpdate: (self) => {
               const elapsed = self.progress * currentTotalDuration;
@@ -596,7 +600,7 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
   };
 
   return (
-    <div ref={showcaseRef} className="relative flex h-screen w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
+    <div ref={showcaseRef} className="relative           flex h-screen supports-[height:100dvh]:h-[100dvh] w-full select-none flex-col justify-between overflow-hidden bg-[#081a12] px-2 py-4 text-[#eaf6ef] sm:px-6 sm:py-8 lg:px-12">
       {/* Dithering shader on desktop; lightweight animated aurora on Android. */}
       <div className="absolute inset-0">
         {isMobile ? (
@@ -626,7 +630,7 @@ export default function TeamSection() {
   const studentMembers = teamMembers.slice(2);
 
   return (
-    <section id="team" className="relative z-50 w-full bg-[#081a12]">
+    <section id="team" className="relative z-50 w-full bg-[#081a12]" data-section-theme="dark">
       <FacultyShowcase members={facultyMembers} />
       {/* Spacer or visual break can go here if needed, but keeping it seamless looks great */}
       <StudentShowcase members={studentMembers} />

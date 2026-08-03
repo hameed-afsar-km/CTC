@@ -135,13 +135,12 @@ export default function DeclinedPage() {
 
     const config = DIFFICULTY_CONFIGS[difficulty];
 
-    // Player Paddle (Bottom) — raised above the stacked CTA buttons on mobile so it never overlaps them
-    const playerY = () => height - (window.innerWidth < 640 ? 180 : 110);
+    // Player Paddle (Bottom)
     const player = {
       width: Math.min(140, width * 0.26),
       height: 16,
       x: width / 2 - 70,
-      y: playerY(),
+      y: height - 110,
       targetX: width / 2 - 70,
       hitFlash: 0,
     };
@@ -156,30 +155,26 @@ export default function DeclinedPage() {
       hitFlash: 0,
     };
 
-    // Energy Ball (Puck) — drops straight down from the center on the initial serve
+    // Energy Ball (Puck)
     const puck = {
       x: width / 2,
       y: height / 2,
       radius: 11,
-      vx: 0,
-      vy: config.puckSpeed,
+      vx: config.puckSpeed * (Math.random() > 0.5 ? 1 : -1),
+      vy: config.puckSpeed * (Math.random() > 0.5 ? 1 : -1),
       trail: [] as { x: number; y: number; alpha: number }[],
     };
 
     const particles: { x: number; y: number; vx: number; vy: number; alpha: number; color: string }[] = [];
     const shockwaves: { x: number; y: number; radius: number; maxRadius: number; alpha: number; color: string }[] = [];
 
-    const resetPuck = (towardPlayer: boolean) => {
+    const resetPuck = (towardsPlayer = false) => {
       puck.x = width / 2;
       puck.y = height / 2;
       puck.trail = [];
       const spd = DIFFICULTY_CONFIGS[difficulty].puckSpeed;
-      const targetX = towardPlayer ? player.x + player.width / 2 : ai.x + ai.width / 2;
-      const dx = targetX - width / 2;
-      const dy = towardPlayer ? 1 : -1;
-      const len = Math.hypot(dx, dy) || 1;
-      puck.vx = (dx / len) * spd;
-      puck.vy = (dy / len) * spd;
+      puck.vx = (Math.random() > 0.5 ? spd : -spd);
+      puck.vy = towardsPlayer ? spd : -spd;
     };
 
     const handleResize = () => {
@@ -187,7 +182,7 @@ export default function DeclinedPage() {
       height = canvas.height = window.innerHeight;
       player.width = Math.min(140, width * 0.26);
       ai.width = Math.min(140, width * 0.26);
-      player.y = height - (window.innerWidth < 640 ? 180 : 110);
+      player.y = height - 110;
     };
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -524,79 +519,24 @@ export default function DeclinedPage() {
 
   return (
     <main className="h-screen max-h-screen w-screen bg-[#030712] text-white flex flex-col justify-between p-4 sm:p-6 md:p-8 relative overflow-hidden font-sans select-none">
-      <style>{`
-        @keyframes decline-aurora {
-          0%, 100% { transform: translate(0, 0) scale(1); filter: hue-rotate(0deg); }
-          33% { transform: translate(5vw, -4vh) scale(1.15); filter: hue-rotate(30deg); }
-          66% { transform: translate(-4vw, 5vh) scale(0.95); filter: hue-rotate(-25deg); }
-        }
-        @keyframes decline-twinkle {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 1; }
-        }
-        .animate-decline-twinkle { animation: decline-twinkle 3.2s ease-in-out infinite; }
-        @keyframes decline-shoot {
-          0% { transform: translateX(0) translateY(0); opacity: 0; }
-          6% { opacity: 1; }
-          45% { opacity: 0; }
-          100% { transform: translateX(115vw) translateY(72vh); opacity: 0; }
-        }
-        .animate-decline-shoot { animation: decline-shoot 7s linear infinite; }
-        .decline-starfield {
-          background-image:
-            radial-gradient(1.5px 1.5px at 25px 40px, rgba(255,255,255,0.85), transparent),
-            radial-gradient(1px 1px at 90px 110px, rgba(255,255,255,0.55), transparent),
-            radial-gradient(1.5px 1.5px at 150px 70px, rgba(52,211,153,0.7), transparent),
-            radial-gradient(1px 1px at 70px 170px, rgba(34,211,238,0.6), transparent),
-            radial-gradient(1.2px 1.2px at 190px 140px, rgba(255,255,255,0.6), transparent),
-            radial-gradient(1px 1px at 130px 30px, rgba(244,63,94,0.5), transparent);
-          background-size: 200px 200px;
-        }
-      `}</style>
+      {/* Cyber Pong Canvas Engine */}
+      <canvas ref={canvasRef} className="fixed inset-0 w-full h-full cursor-none z-0" />
 
-      {/* ── Living Aurora + Starfield Background (lowest layer, no interference) ── */}
-      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Base radial gradient */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_85%_65%_at_50%_35%,#0b1a2e_0%,#050a16_55%,#010409_100%)]" />
-
-        {/* Drifting aurora blobs */}
-        <div className="absolute -top-28 -left-28 w-[44vw] h-[44vw] rounded-full bg-gradient-to-br from-emerald-500/15 via-cyan-500/6 to-transparent blur-3xl animate-[decline-aurora_14s_ease-in-out_infinite]" />
-        <div className="absolute -bottom-28 -right-28 w-[44vw] h-[44vw] rounded-full bg-gradient-to-tl from-rose-500/12 via-violet-500/5 to-transparent blur-3xl animate-[decline-aurora_18s_ease-in-out_infinite_reverse]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[36vw] h-[24vw] rounded-full bg-cyan-400/10 blur-[110px] animate-[decline-aurora_22s_ease-in-out_infinite]" />
-
-        {/* Twinkling star field */}
-        <div className="absolute inset-0 decline-starfield animate-decline-twinkle" />
-        <div className="absolute inset-0 decline-starfield animate-decline-twinkle [animation-delay:1.7s] [background-size:260px_260px] [transform:translate(30px,20px)]" />
-
-        {/* Shooting stars */}
-        <span className="absolute left-[-18vw] top-[6%] h-[2px] w-[20vw] rounded-full bg-gradient-to-r from-transparent via-cyan-200/90 to-transparent rotate-[-20deg] animate-decline-shoot" />
-        <span className="absolute left-[-18vw] top-[45%] h-[1.5px] w-[14vw] rounded-full bg-gradient-to-r from-transparent via-rose-200/80 to-transparent rotate-[-20deg] animate-decline-shoot [animation-delay:2.9s]" />
-        <span className="absolute left-[-18vw] top-[70%] h-[1.5px] w-[16vw] rounded-full bg-gradient-to-r from-transparent via-emerald-200/80 to-transparent rotate-[-20deg] animate-decline-shoot [animation-delay:5.4s]" />
-
-        {/* Edge vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgba(3,7,18,0.9)_100%)]" />
-      </div>
-
-      {/* Cyber Pong Canvas Engine (above background) */}
-      <canvas ref={canvasRef} className="fixed inset-0 w-full h-full cursor-none z-[1]" />
+      {/* Ambient Radial Glow Background */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-rose-500/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[300px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none" />
 
       {/* ── Top Header Controls & Live Scoreboard ── */}
       <header className="relative z-20 w-full max-w-5xl mx-auto flex items-center justify-between py-1">
         {/* Live Scoreboard */}
-        <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-[#0a0f1d]/80 border border-emerald-400/25 shadow-[0_0_20px_rgba(52,211,153,0.15)] backdrop-blur-md font-mono text-xs">
-          <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-            YOU: {playerScore}
-          </span>
+        <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 backdrop-blur-md shadow-lg font-mono text-xs">
+          <span className="text-emerald-400 font-bold">YOU: {playerScore}</span>
           <span className="text-slate-600">|</span>
-          <span className="flex items-center gap-1.5 text-rose-400 font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
-            AI: {aiScore}
-          </span>
+          <span className="text-rose-400 font-bold">AI: {aiScore}</span>
         </div>
 
         {/* Difficulty Selector Bar */}
-        <div className="flex items-center gap-1 p-1 rounded-full bg-[#0a0f1d]/80 border border-cyan-400/20 backdrop-blur-md shadow-[0_0_20px_rgba(34,211,238,0.1)]">
+        <div className="flex items-center gap-1.5 p-1 rounded-full bg-slate-900/90 border border-slate-800 backdrop-blur-md">
           {(["easy", "normal", "hard"] as Difficulty[]).map((d) => (
             <button
               key={d}
@@ -606,8 +546,8 @@ export default function DeclinedPage() {
               }}
               className={`px-3 py-1 rounded-full font-mono text-[10px] uppercase font-bold transition-all ${
                 difficulty === d
-                  ? DIFFICULTY_CONFIGS[d].color + " shadow-md scale-105"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                  ? DIFFICULTY_CONFIGS[d].color + " shadow-md"
+                  : "text-slate-400 hover:text-slate-200"
               }`}
             >
               {d.toUpperCase()}
@@ -621,7 +561,7 @@ export default function DeclinedPage() {
             setSoundEnabled(!soundEnabled);
             playSound(500, "sine", 0.08);
           }}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-[#0a0f1d]/80 border border-slate-700/60 text-xs font-mono text-slate-300 hover:border-emerald-400/50 hover:text-emerald-300 hover:shadow-[0_0_20px_rgba(52,211,153,0.2)] transition-all backdrop-blur-md"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-900/90 border border-slate-800 text-xs font-mono text-slate-300 hover:border-emerald-500/40 hover:text-emerald-400 transition-all backdrop-blur-md"
         >
           {soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-emerald-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-500" />}
           <span className="hidden sm:inline">{soundEnabled ? "SFX ON" : "MUTED"}</span>
@@ -632,49 +572,29 @@ export default function DeclinedPage() {
       <header className="relative z-10 flex flex-col items-center text-center pointer-events-none my-auto">
         <h1 className="text-4xl sm:text-6xl md:text-8xl font-black uppercase tracking-tighter text-white drop-shadow-[0_0_35px_rgba(244,63,94,0.4)]">
           YOU REJECTED, <br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400 animate-text-gradient">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-500 via-amber-400 to-emerald-400">
             SO DID WE!
           </span>
         </h1>
       </header>
 
-      {/* ── 3D Chip CTA Buttons ── */}
+      {/* ── Cyber Neon CTA Buttons ── */}
       <footer className="relative z-20 w-full max-w-lg mx-auto mb-2">
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link
             href="/"
-            className="group relative block w-full sm:w-1/2 transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
+            className="group w-full sm:w-1/2 flex items-center justify-center gap-3 px-7 py-4 rounded-full bg-[#0a0f1d]/90 hover:bg-[#111827] text-cyan-300 hover:text-white font-mono text-xs font-bold uppercase tracking-widest border border-cyan-500/40 hover:border-cyan-400 backdrop-blur-xl shadow-[0_0_25px_rgba(34,211,238,0.2)] hover:shadow-[0_0_35px_rgba(34,211,238,0.45)] transition-all duration-300 hover:scale-105"
           >
-            {/* depth layer */}
-            <span className="absolute inset-0 rounded-full bg-cyan-950/90 translate-y-[5px] transition-transform duration-200 group-hover:translate-y-[7px] group-active:translate-y-0" />
-            {/* neon rim */}
-            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/50 via-slate-500/40 to-cyan-500/50 opacity-60 group-hover:opacity-100 transition-opacity" />
-            {/* surface */}
-            <span className="relative flex items-center justify-center gap-3 overflow-hidden rounded-full bg-[#0a0f1d] px-7 py-4 font-mono text-xs font-bold uppercase tracking-widest text-cyan-300 group-hover:text-cyan-100 transition-colors">
-              <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent skew-x-[-20deg] transition-transform duration-700 group-hover:translate-x-full" />
-              <span className="relative flex items-center justify-center w-7 h-7 rounded-full border-2 border-cyan-400/60 group-hover:border-cyan-300 group-hover:shadow-[0_0_14px_rgba(34,211,238,0.6)] transition-all duration-300">
-                <ArrowLeft className="w-3.5 h-3.5 text-cyan-400 group-hover:-translate-x-0.5 transition-transform" strokeWidth={3} />
-              </span>
-              <span className="relative">Return to Home</span>
-            </span>
+            <ArrowLeft className="w-4 h-4 text-cyan-400 group-hover:-translate-x-1 transition-transform" />
+            <span>Return to Home</span>
           </Link>
 
           <Link
             href="/hostit"
-            className="group relative block w-full sm:w-1/2 transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0"
+            className="group w-full sm:w-1/2 flex items-center justify-center gap-3 px-7 py-4 rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-mono text-xs font-black uppercase tracking-widest shadow-[0_0_30px_rgba(52,211,153,0.5)] hover:shadow-[0_0_45px_rgba(52,211,153,0.85)] transition-all duration-300 hover:scale-105"
           >
-            {/* depth layer */}
-            <span className="absolute inset-0 rounded-full bg-emerald-950 translate-y-[5px] transition-transform duration-200 group-hover:translate-y-[7px] group-active:translate-y-0" />
-            {/* neon rim */}
-            <span className="absolute inset-0 rounded-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-emerald-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-            {/* surface */}
-            <span className="relative flex items-center justify-center gap-3 overflow-hidden rounded-full bg-[#052e22] px-7 py-4 font-mono text-xs font-black uppercase tracking-widest text-emerald-50">
-              <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-emerald-400/25 to-transparent skew-x-[-20deg] transition-transform duration-700 group-hover:translate-x-full" />
-              <span className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 shadow-[0_0_14px_rgba(52,211,153,0.8)] group-hover:scale-110 group-hover:rotate-12 transition-transform duration-300">
-                <CheckCircle2 className="w-4 h-4 text-[#052e22]" strokeWidth={3.5} />
-              </span>
-              <span className="relative">Agree Again</span>
-            </span>
+            <CheckCircle2 className="w-4 h-4 text-slate-950 group-hover:scale-110 group-hover:rotate-12 transition-transform" />
+            <span>Agree Again</span>
           </Link>
         </div>
       </footer>

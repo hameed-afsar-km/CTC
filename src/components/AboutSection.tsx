@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ArrowUpRight } from "lucide-react";
+import { useInView } from "@/hooks/useInView";
 
 interface AboutCardData {
   id: string;
@@ -49,25 +50,38 @@ const aboutCards: AboutCardData[] = [
 export default function AboutSection() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [sectionRef, inView] = useInView<HTMLElement>();
 
   // Bento Holographic Wavefront Canvas
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !inView) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let width = 0;
+    let height = 0;
 
     let t = 0;
 
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+    const resize = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
     };
+
+    const applySize = () => {
+      canvas.width = width;
+      canvas.height = height;
+    };
+
+    const handleResize = () => {
+      resize();
+      applySize();
+    };
+
+    resize();
+    applySize();
 
     window.addEventListener("resize", handleResize);
 
@@ -135,8 +149,11 @@ export default function AboutSection() {
     return () => {
       window.removeEventListener("resize", handleResize);
       cancelAnimationFrame(animationFrameId);
+      // Release the backing store while off-screen to free GPU memory.
+      canvas.width = 0;
+      canvas.height = 0;
     };
-  }, []);
+  }, [inView]);
 
   // Compute CSS Grid Template columns/rows for the 8x8 dynamic ratio grid
   const getGridTemplate = () => {
@@ -158,7 +175,9 @@ export default function AboutSection() {
   return (
     <section
       id="about"
-      className="relative z-50 w-full min-h-screen py-20 px-4 sm:px-6 lg:px-8 bg-[#f6fcf8] text-slate-900 overflow-hidden select-none flex flex-col items-center justify-center border-t border-emerald-900/10"
+      ref={sectionRef}
+      className="relative z-50 w-full min-h-screen py-20 px-4 sm:px-6 lg:px-8 bg-[#f6fcf8] text-slate-900 overflow-hidden select-none flex flex-col items-center justify-center border-t border-emerald-900/10 snap-start"
+      data-section-theme="light"
     >
       {/* Bento Holographic Wavefront & Interactive Ripple Canvas */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />

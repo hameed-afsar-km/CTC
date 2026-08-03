@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useState } from "react";
+import { useInView } from "@/hooks/useInView";
 
 interface TimeLeft {
   days: number;
@@ -29,9 +30,10 @@ export default function CountdownTimer({ target }: { target: string }) {
   const targetMs = new Date(target).getTime();
   const valid = !Number.isNaN(targetMs);
   const [time, setTime] = useState<TimeLeft | null>(null);
+  const [wrapperRef, inView] = useInView<HTMLDivElement>();
 
   useEffect(() => {
-    if (!valid) return;
+    if (!valid || !inView) return;
     const tick = () => setTime(getTimeLeft(targetMs));
     const initial = setTimeout(tick, 0);
     const id = setInterval(tick, 1000);
@@ -39,7 +41,7 @@ export default function CountdownTimer({ target }: { target: string }) {
       clearTimeout(initial);
       clearInterval(id);
     };
-  }, [targetMs, valid]);
+  }, [targetMs, valid, inView]);
 
   const cells = [
     { label: "DAYS", value: (time ?? ZERO_TIME).days },
@@ -49,7 +51,7 @@ export default function CountdownTimer({ target }: { target: string }) {
   ];
 
   return (
-    <div className="flex items-center justify-center gap-2 sm:gap-5 select-none">
+    <div ref={wrapperRef} className="flex items-center justify-center gap-2 sm:gap-5 select-none">
       {cells.map((c, i) => (
         <Fragment key={c.label}>
           {i > 0 && (

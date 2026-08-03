@@ -2,7 +2,7 @@
 
 import type React from "react";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // GLSL utility functions
 const declarePI = `
@@ -373,6 +373,7 @@ export function DitheringShader({
 	onSample,
 }: DitheringShaderProps) {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
+	const wrapperRef = useRef<HTMLDivElement>(null);
 	const animationRef = useRef<number | null>(null);
 	const programRef = useRef<WebGLProgram | null>(null);
 	const glRef = useRef<WebGL2RenderingContext | null>(null);
@@ -387,13 +388,30 @@ export function DitheringShader({
 	// each sample is a single GPU→CPU read instead of thousands of 1px reads.
 	const readBufRef = useRef<Uint8Array | null>(null);
 	const sampleRef = useRef(onSample);
-	// Whether the canvas is currently on screen — the render loop pauses while
-	// offscreen to stop burning GPU/CPU on hidden sections.
-	const isVisibleRef = useRef(true);
+	// Whether the canvas is currently mounted. While off-screen the canvas is
+	// removed from the DOM entirely, releasing its WebGL context + GPU memory.
+	const [mounted, setMounted] = useState(true);
 
 	useEffect(() => {
 		sampleRef.current = onSample;
 	}, [onSample]);
+
+	// Unmount the canvas (releasing its WebGL context + GPU memory) when the
+	// wrapper scrolls out of view, and remount it fresh on re-entry.
+	useEffect(() => {
+		const parent = wrapperRef.current;
+		if (!parent || typeof IntersectionObserver === "undefined") return;
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				setMounted(entries[0]?.isIntersecting ?? true);
+			},
+			{ rootMargin: "0px" },
+		);
+		observer.observe(parent);
+
+		return () => observer.disconnect();
+	}, []);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
@@ -520,11 +538,6 @@ export function DitheringShader({
 
 		// Animation loop
 		const render = () => {
-			if (!isVisibleRef.current) {
-				animationRef.current = null;
-				return;
-			}
-
 			const currentTime = (Date.now() - startTimeRef.current) * 0.001 * speed;
 
 			const context = glRef.current;
@@ -571,23 +584,6 @@ export function DitheringShader({
 			}
 		};
 
-		// Pause the loop when the canvas scrolls out of view and resume it on the
-		// way back, so off-screen sections stop consuming GPU resources.
-		let visibilityObserver: IntersectionObserver | undefined;
-		if ("IntersectionObserver" in window) {
-			visibilityObserver = new IntersectionObserver(
-				(entries) => {
-					const entry = entries[0];
-					isVisibleRef.current = entry?.isIntersecting ?? true;
-					if (entry?.isIntersecting && speed !== 0) {
-						startAnimation();
-					}
-				},
-				{ rootMargin: "0px" },
-			);
-			visibilityObserver.observe(canvas.parentElement ?? canvas);
-		}
-
 		startAnimation();
 
 		return () => {
@@ -595,15 +591,15 @@ export function DitheringShader({
 				cancelAnimationFrame(animationRef.current);
 			}
 			resizeObserver?.disconnect();
-			visibilityObserver?.disconnect();
 			if (glRef.current && programRef.current) {
 				glRef.current.deleteProgram(programRef.current);
 			}
 		};
-	}, [width, height, colorBack, colorFront, shape, type, pxSize, speed, pixelRatio, fill]);
+	}, [width, height, colorBack, colorFront, shape, type, pxSize, speed, pixelRatio, fill, mounted]);
 
 	return (
 		<div
+			ref={wrapperRef}
 			className={className}
 			style={{
 				position: "relative",
@@ -612,14 +608,16 @@ export function DitheringShader({
 				...style,
 			}}
 		>
-			<canvas
-				ref={canvasRef}
-				style={{
-					display: "block",
-					width: "100%",
-					height: "100%",
-				}}
-			/>
+			{mounted && (
+				<canvas
+					ref={canvasRef}
+					style={{
+						display: "block",
+						width: "100%",
+						height: "100%",
+					}}
+				/>
+			)}
 		</div>
 	);
 }

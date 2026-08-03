@@ -5,6 +5,7 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import CountdownTimer from "./CountdownTimer";
 import { defaultEvents, type ClubEvent } from "@/lib/events";
+import { useInView } from "@/hooks/useInView";
 import {
   Calendar,
   MapPin,
@@ -55,6 +56,7 @@ function formatTime(dateStr: string) {
 
 export default function EventsShowcase() {
   const sectionRef = useRef<HTMLElement>(null);
+  const [inViewRef, inView] = useInView<HTMLElement>();
   const bgRef = useRef<HTMLDivElement>(null);
   const timerWrapperRef = useRef<HTMLDivElement>(null);
   const macWindowRef = useRef<HTMLDivElement>(null);
@@ -64,14 +66,19 @@ export default function EventsShowcase() {
 
   const nextEvent = useMemo(() => sortUpcoming(events, now)[0], [events, now]);
 
+  // Periodic clock used to keep upcoming-event sorting fresh — paused while the
+  // section is off-screen.
   useEffect(() => {
+    if (!inView) return;
     const id = setInterval(() => setNow(Date.now()), 30000);
     return () => clearInterval(id);
-  }, []);
+  }, [inView]);
 
-  // Sync with Admin Dashboard live endpoint
+  // Sync with Admin Dashboard live endpoint — polling is suspended while the
+  // tab is hidden or the section is off-screen to cut idle network traffic.
   useEffect(() => {
     let alive = true;
+    let id: ReturnType<typeof setInterval> | null = null;
     const loadEvents = async () => {
       try {
         const res = await fetch("/api/events", { cache: "no-store" });
@@ -82,13 +89,26 @@ export default function EventsShowcase() {
         // Fallback
       }
     };
-    loadEvents();
-    const id = setInterval(loadEvents, 5000);
+    const schedule = () => {
+      if (!alive) return;
+      if (id) {
+        clearInterval(id);
+        id = null;
+      }
+      if (inView && !document.hidden) {
+        loadEvents();
+        id = setInterval(loadEvents, 5000);
+      }
+    };
+    const onVisibility = () => schedule();
+    document.addEventListener("visibilitychange", onVisibility);
+    schedule();
     return () => {
       alive = false;
-      clearInterval(id);
+      if (id) clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
-  }, []);
+  }, [inView]);
 
   // GSAP Scroll Animations:
   // 1. Timer fades in & scales as the section slides up over the hero
@@ -189,8 +209,12 @@ export default function EventsShowcase() {
   return (
     <section
       id="events"
-      ref={sectionRef}
-      className="relative z-40 w-full min-h-screen h-screen max-h-screen flex flex-col items-center justify-start px-4 sm:px-6 overflow-visible select-none pt-12 sm:pt-16"
+      ref={(node) => {
+        sectionRef.current = node;
+        inViewRef.current = node;
+      }}
+      className="relative z-40 w-full min-h-screen h-screen max-h-screen flex flex-col items-center justify-start px-4 sm:px-6 overflow-visible select-none pt-12 sm:pt-16 snap-start"
+      data-section-theme="dark"
     >
       {/* Background dark overlay — Fades in as user scrolls into section */}
       <div ref={bgRef} className="absolute inset-0 bg-[#05080a] pointer-events-none z-0">
@@ -260,6 +284,8 @@ export default function EventsShowcase() {
                   <img
                     src={nextEvent.image}
                     alt=""
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105"
                     draggable={false}
                   />
