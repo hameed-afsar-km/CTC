@@ -1,16 +1,51 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ChevronDown, Code2, Wrench, Presentation, MessagesSquare } from "lucide-react";
 import Link from "next/link";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-const LOOP_TEXTS = ["Workshops", "Hackathons", "Seminars", "Tech Talks"];
+const MARQUEE_WORDS = [
+  { word: "Hackathons", Icon: Code2 },
+  { word: "Workshops", Icon: Wrench },
+  { word: "Seminars", Icon: Presentation },
+  { word: "Tech Talks", Icon: MessagesSquare },
+];
+
+function MarqueeTrack({ reverse = false }: { reverse?: boolean }) {
+  return (
+    <div
+      className={`flex flex-col items-center ${
+        reverse ? "animate-marquee-vertical-reverse" : "animate-marquee-vertical"
+      }`}
+    >
+      {[
+        ...MARQUEE_WORDS,
+        ...MARQUEE_WORDS,
+        ...MARQUEE_WORDS,
+        ...MARQUEE_WORDS,
+      ].map(({ word, Icon }, i) => (
+        <div
+          key={i}
+          className="flex flex-col items-center justify-center gap-6 h-40"
+        >
+          <span
+            className="font-sans font-black uppercase text-lg sm:text-xl md:text-2xl tracking-wide whitespace-nowrap text-transparent"
+            style={{ WebkitTextStroke: "1px rgba(255, 255, 255, 0.14)" }}
+          >
+            {word}
+          </span>
+          <Icon className="w-5 h-5 text-emerald-400/40" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function HostItSection() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,20 +56,13 @@ export default function HostItSection() {
   const stage2Ref = useRef<HTMLDivElement>(null);
   const stage3Ref = useRef<HTMLDivElement>(null);
   const stage4Ref = useRef<HTMLDivElement>(null);
+  const scrollHintRef = useRef<HTMLDivElement>(null);
+  const marqueeLeftRef = useRef<HTMLDivElement>(null);
+  const marqueeRightRef = useRef<HTMLDivElement>(null);
 
   const fill1Ref = useRef<HTMLDivElement>(null);
   const fill2Ref = useRef<HTMLDivElement>(null);
   const fill3Ref = useRef<HTMLDivElement>(null);
-
-  const [loopIndex, setLoopIndex] = useState(0);
-
-  // Auto word switcher for Stage 4
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLoopIndex((prev) => (prev + 1) % LOOP_TEXTS.length);
-    }, 2200);
-    return () => clearInterval(timer);
-  }, []);
 
   // 3D Chromatic Grid Canvas Render Loop
   useEffect(() => {
@@ -205,6 +233,11 @@ export default function HostItSection() {
         scale: 0.92,
         pointerEvents: "none",
       });
+      gsap.set([marqueeLeftRef.current, marqueeRightRef.current], {
+        opacity: 0,
+      });
+      gsap.set(marqueeLeftRef.current, { x: -36 });
+      gsap.set(marqueeRightRef.current, { x: 36 });
 
       // Master Scroll Scrub Timeline
       const tl = gsap.timeline({
@@ -284,16 +317,38 @@ export default function HostItSection() {
         });
 
       // ── STAGE 4 (Finale Card Reveal) ──
-      tl.to(stage4Ref.current, {
-        opacity: 1,
-        scale: 1,
-        pointerEvents: "auto",
-        duration: 1.5,
-        ease: "power3.out",
-      })
-      .to(stage4Ref.current, {
-        duration: 5 // Hold stage 4 firmly at the end of the scroll container
-      });
+      tl.addLabel("finaleReveal")
+        .to(stage4Ref.current, {
+          opacity: 1,
+          scale: 1,
+          pointerEvents: "auto",
+          duration: 1.5,
+          ease: "power3.out",
+        })
+        .to(stage4Ref.current, {
+          duration: 5 // Hold stage 4 firmly at the end of the scroll container
+        });
+
+      // ── SIDE MARQUEES — slide in after the final CTA is revealed ──
+      tl.to(
+        marqueeLeftRef.current,
+        { opacity: 1, x: 0, duration: 0.8, ease: "power2.out" },
+        "finaleReveal+=1.3"
+      );
+      tl.to(
+        marqueeRightRef.current,
+        { opacity: 1, x: 0, duration: 0.8, ease: "power2.out" },
+        "finaleReveal+=1.3"
+      );
+
+      // ── SCROLL INDICATOR — blurs & fades away as soon as scrolling begins,
+      //    revealing the STAGE 1 text underneath ──
+      tl.to(scrollHintRef.current, {
+        opacity: 0,
+        filter: "blur(10px)",
+        duration: 1.6,
+        ease: "power2.in",
+      }, 0);
 
     }, containerRef);
 
@@ -328,6 +383,74 @@ export default function HostItSection() {
             backgroundSize: "60px 60px",
           }}
         />
+
+        <style>{`
+          @keyframes scroll-chevron {
+            0% { opacity: 0; transform: translateY(-8px); }
+            40% { opacity: 1; }
+            100% { opacity: 0; transform: translateY(8px); }
+          }
+          .animate-scroll-chevron {
+            animation: scroll-chevron 1.4s ease-in-out infinite;
+          }
+          .animate-scroll-chevron-delay {
+            animation: scroll-chevron 1.4s ease-in-out infinite;
+            animation-delay: 0.7s;
+          }
+          @keyframes marquee-vertical {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-25%); }
+          }
+          @keyframes marquee-vertical-reverse {
+            0% { transform: translateY(-25%); }
+            100% { transform: translateY(0); }
+          }
+          .animate-marquee-vertical,
+          .animate-marquee-vertical-reverse {
+            animation-duration: 14s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+            will-change: transform;
+          }
+          .animate-marquee-vertical {
+            animation-name: marquee-vertical;
+          }
+          .animate-marquee-vertical-reverse {
+            animation-name: marquee-vertical-reverse;
+          }
+        `}</style>
+
+        {/* Scroll Indicator — centered; blurs & fades as scrolling starts */}
+        <div
+          ref={scrollHintRef}
+          className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none select-none"
+        >
+          <div className="flex flex-col items-center gap-4">
+            <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.5em] uppercase text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]">
+              SCROLL
+            </span>
+            <div className="flex flex-col items-center -mt-1">
+              <ChevronDown className="w-5 h-5 text-emerald-400 animate-scroll-chevron" />
+              <ChevronDown className="w-5 h-5 -mt-3 text-emerald-400/80 animate-scroll-chevron-delay" />
+            </div>
+          </div>
+        </div>
+
+        {/* Side Marquee — left edge */}
+        <div
+          ref={marqueeLeftRef}
+          className="hidden sm:flex absolute left-4 sm:left-8 top-0 bottom-0 z-10 flex-col items-center overflow-hidden pointer-events-none select-none"
+        >
+          <MarqueeTrack />
+        </div>
+
+        {/* Side Marquee — right edge */}
+        <div
+          ref={marqueeRightRef}
+          className="hidden sm:flex absolute right-4 sm:right-8 top-0 bottom-0 z-10 flex-col items-center overflow-hidden pointer-events-none select-none"
+        >
+          <MarqueeTrack reverse />
+        </div>
 
         {/* ── STAGE CONTAINER ── */}
         <div className="relative w-full max-w-6xl px-6 flex items-center justify-center h-full z-20">
@@ -419,103 +542,98 @@ export default function HostItSection() {
             </div>
           </div>
 
-          {/* STAGE 4 — Cinematic Centerpiece */}
+          {/* STAGE 4 — Futuristic Radial HUD */}
           <div
             ref={stage4Ref}
-            className="absolute inset-0 flex flex-col items-center justify-center w-full h-full select-none overflow-hidden"
+            className="absolute inset-0 flex items-center justify-center w-full h-full select-none overflow-hidden"
           >
             <style>{`
-              @keyframes s4pop {
-                0%   { transform: translateY(20px) scale(0.9); opacity: 0; filter: blur(8px); }
-                15%  { transform: translateY(0) scale(1);    opacity: 1; filter: blur(0); }
-                85%  { transform: translateY(0) scale(1);    opacity: 1; filter: blur(0); }
-                100% { transform: translateY(-20px) scale(1.05); opacity: 0; filter: blur(8px); }
+              @keyframes hud-spin {
+                100% { transform: rotate(360deg); }
+              }
+              @keyframes hud-spin-slow {
+                100% { transform: rotate(-360deg); }
+              }
+              @keyframes hud-pulse {
+                0%, 100% { opacity: 0.3; transform: scale(1); }
+                50% { opacity: 0.8; transform: scale(1.05); }
               }
             `}</style>
-
-            {/* ── Background Core Glow ── */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] sm:w-[500px] sm:h-[500px] bg-emerald-500/15 rounded-full blur-[100px] pointer-events-none" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[200px] h-[200px] bg-cyan-400/10 rounded-full blur-[60px] pointer-events-none mix-blend-screen" />
-
-            {/* ── Overline ── */}
-            <div className="flex items-center gap-4 mb-6 sm:mb-8 relative z-10">
-              <div className="h-[1px] w-8 sm:w-16 bg-gradient-to-r from-transparent to-emerald-400/50" />
-              <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.5em] uppercase text-emerald-400 font-bold drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]">
-                04 / LAUNCHPAD
-              </span>
-              <div className="h-[1px] w-8 sm:w-16 bg-gradient-to-l from-transparent to-emerald-400/50" />
+            
+            {/* ── Geometric Background Elements ── */}
+            {/* Outer rotating dashed ring */}
+            <div 
+              className="absolute w-[320px] h-[320px] sm:w-[500px] sm:h-[500px] rounded-full border border-dashed border-emerald-500/30 pointer-events-none"
+              style={{ animation: "hud-spin 40s linear infinite" }}
+            />
+            
+            {/* Inner rotating solid ring with glowing nodes */}
+            <div 
+              className="absolute w-[300px] h-[300px] sm:w-[460px] sm:h-[460px] rounded-full border border-emerald-400/10 pointer-events-none"
+              style={{ animation: "hud-spin-slow 25s linear infinite" }}
+            >
+              <div className="absolute top-0 left-1/2 w-2 h-2 -translate-x-1/2 -translate-y-1/2 bg-emerald-400 rounded-full shadow-[0_0_15px_#34d399]" />
+              <div className="absolute bottom-0 left-1/2 w-2 h-2 -translate-x-1/2 translate-y-1/2 bg-cyan-400 rounded-full shadow-[0_0_15px_#22d3ee]" />
             </div>
 
-            {/* ── Central Typography Stack ── */}
-            <h2 className="flex flex-col items-center gap-0 relative z-10">
-              <span 
-                className="font-sans font-black uppercase leading-[0.85] tracking-tighter"
-                style={{
-                  fontSize: "clamp(5rem, 15vw, 9rem)",
-                  WebkitTextStroke: "1.5px rgba(255,255,255,0.1)",
-                  color: "transparent",
-                }}
-              >
-                HOST
-              </span>
-              <span 
-                className="font-sans font-black uppercase leading-[0.85] tracking-tighter"
-                style={{
-                  fontSize: "clamp(5rem, 15vw, 9rem)",
-                  WebkitTextStroke: "1.5px rgba(255,255,255,0.25)",
-                  color: "transparent",
-                }}
-              >
-                YOURS
-              </span>
-              <div 
-                style={{ filter: "drop-shadow(0 0 40px rgba(52,211,153,0.4)) drop-shadow(0 0 80px rgba(8,145,178,0.2))" }}
-              >
-                <span 
-                  className="block font-sans font-black uppercase leading-[0.85] tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-emerald-200 to-cyan-400"
-                  style={{ fontSize: "clamp(5.5rem, 16vw, 10rem)" }}
+            {/* Glowing core pulse */}
+            <div 
+              className="absolute w-[200px] h-[200px] sm:w-[350px] sm:h-[350px] rounded-full bg-emerald-500/10 blur-[50px] pointer-events-none"
+              style={{ animation: "hud-pulse 4s ease-in-out infinite" }}
+            />
+
+            {/* ── Central Lockup ── */}
+            <div className="relative z-10 flex flex-col items-center text-center mt-8">
+              
+              {/* Top Label */}
+              <div className="flex items-center gap-3 mb-6">
+                <span className="w-6 h-[1px] bg-emerald-400/50" />
+                <span className="font-mono text-[9px] sm:text-[10px] tracking-[0.4em] uppercase text-emerald-400 font-bold drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]">
+                  EVENT PARTNERSHIP
+                </span>
+                <span className="w-6 h-[1px] bg-emerald-400/50" />
+              </div>
+              
+              {/* Massive Title */}
+              <h2 className="flex flex-col items-center leading-[0.85] tracking-tighter mb-12">
+                <span className="font-sans font-black uppercase text-[4rem] sm:text-[6.5rem] text-white" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.1)", color: "transparent" }}>
+                  HOST
+                </span>
+                <span className="font-sans font-black uppercase text-[4rem] sm:text-[6.5rem] text-white" style={{ WebkitTextStroke: "1px rgba(255,255,255,0.3)", color: "transparent" }}>
+                  YOURS
+                </span>
+                <span
+                  className="font-sans font-black uppercase text-[4.5rem] sm:text-[7.5rem] text-transparent bg-clip-text animate-text-gradient"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(90deg, #f87171, #fb923c, #facc15, #4ade80, #22d3ee, #818cf8, #e879f9, #f87171)",
+                  }}
                 >
                   NOW!
                 </span>
-              </div>
-            </h2>
+              </h2>
 
-            {/* ── Ticker & Info ── */}
-            <div className="mt-8 sm:mt-10 flex flex-col items-center gap-5 relative z-10 px-6">
-              
-              <div className="flex items-center gap-2 text-lg sm:text-2xl font-sans font-medium text-slate-400">
-                <span>Bring your</span>
-                <div className="relative h-8 sm:h-10 w-[140px] sm:w-[190px] overflow-hidden flex items-center justify-center">
-                  <div
-                    key={loopIndex}
-                    className="absolute font-black uppercase tracking-wide text-emerald-300"
-                    style={{ animation: "s4pop 2.2s cubic-bezier(0.16,1,0.3,1) infinite" }}
-                  >
-                    {LOOP_TEXTS[loopIndex]}
-                  </div>
-                </div>
-                <span>to life.</span>
-              </div>
-
-              <p className="font-sans text-xs sm:text-sm text-slate-500 max-w-sm text-center leading-relaxed">
-                Venue, audience, logistics & tech — covered by the{" "}
-                <span className="text-emerald-400/80 font-bold">Crescent Technocrats Club</span>.
-              </p>
-            </div>
-
-            {/* ── CTA Button ── */}
-            <div className="mt-8 sm:mt-12 relative z-10">
+              {/* Tactical Circular Button */}
               <Link
                 href="/hostit"
-                className="group relative inline-flex items-center gap-3 px-8 sm:px-10 py-4 sm:py-5 rounded-full bg-emerald-500/10 border border-emerald-400/30 backdrop-blur-md hover:bg-emerald-400 hover:border-emerald-400 text-emerald-300 hover:text-slate-950 font-sans text-xs sm:text-sm font-black tracking-widest uppercase transition-all duration-500 hover:scale-110 shadow-[0_0_30px_rgba(52,211,153,0.15)] hover:shadow-[0_0_60px_rgba(52,211,153,0.5)]"
+                className="group relative flex items-center justify-center w-20 h-20 sm:w-24 sm:h-24 rounded-full border border-emerald-400/50 bg-slate-950/80 backdrop-blur-md hover:bg-emerald-400 transition-all duration-500 hover:scale-110 shadow-[0_0_30px_rgba(52,211,153,0.2)] hover:shadow-[0_0_50px_rgba(52,211,153,0.6)]"
               >
-                <span className="relative z-10">Launch Event</span>
-                <ArrowRight className="relative z-10 w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1.5 transition-transform duration-300" />
-                {/* Subtle pulse ring behind */}
-                <div className="absolute inset-0 rounded-full border border-emerald-400/50 scale-100 group-hover:animate-ping opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
+                <ArrowRight className="w-8 h-8 text-emerald-400 group-hover:text-slate-950 transition-colors duration-300" />
+                
+                {/* Rotating text track around button */}
+                <div className="absolute inset-[-24px] pointer-events-none animate-[hud-spin_12s_linear_infinite]">
+                  <svg viewBox="0 0 100 100" className="w-full h-full overflow-visible">
+                    <path id="curve" d="M 50,50 m -45,0 a 45,45 0 1,1 90,0 a 45,45 0 1,1 -90,0" fill="transparent" />
+                    <text className="font-mono text-[7px] font-bold uppercase tracking-[0.2em] fill-emerald-500/80">
+                      <textPath href="#curve" startOffset="0%">
+                        Host an Event • Host an Event • Host an Event • 
+                      </textPath>
+                    </text>
+                  </svg>
+                </div>
               </Link>
+              
             </div>
-
           </div>
 
         </div>
