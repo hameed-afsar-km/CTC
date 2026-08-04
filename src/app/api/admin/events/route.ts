@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, bearerToken } from "@/lib/auth";
 import {
   getEvents,
   saveEvent,
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const session = await requireAdmin(request);
+    await requireAdmin(request);
     const events = await getEvents();
     return NextResponse.json({ events });
   } catch (err) {
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
+    const token = bearerToken(request);
     const body = (await request.json()) as Partial<ClubEvent>;
     if (!body.title || !body.date) {
       return NextResponse.json({ error: "title and date are required" }, { status: 400 });
@@ -43,10 +44,11 @@ export async function POST(request: Request) {
       date: body.date,
       registerUrl: body.registerUrl ?? "#",
     };
-    await saveEvent(event);
+    await saveEvent(event, token);
     return NextResponse.json({ event }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to save event";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
 
@@ -56,6 +58,7 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
   try {
+    const token = bearerToken(request);
     const body = (await request.json()) as ClubEvent;
     if (!body.id) {
       return NextResponse.json({ error: "id is required" }, { status: 400 });
@@ -70,10 +73,11 @@ export async function PUT(request: Request) {
         await deleteCloudinaryImage(oldPublicId);
       }
     }
-    const updated = await updateEvent(body.id, body);
+    const updated = await updateEvent(body.id, body, token);
     return NextResponse.json({ event: updated });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to update event";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
 
@@ -82,6 +86,7 @@ export async function DELETE(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  const token = bearerToken(request);
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -95,6 +100,6 @@ export async function DELETE(request: Request) {
   if (publicId) {
     await deleteCloudinaryImage(publicId);
   }
-  await deleteEvent(id);
+  await deleteEvent(id, token);
   return NextResponse.json({ ok: true });
 }

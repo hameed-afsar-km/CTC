@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, bearerToken } from "@/lib/auth";
 import {
   getGalleryItems,
   addGalleryItem,
@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
-    const session = await requireAdmin(request);
+    await requireAdmin(request);
     const items = await getGalleryItems();
     return NextResponse.json({ items });
   } catch (err) {
@@ -32,19 +32,21 @@ export async function POST(request: Request) {
     if (!body.imageUrl || !body.title) {
       return NextResponse.json({ error: "imageUrl and title are required" }, { status: 400 });
     }
+    const token = bearerToken(request);
     const item: GalleryItem = {
-      id: `gal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      id: body.id || `gal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       imageUrl: body.imageUrl,
       title: String(body.title).trim(),
       category: String(body.category ?? "").trim(),
       description: String(body.description ?? "").trim(),
       date: String(body.date ?? new Date().toISOString().slice(0, 10)),
-      createdAt: new Date().toISOString(),
+      createdAt: body.createdAt || new Date().toISOString(),
     };
-    await addGalleryItem(item);
+    await addGalleryItem(item, token);
     return NextResponse.json({ item }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to save gallery item";
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
 }
 
@@ -53,6 +55,7 @@ export async function DELETE(request: Request) {
   if (!session) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
+  const token = bearerToken(request);
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
   if (!id) {
@@ -66,6 +69,6 @@ export async function DELETE(request: Request) {
   if (publicId) {
     await deleteCloudinaryImage(publicId);
   }
-  await deleteGalleryItem(id);
+  await deleteGalleryItem(id, token);
   return NextResponse.json({ ok: true });
 }
