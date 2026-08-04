@@ -112,22 +112,38 @@ export default function EventsPanel() {
     }
   };
 
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const uploadImage = async (): Promise<string> => {
     if (!imageFile) throw new Error("No image selected");
-    const token = await getToken();
-    const formData = new FormData();
-    formData.append("file", imageFile);
-    const res = await fetch("/api/admin/events/upload", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
-    });
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      throw new Error(data?.error ?? "Image upload failed");
+    try {
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const formData = new FormData();
+      formData.append("file", imageFile);
+      const res = await fetch("/api/admin/events/upload", {
+        method: "POST",
+        headers,
+        body: formData,
+      });
+
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        if (data?.imageUrl) return data.imageUrl as string;
+      }
+    } catch {
+      // Cloudinary server upload failed, fallback to Data URL
     }
-    const { imageUrl } = await res.json();
-    return imageUrl as string;
+    return await fileToDataUrl(imageFile);
   };
 
   const handleUploadImage = async () => {

@@ -70,6 +70,15 @@ export default function GalleryPanel() {
     }
   };
 
+  const fileToDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.file) {
@@ -83,36 +92,55 @@ export default function GalleryPanel() {
     setUploading(true);
     setMessage(null);
     try {
-      const token = await getToken();
+      const token = await getToken().catch(() => null);
+      let imageUrl = "";
 
-      const formData = new FormData();
-      formData.append("file", form.file);
-      const uploadRes = await fetch("/api/admin/gallery/upload", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
-      if (!uploadRes.ok) {
-        const data = await uploadRes.json().catch(() => null);
-        throw new Error(data?.error ?? "Upload failed");
+      try {
+        const headers: Record<string, string> = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        const formData = new FormData();
+        formData.append("file", form.file);
+        const uploadRes = await fetch("/api/admin/gallery/upload", {
+          method: "POST",
+          headers,
+          body: formData,
+        });
+        if (uploadRes.ok) {
+          const data = await uploadRes.json().catch(() => null);
+          if (data?.imageUrl) imageUrl = data.imageUrl;
+        }
+      } catch {
+        // Fallback to Data URL
       }
-      const { imageUrl } = await uploadRes.json();
+
+      if (!imageUrl) {
+        imageUrl = await fileToDataUrl(form.file);
+      }
+
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
       const metaRes = await fetch("/api/admin/gallery", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers,
         body: JSON.stringify({
+          id: `gal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           imageUrl,
           title: form.title,
-          category: form.category,
-          description: form.description,
+          category: form.category || "General",
+          description: form.description || "",
           date: form.date,
+          createdAt: new Date().toISOString(),
         }),
       });
+
       if (!metaRes.ok) throw new Error("Failed to save gallery item");
 
       setMessage({ text: "Photo uploaded to the gallery!", type: "success" });
       setForm({ file: null, title: "", category: "", description: "", date: new Date().toISOString().slice(0, 10) });
+      setPreview(null);
+      await fetchAll();
       setPreview(null);
       await fetchAll();
     } catch (err) {
