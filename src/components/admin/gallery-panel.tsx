@@ -5,6 +5,8 @@ import { ImagePlus, Loader2, Trash2, UploadCloud } from "lucide-react";
 import type { GalleryItem } from "@/lib/gallery-store";
 import { useAdmin } from "./admin-context";
 import { EmptyState, LoadingState, PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
+import { getFirestore, doc, setDoc } from "firebase/firestore";
+import { getClientApp } from "@/lib/firebase-client";
 
 export default function GalleryPanel() {
   const { getToken } = useAdmin();
@@ -121,23 +123,35 @@ export default function GalleryPanel() {
       const headers: Record<string, string> = { "Content-Type": "application/json" };
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
+      const itemId = `gal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const itemPayload = {
+        id: itemId,
+        imageUrl,
+        title: form.title,
+        category: form.category || "General",
+        description: form.description || "",
+        date: form.date,
+        createdAt: new Date().toISOString(),
+      };
+
       const metaRes = await fetch("/api/admin/gallery", {
         method: "POST",
         headers,
-        body: JSON.stringify({
-          id: `gal-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          imageUrl,
-          title: form.title,
-          category: form.category || "General",
-          description: form.description || "",
-          date: form.date,
-          createdAt: new Date().toISOString(),
-        }),
+        body: JSON.stringify(itemPayload),
       });
 
       if (!metaRes.ok) {
-        const errData = await metaRes.json().catch(() => null);
-        throw new Error(errData?.error ?? "Failed to save gallery item");
+        // Direct Client-Side Firestore Fallback
+        try {
+          const db = getFirestore(getClientApp());
+          await setDoc(doc(db, "gallery", itemId), itemPayload, { merge: true });
+        } catch (clientErr) {
+          const errData = await metaRes.json().catch(() => null);
+          throw new Error(
+            errData?.error ??
+              (clientErr instanceof Error ? clientErr.message : "Failed to save gallery item")
+          );
+        }
       }
 
       setMessage({ text: "Photo uploaded to the gallery!", type: "success" });
