@@ -86,6 +86,8 @@ export default function HostItPage() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [acceptedGuidelines, setAcceptedGuidelines] = useState(false);
   const [isAccepting, setIsAccepting] = useState(false);
   const [deptOpen, setDeptOpen] = useState(false);
@@ -290,7 +292,7 @@ export default function HostItPage() {
     });
   }, [macHover]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const emailOk = /^[a-zA-Z0-9._%+-]+@crescent\.education$/i.test(formData.email);
@@ -301,7 +303,26 @@ export default function HostItPage() {
     setContactError(contactOk ? "" : "Enter a valid 10-digit mobile number.");
 
     if (!emailOk || !contactOk) return;
-    setSubmitted(true);
+
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const res = await fetch("/api/hostit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setSubmitError(data?.error ?? "Something went wrong. Please try again.");
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   useEffect(() => {
@@ -727,11 +748,17 @@ export default function HostItPage() {
               </div>
 
               {/* Submit CTA */}
+              {submitError && (
+                <p className="text-xs text-rose-400 font-medium text-center">
+                  {submitError}
+                </p>
+              )}
               <button
                 type="submit"
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#080c0b] font-sans text-base font-extrabold tracking-wider uppercase shadow-[0_0_25px_rgba(52,211,153,0.3)] hover:shadow-[0_0_45px_rgba(52,211,153,0.55)] hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-3"
+                disabled={submitting}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-cyan-400 text-[#080c0b] font-sans text-base font-extrabold tracking-wider uppercase shadow-[0_0_25px_rgba(52,211,153,0.3)] hover:shadow-[0_0_45px_rgba(52,211,153,0.55)] hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <span>Submit Event Proposal</span>
+                <span>{submitting ? "Submitting..." : "Submit Event Proposal"}</span>
                 <Send className="w-5 h-5" />
               </button>
             </form>

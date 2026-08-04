@@ -16,6 +16,7 @@ export interface Application {
   portfolioUrl: string;
   consented: boolean;
   submittedAt: string;
+  status?: "pending" | "approved" | "rejected";
 }
 
 export const DEGREES = [

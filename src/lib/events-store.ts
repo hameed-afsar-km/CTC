@@ -1,23 +1,52 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { getDb } from "./firebase-admin";
 import { defaultEvents, type ClubEvent } from "./events";
 
-const STORE_PATH = path.join(process.cwd(), "data", "events.json");
+const COLLECTION = "events";
 
 export async function getEvents(): Promise<ClubEvent[]> {
-  try {
-    const raw = await fs.readFile(STORE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as { events?: ClubEvent[] };
-    if (Array.isArray(parsed.events) && parsed.events.length > 0) {
-      return parsed.events;
-    }
-  } catch {
-    // store not present yet — fall back to bundled defaults
+  const db = getDb();
+  const snapshot = await db.collection(COLLECTION).orderBy("date", "asc").get();
+  if (snapshot.empty) {
+    await seedEvents();
+    const reseed = await db.collection(COLLECTION).orderBy("date", "asc").get();
+    return reseed.docs.map((doc) => doc.data() as ClubEvent);
   }
-  return defaultEvents;
+  return snapshot.docs.map((doc) => doc.data() as ClubEvent);
 }
 
-export async function saveEvents(events: ClubEvent[]): Promise<void> {
-  await fs.mkdir(path.dirname(STORE_PATH), { recursive: true });
-  await fs.writeFile(STORE_PATH, JSON.stringify({ events }, null, 2), "utf8");
+async function seedEvents(): Promise<void> {
+  const db = getDb();
+  const batch = db.batch();
+  for (const event of defaultEvents) {
+    batch.set(db.collection(COLLECTION).doc(event.id), event);
+  }
+  await batch.commit();
+}
+
+export async function saveEvent(event: ClubEvent): Promise<void> {
+  await getDb().collection(COLLECTION).doc(event.id).set(event);
+}
+
+export async function updateEvent(id: string, patch: Partial<ClubEvent>): Promise<ClubEvent | null> {
+  const ref = getDb().collection(COLLECTION).doc(id);
+  const existing = await ref.get();
+  if (!existing.exists) return null;
+  await ref.update(patch);
+  const updated = await ref.get();
+  return updated.data() as ClubEvent;
+}
+
+export async function deleteEvent(id: string): Promise<boolean> {
+  const ref = getDb().collection(COLLECTION).doc(id);
+  const existing = await ref.get();
+  if (!existing.exists) return false;
+  await ref.delete();
+  return true;
+}
+
+export async function getEventById(id: string): Promise<ClubEvent | null> {
+  const ref = getDb().collection(COLLECTION).doc(id);
+  const doc = await ref.get();
+  if (!doc.exists) return null;
+  return doc.data() as ClubEvent;
 }

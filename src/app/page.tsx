@@ -442,7 +442,23 @@ export default function Home() {
     const update = () => {
       if (hero.offsetHeight <= 0) return;
 
-      if (window.scrollY >= getCoveredAt() - 2) {
+      // Hide floating navbar when entering the footer
+      const currentScroll = window.scrollY;
+      const footerElement = document.querySelector("footer");
+      const footerOffset = footerElement ? footerElement.offsetTop : document.documentElement.scrollHeight;
+      
+      // Threshold is when the top of the viewport reaches the top edge of the footer (or just slightly before it)
+      const footerThreshold = footerOffset - 50; 
+
+      if (navWrapRef.current) {
+        if (currentScroll >= footerThreshold) {
+          navWrapRef.current.classList.add("nav-hidden");
+        } else {
+          navWrapRef.current.classList.remove("nav-hidden");
+        }
+      }
+
+      if (currentScroll >= getCoveredAt() - 2) {
         if (!hidden) {
           hidden = true;
           heroFxRef.current?.releaseBuffer();
@@ -454,7 +470,7 @@ export default function Home() {
         hero.style.visibility = "visible";
       }
 
-      if (window.scrollY >= hero.offsetHeight - 2) {
+      if (currentScroll >= hero.offsetHeight - 2) {
         freeze();
       } else {
         unfreeze();
@@ -795,7 +811,7 @@ export default function Home() {
             { href: "#events",  label: "Events", num: "01" },
             { href: "#about",   label: "About",  num: "02" },
             { href: "#team",    label: "Team",   num: "03" },
-            { href: "#gallery", label: "Gallery", num: "04" },
+            { href: "/gallery", label: "Gallery", num: "04" },
           ].map(({ href, label, num }, i) => (
             <a
               key={label}
@@ -911,7 +927,7 @@ export default function Home() {
             {/* Right Navigation Links & Holographic CTA */}
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-4 text-xs md:text-sm font-semibold text-black/80 font-syne tracking-wider uppercase">
               <a
-                href="#gallery"
+                href="/gallery"
                 className="nav-item nav-item-text px-3.5 py-1.5 rounded-full hover:bg-black/5 hover:text-emerald-700 transition-all duration-300 relative group"
               >
                 <span>Gallery</span>
@@ -1105,14 +1121,11 @@ export default function Home() {
       {/* Large Typography Animated Home Footer */}
       <HomeFooter />
 
-      {/* Gallery Section (placeholder) */}
-      <section id="gallery" className="relative z-50 w-full" />
-
       {/* Liquid Smudge Cursor Lens — hidden on touch/mobile devices */}
       {!isTouchDevice && (
         <div
           ref={cursorLensRef}
-          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[200] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
+          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[998] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
           style={{
             backdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
             WebkitBackdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
@@ -1125,7 +1138,7 @@ export default function Home() {
       {!isTouchDevice && (
         <div
           ref={cursorPngRef}
-          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[200] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
+          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           <img
@@ -1160,6 +1173,17 @@ export default function Home() {
           </filter>
         </defs>
       </svg>
+
+      <style jsx global>{`
+        .holo-border-wrapper {
+          transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1), opacity 400ms ease !important;
+        }
+        .holo-border-wrapper.nav-hidden {
+          transform: translate(-50%, -120px) scale(0.95) !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+      `}</style>
     </>
   );
 }

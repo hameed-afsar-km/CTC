@@ -39,27 +39,29 @@ export function ShinyButton({ children, onClick, className = "" }: ShinyButtonPr
         }
 
         .shiny-cta {
-          --shiny-cta-bg: #06120d;
-          --shiny-cta-bg-subtle: #0d2a1d;
-          --shiny-cta-fg: #ffffff;
+          --shiny-cta-bg: #030907;
+          --shiny-cta-bg-subtle: #0c1f17;
+          --shiny-cta-fg: #ecfdf5;
           --shiny-cta-highlight: #34d399;
           --shiny-cta-highlight-subtle: #6ee7b7;
           --animation: gradient-angle linear infinite;
           --duration: 3s;
           --shadow-size: 2px;
           --transition: 800ms cubic-bezier(0.25, 1, 0.5, 1);
-
+          
           isolation: isolate;
           position: relative;
           overflow: hidden;
           cursor: pointer;
           outline-offset: 4px;
-          padding: 1rem 2.25rem;
+          padding: 0.75rem 2.0rem;
           font-family: "Inter", sans-serif;
-          font-size: 1rem;
+          font-size: 0.72rem;
+          letter-spacing: 0.15em;
+          text-transform: uppercase;
           line-height: 1.2;
-          font-weight: 500;
-          border: 1px solid rgba(52, 211, 153, 0.3);
+          font-weight: 900;
+          border: 1px solid rgba(52, 211, 153, 0.2);
           border-radius: 360px;
           color: var(--shiny-cta-fg);
           background: linear-gradient(var(--shiny-cta-bg), var(--shiny-cta-bg)) padding-box,
@@ -71,7 +73,7 @@ export function ShinyButton({ children, onClick, className = "" }: ShinyButtonPr
               var(--shiny-cta-highlight) calc(var(--gradient-percent) * 3),
               transparent calc(var(--gradient-percent) * 4)
             ) border-box;
-          box-shadow: inset 0 0 0 1px var(--shiny-cta-bg-subtle), 0 0 25px rgba(52, 211, 153, 0.15);
+          box-shadow: inset 0 0 0 1px var(--shiny-cta-bg-subtle), 0 0 20px rgba(52, 211, 153, 0.08);
           transition: var(--transition);
           transition-property: --gradient-angle-offset, --gradient-percent, --gradient-shine;
         }

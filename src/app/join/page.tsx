@@ -22,7 +22,6 @@ import {
   Phone,
   Send,
   ShieldCheck,
-  Sparkles,
   User,
   X,
 } from "lucide-react";
@@ -37,6 +36,7 @@ import {
 } from "@/lib/applications";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 const PHONE_RE = /^[+]?[\d\s()-]{10,15}$/;
 
 const labelClass =
@@ -327,7 +327,12 @@ export default function JoinPage() {
   const validateStep1 = (): boolean => {
     const e: Record<string, string> = {};
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
-    if (!EMAIL_RE.test(form.collegeMail.trim())) e.collegeMail = "Enter a valid college email";
+    const collegeMail = form.collegeMail.trim();
+    if (!EMAIL_RE.test(collegeMail)) {
+      e.collegeMail = "Enter a valid college email";
+    } else if (!COLLEGE_EMAIL_RE.test(collegeMail)) {
+      e.collegeMail = "Only your official college email (@crescent.education) is accepted";
+    }
     if (!PHONE_RE.test(form.contactNumber.trim())) e.contactNumber = "Enter a valid contact number";
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -444,9 +449,8 @@ export default function JoinPage() {
           <>
             {/* Header */}
             <header className="mb-10">
-              <div className="inline-flex items-center gap-2 text-[10px] font-mono uppercase tracking-widest text-mint font-medium mb-4">
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Applications Open</span>
+              <div className="text-shine text-[10px] font-mono uppercase tracking-widest font-medium mb-4">
+                Applications Open
               </div>
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
                 Join the Club
@@ -541,7 +545,7 @@ export default function JoinPage() {
                         <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.collegeMail}</p>
                       ) : (
                         <p className="mt-1.5 text-xs text-gray-500 font-mono">
-                          Use your official college email
+                          Only @crescent.education emails are accepted
                         </p>
                       )}
                     </div>

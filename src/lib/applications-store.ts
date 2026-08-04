@@ -1,25 +1,26 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { getDb } from "./firebase-admin";
 import type { Application } from "./applications";
 
-const STORE_PATH = path.join(process.cwd(), "data", "applications.json");
+const COLLECTION = "applications";
 
 export async function getApplications(): Promise<Application[]> {
-  try {
-    const raw = await fs.readFile(STORE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as { applications?: Application[] };
-    if (Array.isArray(parsed.applications)) {
-      return parsed.applications;
-    }
-  } catch {
-    // store not present yet
-  }
-  return [];
+  const snapshot = await getDb().collection(COLLECTION).orderBy("submittedAt", "desc").get();
+  return snapshot.docs.map((doc) => doc.data() as Application);
 }
 
 export async function saveApplication(application: Application): Promise<void> {
-  const applications = await getApplications();
-  applications.push(application);
-  await fs.mkdir(path.dirname(STORE_PATH), { recursive: true });
-  await fs.writeFile(STORE_PATH, JSON.stringify({ applications }, null, 2), "utf8");
+  const record = { ...application, status: application.status ?? "pending" };
+  await getDb().collection(COLLECTION).doc(application.id).set(record);
+}
+
+export async function updateApplicationStatus(
+  id: string,
+  status: string
+): Promise<Application | null> {
+  const ref = getDb().collection(COLLECTION).doc(id);
+  const existing = await ref.get();
+  if (!existing.exists) return null;
+  await ref.update({ status });
+  const updated = await ref.get();
+  return updated.data() as Application;
 }

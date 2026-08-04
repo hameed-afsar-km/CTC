@@ -1,238 +1,322 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { ArrowUpRight, Sparkles, Send } from "lucide-react";
+import { useState, useEffect } from "react";
+import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { ShinyButton } from "@/components/ui/shiny-button";
 
-const TAGLINE_WORDS = [
-  { text: "THINK", desc: "Dream & Discover" },
-  { text: "IDEATE", desc: "Architect & Design" },
-  { text: "COLLABORATE", desc: "Build & Ship" },
-];
+/* ─── Flip panel data ──────────────────────────────────── */
+const PANELS = [
+  { a: "CRESCENT",    b: "THINK",       colorA: "#ecfdf5", colorB: "#8b5cf6", fontSize: "clamp(2.6rem, 16vw, 14.5rem)"  },
+  { a: "TECHNOCRATS", b: "IDEATE",      colorA: "#ecfdf5", colorB: "#22d3ee", fontSize: "clamp(1.8rem, 12vw, 11rem)"    },
+  { a: "CLUB",        b: "COLLABORATE", colorA: "#ecfdf5", colorB: "#34d399", fontSize: "clamp(1.8rem, 12vw, 11rem)"    },
+] as const;
 
+const NAV = [
+  { label: "Events",  href: "#events"  },
+  { label: "About",   href: "#about"   },
+  { label: "Team",    href: "#team"    },
+  { label: "Gallery", href: "#gallery" },
+  { label: "Host'IT", href: "#hostit"  },
+] as const;
+
+/* ─── Single flip panel ────────────────────────────────── */
+function FlipPanel({
+  a, b, colorA, colorB, baseDelay, fontSize,
+}: {
+  a: string; b: string; colorA: string; colorB: string; baseDelay: number; fontSize: string;
+}) {
+  const [face,  setFace ] = useState<"a" | "b">("a");
+  const [anim,  setAnim ] = useState<"in" | "out" | "idle">("idle");
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
+    const doFlip = () => {
+      setAnim("out");
+      timer = setTimeout(() => {
+        setFace((f) => (f === "a" ? "b" : "a"));
+        setAnim("in");
+        timer = setTimeout(() => setAnim("idle"), 420);
+      }, 380);
+    };
+
+    // Initial delay so panels stagger
+    const init = setTimeout(() => {
+      doFlip();
+      // After the stagger, settle into a regular cycle
+      const interval = setInterval(doFlip, 3600);
+      timer = interval as unknown as ReturnType<typeof setTimeout>;
+    }, baseDelay);
+
+    return () => {
+      clearTimeout(init);
+      clearTimeout(timer);
+    };
+  }, [baseDelay]);
+
+  const text  = face === "a" ? a : b;
+  const color = face === "a" ? colorA : colorB;
+
+  return (
+    <div
+      className="w-full flex items-center justify-start overflow-hidden px-5 sm:px-10"
+      style={{ perspective: "900px", flex: "1 1 0%", minHeight: 0 }}
+    >
+      <span
+        className="block font-black uppercase tracking-tighter select-none rgb-hover-glow"
+        style={{
+          fontSize,
+          lineHeight: 0.76,
+          color: "transparent",
+          WebkitTextStroke: `clamp(0.5px, 0.06vw, 1.0px) ${color}`,
+          textShadow: face === "b" ? `0 0 60px ${color}44` : "none",
+          transformOrigin: "left center",
+          animation:
+            anim === "out" ? "panel-flip-out 0.38s cubic-bezier(0.5,0,1,0.5) forwards" :
+            anim === "in"  ? "panel-flip-in  0.42s cubic-bezier(0,0.5,0.5,1) forwards" :
+            "none",
+          transition: "text-shadow 0.3s",
+        }}
+      >
+        {text}
+      </span>
+    </div>
+  );
+}
+
+/* ─── Main component ───────────────────────────────────── */
 export default function HomeFooter() {
-  const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
-  const [hoveredWord, setHoveredWord] = useState<number | null>(null);
-  const [isMarqueeHovered, setIsMarqueeHovered] = useState(false);
-  const containerRef = useRef<HTMLElement>(null);
+  const [mouse, setMouse] = useState({ x: 50, y: 50 });
+  const [showContactModal, setShowContactModal] = useState(false);
 
-  // Interactive Mouse Spotlight
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
-    setMousePos({ x, y });
-  };
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  };
-
-  const handleContactClick = () => {
-    window.location.href = "mailto:contact@crescenttechnocrats.club?subject=Inquiry%20from%20Website";
-  };
+  const toTop  = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const mailto = () => { window.location.href = "mailto:contact@crescenttechnocrats.club"; };
 
   return (
     <footer
-      ref={containerRef}
-      onMouseMove={handleMouseMove}
-      className="h-screen min-h-screen w-full relative overflow-hidden bg-[#030907] text-[#ecfdf5] flex flex-col justify-between p-4 sm:p-8 md:p-10 font-sans select-none border-t border-[#174630]/40 group"
+      onMouseMove={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        setMouse({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+      }}
+      className="h-screen w-full overflow-hidden relative flex flex-col bg-[#030907] text-[#ecfdf5] select-none border-t border-[#0f1f14]"
       data-section-theme="dark"
     >
-      {/* ── Dynamic Liquid Gradient Mesh & Dot Matrix Background ── */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute -top-32 -left-32 w-[65vw] h-[65vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent blur-[160px] animate-liquid-orb-1" />
-        <div className="absolute -bottom-32 -right-32 w-[65vw] h-[65vw] max-w-[800px] max-h-[800px] rounded-full bg-gradient-to-tl from-cyan-500/20 via-emerald-600/10 to-transparent blur-[160px] animate-liquid-orb-2" />
-        <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[55vw] h-[55vw] max-w-[600px] max-h-[600px] rounded-full bg-emerald-400/10 blur-[200px] animate-pulse" />
-
-        {/* Diagonal Micro-Dot Matrix Pattern */}
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(52,211,153,0.12)_1px,transparent_1px)] [background-size:32px_32px] opacity-40" />
-
-        {/* Interactive Mouse Spotlight Radial Glow */}
-        <div
-          className="absolute inset-0 transition-opacity duration-700 opacity-80"
-          style={{
-            background: `radial-gradient(750px circle at ${mousePos.x}% ${mousePos.y}%, rgba(52, 211, 153, 0.16), transparent 80%)`,
-          }}
-        />
-
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
+      {/* ── Background ──────────────────────────── */}
+      <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-1/3 -left-1/4 w-3/5 h-3/5 rounded-full bg-[#8b5cf6]/12 blur-[140px] orb" />
+        <div className="absolute -bottom-1/3 -right-1/4 w-3/5 h-3/5 rounded-full bg-[#22d3ee]/9  blur-[130px] orb" style={{ animationDelay: "-9s" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2/5 h-2/5 rounded-full bg-[#34d399]/7 blur-[90px]  orb" style={{ animationDelay: "-17s" }} />
+        <div className="absolute inset-0 opacity-[0.04]"
+          style={{ backgroundImage: "radial-gradient(rgba(139,92,246,0.9) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
+        <div className="absolute inset-0"
+          style={{ background: `radial-gradient(430px circle at ${mouse.x}% ${mouse.y}%, rgba(139,92,246,0.1), transparent 68%)` }} />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_52%,#030907_100%)]" />
       </div>
 
-      {/* ── TOP SECTION: Header Bar ── */}
-      <div className="relative z-10 w-full flex items-center justify-end pb-3 border-b border-[#174630]/40 shrink-0">
-        <button
-          onClick={scrollToTop}
-          className="group flex items-center gap-1.5 sm:gap-2 px-4 py-2 rounded-full bg-[#0c1f17]/80 backdrop-blur-md hover:bg-[#133326] border border-[#174630] hover:border-[#34d399]/50 text-[#ecfdf5] transition-all cursor-pointer shadow-md text-xs"
-        >
-          <span className="font-medium uppercase tracking-wider">Top</span>
-          <ArrowUpRight className="w-3.5 h-3.5 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform text-[#6ee7b7]" />
+      {/* ══════════════════════════════════════════ */}
+      {/* TOP BAR — 44 px                           */}
+      {/* ══════════════════════════════════════════ */}
+      <div className="relative z-10 h-11 shrink-0 flex items-center justify-between px-5 sm:px-10 border-b border-[#0f1f14]">
+        <span className="text-[10px] font-bold tracking-[0.28em] uppercase text-[#1e3a2f]">
+          Crescent Technocrats Club
+        </span>
+        <button onClick={toTop}
+          className="group flex items-center gap-1 text-[10px] text-[#1e3a2f] hover:text-[#a78bfa] transition-colors">
+          Back to top
+          <ArrowUpRight className="w-3 h-3 group-hover:-translate-y-px group-hover:translate-x-px transition-transform" />
         </button>
       </div>
 
-      {/* ── CENTER SECTION: Large Three Typography Stack ── */}
-      <div className="relative z-10 pt-2 pb-4 sm:pb-6 w-full flex flex-col items-center text-center justify-center max-w-full overflow-hidden shrink-0 translate-y-[-10px] sm:translate-y-[-20px]">
-        
-        {/* Large Three Typography Stack */}
-        <div className="flex flex-col items-center justify-center w-full space-y-0 sm:-space-y-1 md:-space-y-2 max-w-full">
-          
-          {/* Line 1: CRESCENT (Outlined) */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black uppercase tracking-tighter leading-tight sm:leading-none text-transparent stroke-outline-text hover:scale-[1.02] transition-transform duration-300">
-            CRESCENT
-          </h1>
+      {/* ─── FLIP PANELS — flex-[5] ─── */}
+      <div className="relative z-10 flex flex-col justify-center items-stretch px-4 sm:px-8 -space-y-8 sm:-space-y-16" style={{ flex: "5 1 0%", minHeight: 0 }}>
+        {PANELS.map(({ a, b, colorA, colorB, fontSize }, i) => (
+          <FlipPanel key={a} a={a} b={b} colorA={colorA} colorB={colorB} baseDelay={i * 900} fontSize={fontSize} />
+        ))}
+      </div>
 
-          {/* Line 2: TECHNOCRATS (Animated Gradient) */}
-          <h2 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black uppercase tracking-tighter leading-tight sm:leading-none text-transparent bg-clip-text bg-[linear-gradient(90deg,#6ee7b7,#34d399,#60a5fa,#a7f3d0,#34d399,#6ee7b7)] bg-[length:200%_auto] animate-gradient-flow hover:scale-[1.02] transition-transform duration-300">
-            TECHNOCRATS
-          </h2>
+      {/* ══════════════════════════════════════════ */}
+      {/* CTA ROW — shrink-0                        */}
+      {/* ══════════════════════════════════════════ */}
+      <div className="relative z-10 shrink-0 flex items-center justify-center gap-4 px-5 py-4 border-t border-[#0f1f14]">
+        <ShinyButton onClick={() => setShowContactModal(true)}>
+          Get In Touch
+        </ShinyButton>
 
-          {/* Line 3: CLUB (White) */}
-          <h3 className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl xl:text-9xl font-black uppercase tracking-tighter leading-tight sm:leading-none text-white hover:scale-[1.02] transition-transform duration-300">
-            CLUB
-          </h3>
-
-        </div>
-
-        {/* ── NEW REDESIGNED TAGLINE ANIMATION: Continuous Laser Beam Wave & Interactive Word Pillars ── */}
-        <div className="mt-6 sm:mt-8 flex flex-col items-center w-full max-w-2xl px-4">
-          <div className="flex items-center justify-center gap-6 sm:gap-12 w-full relative">
-            {TAGLINE_WORDS.map((item, idx) => (
-              <div
-                key={item.text}
-                onMouseEnter={() => setHoveredWord(idx)}
-                onMouseLeave={() => setHoveredWord(null)}
-                className="group flex flex-col items-center cursor-pointer transition-all duration-300"
-              >
-                <span
-                  className={`text-sm sm:text-lg md:text-xl font-black tracking-[0.25em] uppercase transition-all duration-300 ${
-                    hoveredWord === idx
-                      ? "text-white scale-110 drop-shadow-[0_0_15px_rgba(52,211,153,0.8)]"
-                      : "text-[#a7f3d0]/80 group-hover:text-white"
-                  }`}
-                >
-                  {item.text}
-                </span>
-                
-                {/* Micro subtitle indicator */}
-                <span className="text-[10px] text-[#34d399] opacity-0 group-hover:opacity-100 transition-opacity duration-300 font-mono mt-0.5">
-                  {item.desc}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Continuous Scanning Laser Beam Underline */}
-          <div className="w-full max-w-md h-[2px] bg-[#174630]/60 mt-3 relative overflow-hidden rounded-full">
-            <div className="absolute top-0 bottom-0 w-24 bg-gradient-to-r from-transparent via-[#34d399] to-transparent animate-laser-scan shadow-[0_0_12px_#34d399]" />
-          </div>
-        </div>
-
-        {/* Shiny Button Contact CTA */}
-        <div className="mt-6 sm:mt-8">
-          <ShinyButton onClick={handleContactClick}>
-            <Sparkles className="w-4 h-4 text-[#34d399] inline-block mr-1.5" />
-            <span>Need Help? Contact Now!</span>
-            <Send className="w-4 h-4 text-[#6ee7b7] inline-block ml-1.5" />
+        <a href="/join" className="group">
+          <ShinyButton className="border-[#1e293b]">
+            <span className="flex items-center gap-1">
+              Join Us <ArrowUpRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </span>
           </ShinyButton>
-        </div>
-
+        </a>
       </div>
 
-      {/* ── NEW REDESIGNED FOOTER MARQUEE: Sleek Graphic Design Marquee Track ── */}
-      <div
-        className="relative z-10 w-full py-3.5 border-t border-[#174630]/60 overflow-hidden shrink-0 bg-[#040d09]/90 backdrop-blur-md"
-        onMouseEnter={() => setIsMarqueeHovered(true)}
-        onMouseLeave={() => setIsMarqueeHovered(false)}
-      >
-        <div className="flex whitespace-nowrap w-full">
-          <div
-            className="flex items-center gap-10 text-xs sm:text-sm font-extrabold tracking-[0.2em] uppercase text-[#a7f3d0]"
-            style={{
-              animation: "marquee-smooth 25s linear infinite",
-              animationPlayState: isMarqueeHovered ? "paused" : "running",
-            }}
-          >
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-10 shrink-0">
-                <span className="text-white hover:text-[#34d399] transition-colors">
-                  CRESCENT TECHNOCRATS CLUB
-                </span>
-                <span className="w-2 h-2 rounded-full bg-[#34d399] shadow-[0_0_10px_#34d399]" />
-                <span className="text-[#6ee7b7] hover:text-white transition-colors">
-                  DESIGNED BY HAMEED AFSAR KM
-                </span>
-                <span className="w-2 h-2 rounded-full bg-[#34d399] shadow-[0_0_10px_#34d399]" />
-              </div>
-            ))}
-          </div>
-
-          <div
-            className="flex items-center gap-10 text-xs sm:text-sm font-extrabold tracking-[0.2em] uppercase text-[#a7f3d0]"
-            aria-hidden="true"
-            style={{
-              animation: "marquee-smooth 25s linear infinite",
-              animationPlayState: isMarqueeHovered ? "paused" : "running",
-            }}
-          >
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex items-center gap-10 shrink-0">
-                <span className="text-white hover:text-[#34d399] transition-colors">
-                  CRESCENT TECHNOCRATS CLUB
-                </span>
-                <span className="w-2 h-2 rounded-full bg-[#34d399] shadow-[0_0_10px_#34d399]" />
-                <span className="text-[#6ee7b7] hover:text-white transition-colors">
-                  DESIGNED BY HAMEED AFSAR KM
-                </span>
-                <span className="w-2 h-2 rounded-full bg-[#34d399] shadow-[0_0_10px_#34d399]" />
-              </div>
-            ))}
-          </div>
-        </div>
+      {/* ══════════════════════════════════════════ */}
+      {/* EMAIL ROW — shrink-0                      */}
+      {/* ══════════════════════════════════════════ */}
+      <div className="relative z-10 shrink-0 flex items-center justify-center py-2.5 border-t border-[#0f1f14]">
+        <button onClick={mailto}
+          className="px-4 py-1 text-[10px] sm:text-[11px] text-[#1e3a2f] hover:text-[#a78bfa] transition-colors tracking-wider font-mono">
+          contact@crescenttechnocrats.club
+        </button>
       </div>
 
-      {/* Internal CSS Animations */}
+      {/* ══════════════════════════════════════════ */}
+      {/* CREDIT BAR — 40 px                        */}
+      {/* ══════════════════════════════════════════ */}
+      <div className="relative z-10 h-10 shrink-0 flex items-center justify-between px-5 sm:px-10 border-t border-[#0f1f14]"
+        style={{ background: "linear-gradient(90deg,#040610,#030812,#040610)" }}>
+        <span className="text-[10px] text-[#1e293b] tracking-wider truncate">
+          © {new Date().getFullYear()} Crescent Technocrats Club
+        </span>
+        <span className="text-[10px] text-[#1e293b] tracking-wider truncate text-right ml-4 shrink-0">
+          Designed by <span className="text-[#8b5cf6]/50">Hameed Afsar KM</span>
+        </span>
+      </div>
+
+      {/* ══════════════════════════════════════════ */}
+      {/* GET IN TOUCH MODAL OVERLAY                 */}
+      {/* ══════════════════════════════════════════ */}
+      {showContactModal && (
+        <div 
+          className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in"
+          onClick={() => setShowContactModal(false)}
+        >
+          <div 
+            className="w-full max-w-sm rounded-3xl bg-[#030907]/90 border border-emerald-500/20 p-6 sm:p-8 relative shadow-[0_0_50px_rgba(52,211,153,0.15)] animate-scale-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button 
+              onClick={() => setShowContactModal(false)}
+              className="absolute top-4 right-4 text-emerald-500/40 hover:text-emerald-400 text-lg transition-colors w-8 h-8 flex items-center justify-center rounded-full bg-[#0a140f] border border-emerald-500/10"
+            >
+              ✕
+            </button>
+
+            <h3 className="font-black text-white text-xl sm:text-2xl tracking-tight mb-1">
+              Get In Touch
+            </h3>
+            <p className="text-[11px] uppercase tracking-widest text-emerald-400/70 font-semibold mb-6">
+              Connect with CTC
+            </p>
+
+            <div className="flex flex-col gap-3">
+              {/* Mail Link */}
+              <a 
+                href="mailto:contact@crescenttechnocrats.club"
+                className="flex items-center gap-4 p-3 rounded-2xl bg-[#07130d] border border-emerald-500/10 hover:border-emerald-500/30 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500">Email Address</span>
+                  <span className="text-xs text-emerald-100 font-mono truncate">contact@crescenttechnocrats.club</span>
+                </div>
+              </a>
+
+              {/* Instagram Link */}
+              <a 
+                href="https://instagram.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-3 rounded-2xl bg-[#07130d] border border-emerald-500/10 hover:border-emerald-500/30 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 group-hover:scale-110 transition-transform">
+                  <svg className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+                  </svg>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500">Instagram</span>
+                  <span className="text-xs text-emerald-100 font-mono">@crescenttechnocrats</span>
+                </div>
+              </a>
+
+              {/* LinkedIn Link */}
+              <a 
+                href="https://linkedin.com" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="flex items-center gap-4 p-3 rounded-2xl bg-[#07130d] border border-emerald-500/10 hover:border-emerald-500/30 transition-all group"
+              >
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 group-hover:scale-110 transition-transform">
+                  <svg className="w-4.5 h-4.5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                  </svg>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500">LinkedIn</span>
+                  <span className="text-xs text-emerald-100 font-mono">Crescent Technocrats</span>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CSS ─────────────────────────────────── */}
       <style dangerouslySetInnerHTML={{ __html: `
-        .stroke-outline-text {
-          -webkit-text-stroke: 1.5px #ecfdf5;
+        /* Modal animations */
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
-        @media (min-width: 640px) {
-          .stroke-outline-text {
-            -webkit-text-stroke: 2px #ecfdf5;
+        @keyframes scaleUp {
+          from { transform: scale(0.95); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .animate-fade-in { animation: fadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-scale-up { animation: scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        /* 3-D panel flip — exit upward */
+        @keyframes panel-flip-out {
+          0%   { transform: rotateX(0deg);    opacity: 1; }
+          100% { transform: rotateX(-88deg);  opacity: 0; }
+        }
+        /* 3-D panel flip — enter from below */
+        @keyframes panel-flip-in {
+          0%   { transform: rotateX(88deg);   opacity: 0; }
+          100% { transform: rotateX(0deg);    opacity: 1; }
+        }
+
+        /* Hover RGB Outline Glow Cycle */
+        @keyframes rgb-glow-cycle {
+          0%, 100% {
+            WebkitTextStroke-color: #8b5cf6;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.6)) drop-shadow(0 0 30px rgba(139, 92, 246, 0.4));
+          }
+          33% {
+            WebkitTextStroke-color: #22d3ee;
+            filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.6)) drop-shadow(0 0 30px rgba(34, 211, 238, 0.4));
+          }
+          66% {
+            WebkitTextStroke-color: #34d399;
+            filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.6)) drop-shadow(0 0 30px rgba(52, 211, 153, 0.4));
           }
         }
-        @keyframes gradient-flow {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
+        .rgb-hover-glow {
+          transition: filter 0.3s ease, WebkitTextStroke 0.3s ease;
         }
-        .animate-gradient-flow {
-          animation: gradient-flow 6s ease infinite;
+        .rgb-hover-glow:hover {
+          animation: rgb-glow-cycle 3s linear infinite;
         }
-        @keyframes laser-scan {
-          0% { left: -25%; }
-          100% { left: 100%; }
+
+        /* Ambient orbs */
+        @keyframes orb {
+          0%,100% { transform: translate(0,0) scale(1); }
+          40%     { transform: translate(55px,-65px) scale(1.1); }
+          70%     { transform: translate(-40px,42px)  scale(0.93); }
         }
-        .animate-laser-scan {
-          animation: laser-scan 3s ease-in-out infinite alternate;
-        }
-        @keyframes marquee-smooth {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
-        }
-        @keyframes liquid-orb-1 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(80px, 50px) scale(1.12); }
-        }
-        @keyframes liquid-orb-2 {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-70px, -50px) scale(1.1); }
-        }
-        .animate-liquid-orb-1 {
-          animation: liquid-orb-1 16s ease-in-out infinite;
-        }
-        .animate-liquid-orb-2 {
-          animation: liquid-orb-2 20s ease-in-out infinite;
+        .orb { animation: orb 22s ease-in-out infinite; will-change: transform; }
+
+        @media (prefers-reduced-motion: reduce) {
+          .orb { animation: none !important; }
         }
       `}} />
     </footer>

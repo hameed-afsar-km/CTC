@@ -20,6 +20,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: `${key} is required` }, { status: 400 });
       }
     }
+    if (!/^[^\s@]+@crescent\.education$/i.test(String(body.collegeMail).trim())) {
+      return NextResponse.json(
+        { error: "collegeMail must be an official @crescent.education address" },
+        { status: 400 }
+      );
+    }
     if (!Array.isArray(body.interests) || body.interests.length === 0) {
       return NextResponse.json({ error: "interests are required" }, { status: 400 });
     }

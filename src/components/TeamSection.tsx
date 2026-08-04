@@ -161,12 +161,6 @@ function MemberCard({ member }: { member: TeamMember }) {
               className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-80" />
-            
-            {/* Watermark Badge */}
-            <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-black/40 px-2.5 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-white backdrop-blur-md border border-white/15">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-              No. {String(member.id).padStart(2, "0")}
-            </div>
           </div>
         </div>
 
@@ -244,11 +238,6 @@ function MemberCard({ member }: { member: TeamMember }) {
               className="h-full w-full object-cover transition-transform duration-1000 ease-[0.22,1,0.36,1] group-hover:scale-110"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent opacity-90 mix-blend-multiply" />
-            
-            <div className="absolute left-4 top-4 flex items-center gap-2 rounded-full bg-white/20 px-3.5 py-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-white backdrop-blur-md border border-white/10">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-              No. {String(member.id).padStart(2, "0")}
-            </div>
           </div>
         </div>
 
