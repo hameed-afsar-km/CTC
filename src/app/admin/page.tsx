@@ -113,9 +113,10 @@ function CursorOverlay() {
 }
 
 function DashboardShell() {
-  const { status, user, deniedEmail, signIn, signOut } = useAdmin();
+  const { status, user, deniedEmail, deniedReason, signIn, signOut } = useAdmin();
   const [tab, setTab] = useState<Tab>("events");
   const [signingIn, setSigningIn] = useState(false);
+  const [signInError, setSignInError] = useState<string | null>(null);
 
   if (status === "loading") {
     return (
@@ -141,10 +142,15 @@ function DashboardShell() {
         <button
           onClick={async () => {
             setSigningIn(true);
+            setSignInError(null);
             try {
               await signIn();
-            } catch {
-              // popup closed / error
+            } catch (err) {
+              setSignInError(
+                err instanceof Error && err.message
+                  ? err.message
+                  : "Sign in failed. Please try again."
+              );
             } finally {
               setSigningIn(false);
             }
@@ -159,6 +165,11 @@ function DashboardShell() {
           )}
           Sign in with Google
         </button>
+        {signInError && (
+          <p className="max-w-sm text-center text-xs font-mono text-rose-300 leading-relaxed">
+            {signInError}
+          </p>
+        )}
         <Link href="/" className="inline-flex items-center gap-2 text-xs font-mono text-emerald-400 hover:text-emerald-300 transition-colors">
           <ArrowLeft className="w-3.5 h-3.5" />
           Back to Homepage
@@ -180,6 +191,11 @@ function DashboardShell() {
             <span className="font-mono text-rose-300">{deniedEmail ?? "you used"}</span> is not
             authorized to access the dashboard.
           </p>
+          {deniedReason && (
+            <p className="mt-3 max-w-md rounded-xl border border-rose-500/30 bg-rose-950/40 p-3 text-xs font-mono text-rose-200 leading-relaxed text-left">
+              {deniedReason}
+            </p>
+          )}
         </div>
         <button
           onClick={() => signOut()}

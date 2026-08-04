@@ -58,7 +58,11 @@ export async function POST(request: Request) {
 
     await saveApplication(application);
     return NextResponse.json({ application }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    const message =
+      err instanceof Error && err.message
+        ? err.message
+        : "failed to save application";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

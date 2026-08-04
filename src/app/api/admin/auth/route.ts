@@ -15,7 +15,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "not authorized" }, { status: 403 });
     }
     return NextResponse.json({ session });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    const message =
+      err instanceof Error && err.message
+        ? err.message
+        : "invalid payload";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

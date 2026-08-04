@@ -376,11 +376,21 @@ export default function JoinPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, consented }),
       });
-      if (!res.ok) throw new Error("submit failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(
+          data?.error ||
+            "Your application could not be submitted. Please try again."
+        );
+      }
       setSubmitted(true);
       setSubmittedName(form.fullName);
-    } catch {
-      setSubmitError("Something went wrong. Please try again.");
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
     } finally {
       setSubmitting(false);
     }

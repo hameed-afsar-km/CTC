@@ -14,7 +14,6 @@ import {
   Pause,
   Play,
   X,
-  Camera,
 } from "lucide-react";
 import type { GalleryEvent, GalleryYear } from "@/lib/gallery";
 
@@ -74,7 +73,6 @@ export default function GalleryPage() {
   const fsCursorRef = useRef<HTMLDivElement>(null);
   const macHoverRef = useRef(false);
   const [cursorVisible, setCursorVisible] = useState(false);
-  const [macHover, setMacHover] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
@@ -102,7 +100,6 @@ export default function GalleryPage() {
         !!targetEl.closest("a, button, [role='button']");
       if (overInteractive !== macHoverRef.current) {
         macHoverRef.current = overInteractive;
-        setMacHover(overInteractive);
       }
     };
     const handleMouseLeave = () => setCursorVisible(false);
@@ -124,13 +121,27 @@ export default function GalleryPage() {
   const touchStartX = useRef<number | null>(null);
 
   const [uploadedYears, setUploadedYears] = useState<GalleryYear[]>([]);
+  const [galleryError, setGalleryError] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
 
   useEffect(() => {
+    let cancelled = false;
     fetch("/api/gallery", { cache: "no-store" })
-      .then((r) => r.json())
-      .then((d) => d.items && setUploadedYears(uploadedToYears(d.items)))
-      .catch(() => {});
+      .then((r) => {
+        if (!r.ok) throw new Error(`gallery request failed (${r.status})`);
+        return r.json();
+      })
+      .then((d) => {
+        if (cancelled) return;
+        if (Array.isArray(d.items)) setUploadedYears(uploadedToYears(d.items));
+        else throw new Error("gallery API returned an unexpected payload");
+      })
+      .catch(() => {
+        if (!cancelled) setGalleryError(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const combined = useMemo<GalleryYear[]>(() => {
@@ -139,15 +150,18 @@ export default function GalleryPage() {
 
   const [expandedYears, setExpandedYears] = useState<number[]>([]);
   const [expandedEvents, setExpandedEvents] = useState<string[]>([]);
-  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
+  const hasAutoExpanded = useRef(false);
 
   useEffect(() => {
-    if (combined.length > 0 && !hasAutoExpanded) {
-      setHasAutoExpanded(true);
-      const t = window.setTimeout(() => setExpandedYears([combined[0].year]), 0);
-      return () => window.clearTimeout(t);
-    }
-  }, [combined, hasAutoExpanded]);
+    if (combined.length === 0 || hasAutoExpanded.current) return;
+    hasAutoExpanded.current = true;
+    const first = combined[0];
+    const t = window.setTimeout(() => {
+      setExpandedYears([first.year]);
+      setExpandedEvents(first.events.map((ev) => ev.id));
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [combined]);
 
   const toggleYear = useCallback((y: number) => {
     setExpandedYears((prev) => prev.includes(y) ? prev.filter((year) => year !== y) : [...prev, y]);
@@ -295,6 +309,29 @@ export default function GalleryPage() {
 
         <section className="mt-20 sm:mt-32 pb-32">
           <div className="flex flex-col gap-12">
+            {galleryError && (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-950/20 p-8 text-center">
+                <p className="font-mono text-xs uppercase tracking-widest text-red-300">
+                  Couldn&apos;t load the gallery.
+                </p>
+                <p className="text-sm text-white/50 max-w-md">
+                  The server couldn&apos;t fetch photos right now. Check that the Firebase admin
+                  credentials are configured, then refresh.
+                </p>
+              </div>
+            )}
+
+            {!galleryError && combined.length === 0 && (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
+                <p className="font-mono text-xs uppercase tracking-widest text-white/50">
+                  Nothing here yet.
+                </p>
+                <p className="text-sm text-white/40 max-w-md">
+                  Photos uploaded by the admin will appear here.
+                </p>
+              </div>
+            )}
+
             {combined.map((yearGroup) => {
               const isYearOpen = expandedYears.includes(yearGroup.year);
               return (

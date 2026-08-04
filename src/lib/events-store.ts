@@ -1,26 +1,12 @@
 import { getDb } from "./firebase-admin";
-import { defaultEvents, type ClubEvent } from "./events";
+import type { ClubEvent } from "./events";
 
 const COLLECTION = "events";
 
 export async function getEvents(): Promise<ClubEvent[]> {
   const db = getDb();
   const snapshot = await db.collection(COLLECTION).orderBy("date", "asc").get();
-  if (snapshot.empty) {
-    await seedEvents();
-    const reseed = await db.collection(COLLECTION).orderBy("date", "asc").get();
-    return reseed.docs.map((doc) => doc.data() as ClubEvent);
-  }
   return snapshot.docs.map((doc) => doc.data() as ClubEvent);
-}
-
-async function seedEvents(): Promise<void> {
-  const db = getDb();
-  const batch = db.batch();
-  for (const event of defaultEvents) {
-    batch.set(db.collection(COLLECTION).doc(event.id), event);
-  }
-  await batch.commit();
 }
 
 export async function saveEvent(event: ClubEvent): Promise<void> {

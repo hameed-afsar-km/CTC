@@ -1,7 +1,20 @@
 import { getAdminAuth } from "./firebase-admin";
 
+function unwrap(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  let v = value.trim();
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1);
+  }
+  return v;
+}
+
 export const ADMIN_EMAIL =
-  process.env.ADMIN_EMAIL || "240071601263@crescent.education";
+  unwrap(process.env.ADMIN_EMAIL)?.toLowerCase() ||
+  "240071601263@crescent.education";
 
 export interface AdminSession {
   uid: string;
@@ -23,20 +36,29 @@ export function bearerToken(request: Request): string | null {
 }
 
 export async function verifyAdminToken(token: string): Promise<AdminSession | null> {
+  let decoded;
   try {
-    const decoded = await getAdminAuth().verifyIdToken(token);
-    if (!isAllowedAdminEmail(decoded.email)) {
-      return null;
-    }
-    return {
-      uid: decoded.uid,
-      email: decoded.email!,
-      name: decoded.name || decoded.email!,
-      picture: decoded.picture || null,
-    };
-  } catch {
+    decoded = await getAdminAuth().verifyIdToken(token);
+  } catch (err) {
+    const code =
+      typeof err === "object" && err !== null && "code" in err
+        ? String((err as { code?: unknown }).code ?? "")
+        : "";
+    // Invalid/expired tokens surface as auth/* errors → treat as "not authorized".
+    // Config problems (missing/bad admin credentials) have no auth/* code → rethrow so
+    // callers can return a useful message instead of a misleading "Access Denied".
+    if (code.startsWith("auth/")) return null;
+    throw err;
+  }
+  if (!isAllowedAdminEmail(decoded.email)) {
     return null;
   }
+  return {
+    uid: decoded.uid,
+    email: decoded.email!,
+    name: decoded.name || decoded.email!,
+    picture: decoded.picture || null,
+  };
 }
 
 export async function requireAdmin(request: Request): Promise<AdminSession | null> {

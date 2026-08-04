@@ -6,8 +6,20 @@ import type { Auth } from "firebase-admin/auth";
 import { getStorage } from "firebase-admin/storage";
 import type { Storage } from "firebase-admin/storage";
 
+function unwrap(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  let v = value.trim();
+  if (
+    (v.startsWith('"') && v.endsWith('"')) ||
+    (v.startsWith("'") && v.endsWith("'"))
+  ) {
+    v = v.slice(1, -1);
+  }
+  return v;
+}
+
 function getPrivateKey(): string | undefined {
-  const value = process.env.FIREBASE_PRIVATE_KEY;
+  const value = unwrap(process.env.FIREBASE_PRIVATE_KEY);
   if (!value) return undefined;
   return value.replace(/\\n/g, "\n");
 }
@@ -16,11 +28,20 @@ export function getFirebaseAdminApp() {
   if (getApps().length > 0) {
     return getApp();
   }
-  const projectId = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
+  const projectId = unwrap(process.env.FIREBASE_PROJECT_ID);
+  const clientEmail = unwrap(process.env.FIREBASE_CLIENT_EMAIL);
   const privateKey = getPrivateKey();
   if (!projectId || !clientEmail || !privateKey) {
-    throw new Error("Missing Firebase Admin credentials (FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY)");
+    const missing = [
+      !projectId && "FIREBASE_PROJECT_ID",
+      !clientEmail && "FIREBASE_CLIENT_EMAIL",
+      !privateKey && "FIREBASE_PRIVATE_KEY",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    throw new Error(
+      `Missing Firebase Admin credentials (${missing}). Add them to your Vercel environment variables.`
+    );
   }
   return initializeApp({
     credential: cert({ projectId, clientEmail, privateKey }),
