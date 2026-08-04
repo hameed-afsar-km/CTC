@@ -5,6 +5,37 @@ import { useCallback, useEffect, useRef, useState } from "react";
 const MUSIC_SRC = "/assets/background-music.mp3";
 const FADE_DURATION = 2000;
 const TARGET_VOLUME = 0.12;
+const PREF_KEY = "ctc-music-preference";
+const PREF_TTL = 24 * 60 * 60 * 1000;
+
+type MusicPreference = "yes" | "no" | null;
+
+function readPreference(): MusicPreference {
+  try {
+    const raw = window.localStorage.getItem(PREF_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { choice?: string; expires?: number };
+    if (parsed.choice !== "yes" && parsed.choice !== "no") return null;
+    if (typeof parsed.expires !== "number" || parsed.expires <= Date.now()) {
+      window.localStorage.removeItem(PREF_KEY);
+      return null;
+    }
+    return parsed.choice;
+  } catch {
+    return null;
+  }
+}
+
+function rememberPreference(choice: "yes" | "no") {
+  try {
+    window.localStorage.setItem(
+      PREF_KEY,
+      JSON.stringify({ choice, expires: Date.now() + PREF_TTL }),
+    );
+  } catch {
+    // Storage unavailable (private mode, etc.) — ignore.
+  }
+}
 
 export default function MusicToggle({ start }: { start: boolean }) {
   const [muted, setMuted] = useState(false);
@@ -64,12 +95,29 @@ export default function MusicToggle({ start }: { start: boolean }) {
       });
   }, []);
 
-  // Ask the visitor whether they'd like background music once the splash is over
+  // Ask the visitor whether they'd like background music once the splash is over.
+  // A stored yes/no answer suppresses the prompt for 24 hours: "yes" auto-starts
+  // playback (retried on the first user gesture if autoplay is blocked), "no"
+  // keeps it silent.
   useEffect(() => {
     if (!start) return;
+    const pref = readPreference();
+    if (pref === "no") return;
+    if (pref === "yes") {
+      startPlayback();
+      const resume = () => {
+        if (!playingRef.current) startPlayback();
+      };
+      window.addEventListener("pointerdown", resume);
+      window.addEventListener("keydown", resume);
+      return () => {
+        window.removeEventListener("pointerdown", resume);
+        window.removeEventListener("keydown", resume);
+      };
+    }
     const t = window.setTimeout(() => setPromptOpen(true), 700);
     return () => window.clearTimeout(t);
-  }, [start]);
+  }, [start, startPlayback]);
 
   const toggleMute = () => {
     if (!playingRef.current) {
@@ -193,6 +241,7 @@ export default function MusicToggle({ start }: { start: boolean }) {
               <button
                 type="button"
                 onClick={() => {
+                  rememberPreference("yes");
                   startPlayback();
                   setPromptOpen(false);
                 }}
@@ -202,7 +251,10 @@ export default function MusicToggle({ start }: { start: boolean }) {
               </button>
               <button
                 type="button"
-                onClick={() => setPromptOpen(false)}
+                onClick={() => {
+                  rememberPreference("no");
+                  setPromptOpen(false);
+                }}
                 className="flex-1 px-5 py-3 rounded-full border border-white/15 text-white/70 hover:border-mint/40 hover:text-white font-syne text-sm font-bold tracking-wider uppercase transition-all duration-300"
               >
                 No Thanks

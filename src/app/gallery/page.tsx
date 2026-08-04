@@ -14,6 +14,10 @@ import {
   Pause,
   Play,
   X,
+  Sparkles,
+  Layers,
+  Camera,
+  Grid,
 } from "lucide-react";
 import type { GalleryEvent, GalleryYear } from "@/lib/gallery";
 
@@ -110,8 +114,7 @@ export default function GalleryPage() {
       move(fsCursorRef.current, e.clientX, e.clientY);
       const targetEl = e.target as Element | null;
       const overInteractive =
-        !!targetEl &&
-        !!targetEl.closest("a, button, [role='button']");
+        !!targetEl && !!targetEl.closest("a, button, [role='button']");
       if (overInteractive !== macHoverRef.current) {
         macHoverRef.current = overInteractive;
       }
@@ -136,6 +139,7 @@ export default function GalleryPage() {
 
   const [uploadedYears, setUploadedYears] = useState<GalleryYear[]>([]);
   const [galleryError, setGalleryError] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const mouseMoveRaf = useRef<number | null>(null);
 
@@ -169,6 +173,17 @@ export default function GalleryPage() {
     return [...uploadedYears].sort((a, b) => b.year - a.year);
   }, [uploadedYears]);
 
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    combined.forEach((y) => {
+      y.events.forEach((ev) => {
+        const cat = ev.meta?.split("·")[0]?.trim();
+        if (cat) set.add(cat.toUpperCase());
+      });
+    });
+    return ["ALL", ...Array.from(set)];
+  }, [combined]);
+
   const [expandedYears, setExpandedYears] = useState<number[]>([]);
   const [expandedEvents, setExpandedEvents] = useState<string[]>([]);
   const hasAutoExpanded = useRef(false);
@@ -185,11 +200,15 @@ export default function GalleryPage() {
   }, [combined]);
 
   const toggleYear = useCallback((y: number) => {
-    setExpandedYears((prev) => prev.includes(y) ? prev.filter((year) => year !== y) : [...prev, y]);
+    setExpandedYears((prev) =>
+      prev.includes(y) ? prev.filter((year) => year !== y) : [...prev, y]
+    );
   }, []);
 
   const toggleEvent = useCallback((id: string) => {
-    setExpandedEvents((prev) => prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]);
+    setExpandedEvents((prev) =>
+      prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]
+    );
   }, []);
 
   const openSlideshow = useCallback((idx: number) => {
@@ -216,7 +235,8 @@ export default function GalleryPage() {
 
   const toggleFs = useCallback(() => {
     if (!fullscreenRef.current) return;
-    if (!document.fullscreenElement) fullscreenRef.current.requestFullscreen().catch(() => {});
+    if (!document.fullscreenElement)
+      fullscreenRef.current.requestFullscreen().catch(() => {});
     else document.exitFullscreen().catch(() => {});
   }, []);
 
@@ -233,7 +253,9 @@ export default function GalleryPage() {
 
   const prevSlide = useCallback(() => {
     if (!viewerEvent) return;
-    setSlideIndex((i) => (i - 1 + viewerEvent.images.length) % viewerEvent.images.length);
+    setSlideIndex(
+      (i) => (i - 1 + viewerEvent.images.length) % viewerEvent.images.length
+    );
   }, [viewerEvent]);
 
   useEffect(() => {
@@ -261,19 +283,35 @@ export default function GalleryPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [viewerEvent, slideshowOpen, fsOpen, nextSlide, prevSlide, closeFullscreen, toggleFs, slideIndex, openFullscreen]);
+  }, [
+    viewerEvent,
+    slideshowOpen,
+    fsOpen,
+    nextSlide,
+    prevSlide,
+    closeFullscreen,
+    toggleFs,
+    slideIndex,
+    openFullscreen,
+  ]);
 
   useEffect(() => {
-    document.body.style.overflow = (viewerEvent || slideshowOpen || fsOpen) ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    document.body.style.overflow =
+      viewerEvent || slideshowOpen || fsOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
   }, [viewerEvent, slideshowOpen, fsOpen]);
 
   const swipeHandlers = {
-    onTouchStart: (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; },
+    onTouchStart: (e: React.TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+    },
     onTouchEnd: (e: React.TouchEvent) => {
       if (touchStartX.current === null) return;
       const dx = e.changedTouches[0].clientX - touchStartX.current;
-      if (dx > 50) prevSlide(); else if (dx < -50) nextSlide();
+      if (dx > 50) prevSlide();
+      else if (dx < -50) nextSlide();
       touchStartX.current = null;
     },
   };
@@ -284,7 +322,14 @@ export default function GalleryPage() {
   };
 
   const cursorPng = (
-    <Image src="/assets/cursor.png" alt="" width={48} height={48} className="w-full h-full object-contain" draggable={false} />
+    <Image
+      src="/assets/cursor.png"
+      alt=""
+      width={48}
+      height={48}
+      className="w-full h-full object-contain"
+      draggable={false}
+    />
   );
 
   return (
@@ -303,105 +348,190 @@ export default function GalleryPage() {
           });
         });
       }}
-      className="relative min-h-screen bg-[#050505] font-syne text-white select-none overflow-x-hidden"
+      className="relative min-h-screen bg-[#040608] font-syne text-white select-none overflow-x-hidden"
     >
+      {/* Background Lighting Effects */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
-        <div 
+        <div className="absolute inset-0 bg-gradient-to-b from-[#04070a] via-[#070712] to-[#040608]" />
+
+        <div
           className="absolute inset-0 transition-opacity duration-1000"
-          style={{ background: `radial-gradient(1200px circle at ${mousePos.x}% ${mousePos.y}%, rgba(52, 211, 153, 0.08), transparent 60%)` }}
+          style={{
+            background: `radial-gradient(1200px circle at ${mousePos.x}% ${mousePos.y}%, rgba(52, 211, 153, 0.09), transparent 60%), radial-gradient(900px circle at ${100 - mousePos.x}% ${100 - mousePos.y}%, rgba(129, 140, 248, 0.08), transparent 55%)`,
+          }}
         />
-        <div className="absolute top-1/4 -right-1/4 h-[800px] w-[800px] rounded-full bg-gradient-to-bl from-[#34d399]/10 to-transparent blur-[120px] gallery-float" />
-        <div className="absolute bottom-0 -left-1/4 h-[600px] w-[600px] rounded-full bg-gradient-to-tr from-[#059669]/10 to-transparent blur-[120px] gallery-float-alt" />
+
+        <div className="absolute -top-1/3 left-1/4 h-[140vh] w-[180vw] -translate-x-1/2 rotate-[18deg] bg-gradient-to-b from-[#34d399]/8 via-[#2dd4bf]/4 to-transparent blur-[130px] gallery-aurora" />
+        <div className="absolute -bottom-1/3 right-1/4 h-[130vh] w-[160vw] translate-x-1/2 -rotate-[14deg] bg-gradient-to-t from-[#6366f1]/9 via-[#8b5cf6]/4 to-transparent blur-[130px] gallery-aurora-alt" />
         <div className="bg-grain absolute inset-0 opacity-20 mix-blend-overlay" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-[1400px] px-6 sm:px-12 py-10 sm:py-16">
-        <nav className="flex items-center justify-between mix-blend-difference">
-          <Link href="/" className="group inline-flex items-center gap-3 font-mono text-xs text-white/70 transition-all duration-300 hover:text-white">
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-2" />
+      <div className="relative z-10 mx-auto max-w-[1440px] px-6 sm:px-12 py-10 sm:py-16 min-h-screen flex flex-col">
+        {/* Navigation Bar */}
+        <nav className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="group inline-flex items-center gap-3 font-mono text-xs text-white/70 transition-all duration-300 hover:text-white"
+          >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-all group-hover:border-emerald-400 group-hover:bg-emerald-500/20 group-hover:text-emerald-300">
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            </div>
             <span className="font-bold tracking-widest uppercase">BACK TO HOME</span>
           </Link>
-          <div className="hidden sm:flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
-            <span>CTC</span>
-            <span className="h-1 w-1 rounded-full bg-white/50" />
-            <span>ARCHIVE</span>
+
+          <div className="hidden sm:flex items-center gap-3 font-mono text-[11px] uppercase tracking-widest text-white/50 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+            <span className="text-emerald-400 font-bold">CTC</span>
+            <span className="h-1 w-1 rounded-full bg-white/40" />
+            <span>VISUAL CHRONICLES</span>
           </div>
         </nav>
 
-        <header className="mt-24 sm:mt-32 relative text-center">
-          <h1 className="relative font-syne font-black uppercase leading-[0.8] tracking-tighter text-[clamp(4rem,18vw,14rem)] text-white mix-blend-difference">
-            ARCHIVE
+        {/* Hero Header */}
+        <header className="mt-16 sm:mt-24 relative text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 mb-6 text-xs font-mono font-bold uppercase tracking-widest text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+            <Camera className="h-4 w-4" />
+            PHOTOGRAPHIC REELS & ALBUMS
+          </div>
+
+          <h1 className="relative font-syne font-black uppercase leading-[0.82] tracking-tighter text-[clamp(3.8rem,16vw,12rem)] text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/40">
+            VISUAL ARCHIVE
           </h1>
+
           <div className="mt-8 mx-auto flex max-w-lg items-center justify-center gap-6">
-            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/20" />
-            <p className="font-mono text-xs uppercase tracking-[0.4em] text-white/60 font-medium">VISUAL CHRONICLES & EVENT REELS</p>
-            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/20" />
+            <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-emerald-400/40" />
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-emerald-400 font-bold">
+              MEMORIES & MOMENTS
+            </p>
+            <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-emerald-400/40" />
           </div>
         </header>
 
-        <section className="mt-20 sm:mt-32 pb-32">
-          <div className="flex flex-col gap-12">
+        {/* Category Filter Bar */}
+        {categories.length > 1 && (
+          <div className="mt-12 flex items-center justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {categories.map((cat) => {
+              const active = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-5 py-2.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all whitespace-nowrap border ${
+                    active
+                      ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Main Gallery Section */}
+        <section className="mt-16 sm:mt-24 pb-32">
+          <div className="flex flex-col gap-16">
             {galleryError && (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-950/20 p-8 text-center">
-                <p className="font-mono text-xs uppercase tracking-widest text-red-300">
+              <div className="flex flex-col items-center gap-3 rounded-3xl border border-red-500/20 bg-red-950/20 p-10 text-center">
+                <p className="font-mono text-xs uppercase tracking-widest text-red-300 font-bold">
                   Couldn&apos;t load the gallery.
                 </p>
-                <p className="text-sm text-white/50 max-w-md">
-                  The server couldn&apos;t fetch photos right now. Check that the Firebase admin
-                  credentials are configured, then refresh.
+                <p className="text-sm font-sans text-white/60 max-w-md">
+                  The server couldn&apos;t fetch photos right now. Please check back shortly or refresh the page.
                 </p>
               </div>
             )}
 
             {!galleryError && combined.length === 0 && (
-              <div className="flex flex-col items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-8 text-center">
-                <p className="font-mono text-xs uppercase tracking-widest text-white/50">
-                  Nothing here yet.
+              <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-12 text-center">
+                <Sparkles className="h-10 w-10 text-emerald-400/40 mb-2" />
+                <p className="font-mono text-xs uppercase tracking-widest text-white/60 font-bold">
+                  NO GALLERY ALBUMS YET
                 </p>
-                <p className="text-sm text-white/40 max-w-md">
-                  Photos uploaded by the admin will appear here.
+                <p className="text-sm font-sans text-white/40 max-w-md">
+                  Photos uploaded from the Admin Dashboard will appear here automatically.
                 </p>
               </div>
             )}
 
             {combined.map((yearGroup) => {
               const isYearOpen = expandedYears.includes(yearGroup.year);
+
+              const matchingEvents = yearGroup.events.filter((ev) => {
+                if (selectedCategory === "ALL") return true;
+                const cat = ev.meta?.split("·")[0]?.trim()?.toUpperCase();
+                return cat === selectedCategory;
+              });
+
+              if (matchingEvents.length === 0 && selectedCategory !== "ALL") return null;
+
               return (
-                <div key={yearGroup.year} className="border-b border-white/10 pb-12">
+                <div key={yearGroup.year} className="border-b border-white/10 pb-16">
+                  {/* Year Header */}
                   <button
                     type="button"
                     onClick={() => toggleYear(yearGroup.year)}
-                    className="flex w-full items-center justify-between group"
+                    className="flex w-full items-center justify-between group py-4"
                   >
-                    <h2 className="font-syne text-[3rem] sm:text-[5rem] font-black text-white/80 transition-colors group-hover:text-white">
-                      {yearGroup.year}
-                    </h2>
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-full border border-white/20 transition-transform duration-500 ${isYearOpen ? 'rotate-90 bg-white text-black' : 'text-white'}`}>
-                      <ChevronRight className="h-6 w-6" />
+                    <div className="flex items-center gap-4">
+                      <h2 className="font-syne text-[3.5rem] sm:text-[6rem] font-black text-white/90 transition-colors group-hover:text-emerald-400 leading-none">
+                        {yearGroup.year}
+                      </h2>
+                      <span className="font-mono text-xs text-emerald-400/80 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                        {matchingEvents.length} ALBUMS
+                      </span>
+                    </div>
+
+                    <div
+                      className={`flex h-14 w-14 items-center justify-center rounded-full border transition-all duration-500 ${
+                        isYearOpen
+                          ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                          : "border-white/20 text-white group-hover:border-white/40 group-hover:bg-white/5"
+                      }`}
+                    >
+                      <ChevronRight
+                        className={`h-6 w-6 transition-transform duration-500 ${
+                          isYearOpen ? "rotate-90" : ""
+                        }`}
+                      />
                     </div>
                   </button>
 
+                  {/* Year Events List */}
                   {isYearOpen && (
-                    <div className="mt-8 flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-500">
-                      {yearGroup.events.map((ev) => {
+                    <div className="mt-8 flex flex-col gap-8 animate-in slide-in-from-top-4 fade-in duration-500">
+                      {matchingEvents.map((ev) => {
                         const isEventOpen = expandedEvents.includes(ev.id);
                         return (
-                          <div key={ev.id} className="rounded-2xl border border-white/10 bg-[#0a0a0a] overflow-hidden transition-all duration-500">
+                          <div
+                            key={ev.id}
+                            className="rounded-3xl border border-white/10 bg-[#080d10]/80 overflow-hidden transition-all duration-500 hover:border-emerald-500/30"
+                          >
+                            {/* Album Header Bar */}
                             <button
                               type="button"
                               onClick={() => toggleEvent(ev.id)}
                               className="flex w-full items-center justify-between p-6 sm:p-8 hover:bg-white/5 transition-colors"
                             >
                               <div className="text-left">
-                                <h3 className="font-syne text-xl sm:text-2xl font-bold text-white">{ev.title}</h3>
-                                <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-white/50">{ev.meta} · {ev.images.length} CAPTURES</p>
+                                <h3 className="font-syne text-2xl sm:text-3xl font-bold text-white">
+                                  {ev.title}
+                                </h3>
+                                <p className="mt-2 font-mono text-xs uppercase tracking-widest text-emerald-400/80">
+                                  {ev.meta} · {ev.images.length} CAPTURES
+                                </p>
                               </div>
+
                               <div className="flex items-center gap-4">
-                                {isEventOpen && (
+                                {isEventOpen && ev.images.length > 0 && (
                                   <span
                                     role="button"
                                     tabIndex={0}
-                                    onClick={(e) => { e.stopPropagation(); setViewerEvent(ev); openSlideshow(0); }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setViewerEvent(ev);
+                                      openSlideshow(0);
+                                    }}
                                     onKeyDown={(e) => {
                                       if (e.key === "Enter" || e.key === " ") {
                                         e.preventDefault();
@@ -410,30 +540,68 @@ export default function GalleryPage() {
                                         openSlideshow(0);
                                       }
                                     }}
-                                    className="hidden sm:flex cursor-pointer items-center gap-2 rounded-full bg-white px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition-transform hover:scale-105"
+                                    className="hidden sm:flex cursor-pointer items-center gap-2 rounded-full bg-emerald-500 px-6 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(52,211,153,0.5)]"
                                   >
-                                    <Play className="h-3 w-3" />
+                                    <Play className="h-3.5 w-3.5 fill-black" />
                                     SLIDESHOW
                                   </span>
                                 )}
-                                <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ${isEventOpen ? 'rotate-90' : ''}`}>
-                                  <ChevronRight className="h-4 w-4 text-white" />
+
+                                <div
+                                  className={`flex h-9 w-9 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ${
+                                    isEventOpen ? "rotate-90 bg-emerald-500/20 text-emerald-300" : ""
+                                  }`}
+                                >
+                                  <ChevronRight className="h-5 w-5 text-white" />
                                 </div>
                               </div>
                             </button>
 
+                            {/* Album Photo Bento Grid */}
                             {isEventOpen && (
                               <div className="px-6 pb-6 sm:px-8 sm:pb-8 animate-in slide-in-from-top-4 fade-in duration-500">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
                                   {ev.images.map((img, i) => {
-                                    const spanClasses = i % 7 === 0 ? "md:col-span-2 md:row-span-2" : i % 5 === 0 ? "md:col-span-2" : "";
+                                    const isFeatured = i % 7 === 0;
+                                    const spanClasses = isFeatured
+                                      ? "md:col-span-2 md:row-span-2"
+                                      : i % 5 === 0
+                                      ? "md:col-span-2"
+                                      : "";
+
                                     return (
-                                      <div key={`${ev.id}-${i}`} className={`group relative overflow-hidden rounded-2xl bg-[#111] border border-white/5 hover:border-white/20 transition-all duration-500 ${spanClasses}`}>
-                                        <button type="button" onClick={() => { setViewerEvent(ev); openFullscreen(i); }} className="absolute inset-0 z-10" aria-label={`View ${img.alt}`} />
-                                        <div className="relative w-full h-full min-h-[200px]" style={{ aspectRatio: "4/3" }}>
-                                          <Image src={img.src} alt={img.alt} fill sizes="(min-width: 768px) 33vw, 50vw" className="object-cover transition-transform duration-[2s] group-hover:scale-110" />
+                                      <div
+                                        key={`${ev.id}-${i}`}
+                                        className={`group relative overflow-hidden rounded-2xl bg-[#0f1418] border border-white/10 hover:border-emerald-400/50 transition-all duration-500 hover:shadow-[0_8px_30px_rgba(52,211,153,0.2)] ${spanClasses}`}
+                                      >
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setViewerEvent(ev);
+                                            openFullscreen(i);
+                                          }}
+                                          className="absolute inset-0 z-10"
+                                          aria-label={`View ${img.alt}`}
+                                        />
+
+                                        <div
+                                          className="relative w-full h-full min-h-[220px]"
+                                          style={{ aspectRatio: isFeatured ? "16/9" : "4/3" }}
+                                        >
+                                          <Image
+                                            src={img.src}
+                                            alt={img.alt}
+                                            fill
+                                            sizes="(min-width: 768px) 33vw, 50vw"
+                                            className="object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                                          />
                                         </div>
-                                        <div className="absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/40" />
+
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100 flex items-end p-4">
+                                          <p className="font-syne text-sm font-semibold text-white truncate">
+                                            {img.alt}
+                                          </p>
+                                        </div>
                                       </div>
                                     );
                                   })}
@@ -451,65 +619,91 @@ export default function GalleryPage() {
           </div>
         </section>
 
-        <footer className="mt-12 flex flex-col items-center gap-4 border-t border-white/10 pt-12 pb-8 text-center opacity-60">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-white/70">© {new Date().getFullYear()} CRESCENT TECHNOCRATS CLUB</p>
+        {/* Footer */}
+        <footer className="mt-auto flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-white/10 pt-10 pb-8 text-center sm:text-left text-xs font-mono text-white/40">
+          <p>© {new Date().getFullYear()} CRESCENT TECHNOCRATS CLUB</p>
+          <p className="tracking-widest uppercase text-[10px]">VISUAL ARCHIVE CHRONICLES</p>
         </footer>
       </div>
 
+      {/* Lightbox Slideshow Modal */}
       {slideshowOpen && viewerEvent && (
-        <div className="fixed inset-0 z-[60] flex flex-col bg-[#000] text-white gallery-zoom-in">
-          <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-6 mix-blend-difference">
+        <div className="fixed inset-0 z-[60] flex flex-col bg-[#040608] text-white gallery-zoom-in">
+          <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-6 bg-gradient-to-b from-black/80 to-transparent">
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setSlideshowOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-md transition-colors hover:bg-white hover:text-black"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-black/60 backdrop-blur-xl transition-all hover:bg-white hover:text-black"
               >
                 <X className="h-5 w-5" />
               </button>
               <div className="hidden sm:block text-left">
-                <h3 className="font-syne text-lg font-bold">{viewerEvent.title}</h3>
-                <p className="font-mono text-[10px] tracking-widest text-white/50">{pad(slideIndex + 1)} / {pad(viewerEvent.images.length)}</p>
+                <h3 className="font-syne text-lg font-bold text-white">{viewerEvent.title}</h3>
+                <p className="font-mono text-xs tracking-widest text-emerald-400">
+                  {pad(slideIndex + 1)} / {pad(viewerEvent.images.length)}
+                </p>
               </div>
             </div>
+
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={() => setAutoplay((a) => !a)}
-                className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest backdrop-blur-md transition-colors hover:bg-white hover:text-black"
+                className="flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-widest backdrop-blur-xl text-emerald-300 transition-all hover:bg-emerald-500 hover:text-black"
               >
-                {autoplay ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+                {autoplay ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
                 {autoplay ? "PAUSE" : "PLAY"}
               </button>
+
               <button
                 type="button"
                 onClick={() => openFullscreen(slideIndex)}
-                className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 font-mono text-[10px] font-bold uppercase tracking-widest backdrop-blur-md transition-colors hover:bg-white hover:text-black"
+                className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-widest backdrop-blur-xl transition-all hover:bg-white hover:text-black"
               >
-                <Maximize2 className="h-3.5 w-3.5" />
+                <Maximize2 className="h-4 w-4" />
                 <span className="hidden sm:inline">FULLSCREEN</span>
               </button>
             </div>
           </header>
-          <div className="absolute top-0 inset-x-0 z-10 h-1 w-full bg-white/10">
-            <div key={slideIndex} className="h-full bg-white" style={progressStyle} />
+
+          <div className="absolute top-0 inset-x-0 z-10 h-1.5 w-full bg-white/10">
+            <div key={slideIndex} className="h-full bg-emerald-400" style={progressStyle} />
           </div>
-          <div className="relative h-full w-full" {...swipeHandlers}>
-            <div key={slideIndex} className="absolute inset-0 gallery-slide flex items-center justify-center p-10">
-              <div className="relative h-full w-full max-w-7xl max-h-[85vh]">
-                <Image src={viewerEvent.images[slideIndex].src} alt={viewerEvent.images[slideIndex].alt} fill sizes="100vw" className="object-contain" />
+
+          <div className="relative h-full w-full flex items-center justify-center" {...swipeHandlers}>
+            <div key={slideIndex} className="absolute inset-0 gallery-slide flex items-center justify-center p-8 sm:p-16">
+              <div className="relative h-full w-full max-w-7xl max-h-[80vh]">
+                <Image
+                  src={viewerEvent.images[slideIndex].src}
+                  alt={viewerEvent.images[slideIndex].alt}
+                  fill
+                  sizes="100vw"
+                  className="object-contain"
+                />
               </div>
             </div>
-            <button type="button" onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white backdrop-blur-xl transition-all hover:scale-110 hover:bg-white hover:text-black">
+
+            <button
+              type="button"
+              onClick={prevSlide}
+              className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-xl transition-all hover:scale-110 hover:bg-emerald-500 hover:text-black hover:border-emerald-400"
+            >
               <ChevronLeft className="h-6 w-6" />
             </button>
-            <button type="button" onClick={nextSlide} className="absolute right-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white backdrop-blur-xl transition-all hover:scale-110 hover:bg-white hover:text-black">
+
+            <button
+              type="button"
+              onClick={nextSlide}
+              className="absolute right-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full border border-white/20 bg-black/50 text-white backdrop-blur-xl transition-all hover:scale-110 hover:bg-emerald-500 hover:text-black hover:border-emerald-400"
+            >
               <ChevronRight className="h-6 w-6" />
             </button>
           </div>
         </div>
       )}
 
+      {/* Fullscreen View */}
       {viewerEvent && (
         <div
           ref={fullscreenRef}
@@ -517,38 +711,74 @@ export default function GalleryPage() {
           style={{ opacity: fsOpen ? 1 : 0, pointerEvents: fsOpen ? "auto" : "none" }}
         >
           <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-6">
-            <button type="button" onClick={closeFullscreen} className="flex cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-black/50 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-white hover:text-black">
+            <button
+              type="button"
+              onClick={closeFullscreen}
+              className="flex cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-black/60 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-white backdrop-blur-xl transition-colors hover:bg-white hover:text-black"
+            >
               <X className="h-4 w-4" />
               <span className="hidden sm:inline">CLOSE</span>
             </button>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={toggleFs} className="flex cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-black/50 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-white hover:text-black">
-                {isFs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                <span className="hidden sm:inline">{isFs ? "SHRINK" : "EXPAND"}</span>
-              </button>
-            </div>
+
+            <button
+              type="button"
+              onClick={toggleFs}
+              className="flex cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-black/60 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-widest text-white backdrop-blur-xl transition-colors hover:bg-white hover:text-black"
+            >
+              {isFs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              <span className="hidden sm:inline">{isFs ? "SHRINK" : "EXPAND"}</span>
+            </button>
           </header>
-          <div className="relative h-full w-full" {...swipeHandlers}>
+
+          <div className="relative h-full w-full flex items-center justify-center" {...swipeHandlers}>
             <div key={slideIndex} className="absolute inset-0 gallery-slide">
-              <Image src={viewerEvent.images[slideIndex].src} alt={viewerEvent.images[slideIndex].alt} fill sizes="100vw" className="object-contain" />
+              <Image
+                src={viewerEvent.images[slideIndex].src}
+                alt={viewerEvent.images[slideIndex].alt}
+                fill
+                sizes="100vw"
+                className="object-contain"
+              />
             </div>
-            <button type="button" onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-xl opacity-60 hover:opacity-100 transition-all hover:scale-110" aria-label="Previous">
+
+            <button
+              type="button"
+              onClick={prevSlide}
+              className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-xl opacity-70 hover:opacity-100 transition-all hover:scale-110"
+              aria-label="Previous"
+            >
               <ChevronLeft className="h-6 w-6" />
             </button>
-            <button type="button" onClick={nextSlide} className="absolute right-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-xl opacity-60 hover:opacity-100 transition-all hover:scale-110" aria-label="Next">
+
+            <button
+              type="button"
+              onClick={nextSlide}
+              className="absolute right-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-xl opacity-70 hover:opacity-100 transition-all hover:scale-110"
+              aria-label="Next"
+            >
               <ChevronRight className="h-6 w-6" />
             </button>
           </div>
+
           {!isTouchDevice && (
-            <div ref={fsCursorRef} className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300" style={{ opacity: cursorVisible ? 1 : 0 }}>
+            <div
+              ref={fsCursorRef}
+              className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300"
+              style={{ opacity: cursorVisible ? 1 : 0 }}
+            >
               {cursorPng}
             </div>
           )}
         </div>
       )}
 
+      {/* Custom Cursor */}
       {!isTouchDevice && (
-        <div ref={cursorPngRef} className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference" style={{ opacity: cursorVisible && !fsOpen ? 1 : 0 }}>
+        <div
+          ref={cursorPngRef}
+          className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference"
+          style={{ opacity: cursorVisible && !fsOpen ? 1 : 0 }}
+        >
           {cursorPng}
         </div>
       )}
@@ -558,11 +788,6 @@ export default function GalleryPage() {
           from { width: 0%; }
           to   { width: 100%; }
         }
-        @keyframes gallery-fade-up {
-          from { opacity: 0; transform: translateY(40px); }
-          to   { opacity: 1; transform: none; }
-        }
-        .gallery-fade-up { animation: gallery-fade-up 1s cubic-bezier(0.16, 1, 0.3, 1) both; }
         @keyframes gallery-zoom-in {
           from { opacity: 0; transform: scale(0.97); }
           to   { opacity: 1; transform: none; }
@@ -573,21 +798,16 @@ export default function GalleryPage() {
           to   { opacity: 1; transform: scale(1); }
         }
         .gallery-slide { animation: gallery-slide 0.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
-        @keyframes float {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(30px, -40px) scale(1.05); }
+        @keyframes aurora {
+          0%, 100% { opacity: 0.6; transform: translateX(-50%) rotate(18deg) translateY(0); }
+          50% { opacity: 1; transform: translateX(-50%) rotate(18deg) translateY(-40px); }
         }
-        @keyframes float-alt {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          50% { transform: translate(-30px, 40px) scale(1.05); }
+        @keyframes aurora-alt {
+          0%, 100% { opacity: 0.55; transform: translateX(50%) rotate(-14deg) translateY(0); }
+          50% { opacity: 1; transform: translateX(50%) rotate(-14deg) translateY(40px); }
         }
-        .gallery-float { animation: float 20s ease-in-out infinite; }
-        .gallery-float-alt { animation: float-alt 25s ease-in-out infinite; }
-        @media (prefers-reduced-motion: reduce) {
-          .gallery-fade-up, .gallery-zoom-in, .gallery-slide, .gallery-float, .gallery-float-alt {
-            animation: none;
-          }
-        }
+        .gallery-aurora { animation: aurora 18s ease-in-out infinite; }
+        .gallery-aurora-alt { animation: aurora-alt 22s ease-in-out infinite; }
       `}</style>
     </div>
   );

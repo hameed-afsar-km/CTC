@@ -1,9 +1,23 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Calendar, MapPin, ExternalLink, Sparkles, Clock, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  ExternalLink,
+  Sparkles,
+  Clock,
+  X,
+  Search,
+  Filter,
+  Tag,
+  Flame,
+  ChevronRight,
+  Layers,
+} from "lucide-react";
 import type { ClubEvent } from "@/lib/events";
 import { gsap } from "gsap";
 
@@ -12,7 +26,7 @@ function formatDate(dateStr: string) {
   if (Number.isNaN(d.getTime())) return dateStr;
   return d.toLocaleDateString("en-US", {
     weekday: "short",
-    month: "long",
+    month: "short",
     day: "numeric",
     year: "numeric",
   });
@@ -30,10 +44,16 @@ function formatTime(dateStr: string) {
 export default function EventsPage() {
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [selectedEvent, setSelectedEvent] = useState<ClubEvent | null>(null);
+
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const containerRef = useRef<HTMLDivElement>(null);
-  
-  const [selectedEvent, setSelectedEvent] = useState<ClubEvent | null>(null);
+
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const cursorPngRef = useRef<HTMLDivElement>(null);
+  const [cursorVisible, setCursorVisible] = useState(false);
 
   useEffect(() => {
     if (selectedEvent) {
@@ -45,10 +65,6 @@ export default function EventsPage() {
       document.body.style.overflow = "";
     };
   }, [selectedEvent]);
-  
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const cursorPngRef = useRef<HTMLDivElement>(null);
-  const [cursorVisible, setCursorVisible] = useState(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
@@ -93,104 +109,149 @@ export default function EventsPage() {
     if (!loading && events.length > 0) {
       gsap.fromTo(
         ".event-card",
-        { opacity: 0, y: 40 },
+        { opacity: 0, y: 30 },
         {
           opacity: 1,
           y: 0,
-          duration: 0.8,
-          stagger: 0.1,
-          ease: "power3.out",
-        }
-      );
-      
-      gsap.fromTo(
-        ".section-title",
-        { opacity: 0, x: -20 },
-        {
-          opacity: 1,
-          x: 0,
-          duration: 0.8,
-          stagger: 0.2,
+          duration: 0.7,
+          stagger: 0.08,
           ease: "power3.out",
         }
       );
     }
-  }, [loading, events]);
+  }, [loading, events, selectedCategory, searchQuery]);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    events.forEach((e) => {
+      if (e.category) set.add(e.category.toUpperCase());
+    });
+    return ["ALL", ...Array.from(set)];
+  }, [events]);
+
+  const filteredEvents = useMemo(() => {
+    return events.filter((ev) => {
+      const matchesCat =
+        selectedCategory === "ALL" ||
+        (ev.category && ev.category.toUpperCase() === selectedCategory);
+      const matchesSearch =
+        !searchQuery.trim() ||
+        ev.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        ev.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (ev.venue && ev.venue.toLowerCase().includes(searchQuery.toLowerCase()));
+      return matchesCat && matchesSearch;
+    });
+  }, [events, selectedCategory, searchQuery]);
 
   const now = Date.now();
-  const upcoming = events
-    .filter((e) => new Date(e.date).getTime() > now)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const past = events
-    .filter((e) => new Date(e.date).getTime() <= now)
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const upcoming = useMemo(() => {
+    return filteredEvents
+      .filter((e) => new Date(e.date).getTime() > now)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [filteredEvents, now]);
+
+  const past = useMemo(() => {
+    return filteredEvents
+      .filter((e) => new Date(e.date).getTime() <= now)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [filteredEvents, now]);
+
+  const featuredSpotlight = upcoming.length > 0 ? upcoming[0] : null;
+  const standardUpcoming = featuredSpotlight ? upcoming.slice(1) : upcoming;
 
   const renderEventCard = (ev: ClubEvent, isPast: boolean) => (
     <div
       key={ev.id}
       onClick={() => setSelectedEvent(ev)}
-      className={`event-card group cursor-pointer relative flex flex-col rounded-2xl border ${
-        isPast ? "border-white/5 bg-white/5 opacity-80" : "border-emerald-500/20 bg-[#0a0f12]"
-      } overflow-hidden transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_8px_32px_rgba(52,211,153,0.15)] hover:border-emerald-500/40`}
+      className={`event-card group cursor-pointer relative flex flex-col rounded-3xl border transition-all duration-500 overflow-hidden ${
+        isPast
+          ? "border-white/5 bg-[#090d10]/60 hover:border-white/20 hover:bg-[#0d1318]"
+          : "border-emerald-500/20 bg-[#0a0f12]/90 hover:border-emerald-400/50 hover:shadow-[0_12px_40px_rgba(52,211,153,0.18)]"
+      }`}
     >
-      <div className="relative h-56 w-full overflow-hidden">
+      {/* Top Banner Image */}
+      <div className="relative h-60 w-full overflow-hidden bg-black/40">
         {ev.image ? (
           <img
             src={ev.image}
             alt={ev.title}
-            className={`h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110 ${isPast ? "grayscale-[40%]" : ""}`}
+            className={`h-full w-full object-cover transition-transform duration-[1.2s] group-hover:scale-110 ${
+              isPast ? "grayscale-[35%]" : ""
+            }`}
           />
         ) : (
-          <div className="h-full w-full bg-gradient-to-br from-emerald-900/40 to-black flex items-center justify-center">
-            <Sparkles className="h-12 w-12 text-emerald-500/30" />
+          <div className="h-full w-full bg-gradient-to-br from-emerald-950/60 via-black to-emerald-900/30 flex items-center justify-center">
+            <Sparkles className="h-14 w-14 text-emerald-400/30 animate-pulse" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f12] via-transparent to-transparent" />
-        
-        <div className="absolute top-4 right-4 z-10 flex gap-2">
-          <span className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${
-            isPast 
-              ? "bg-black/50 text-white/70 border border-white/10" 
-              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shadow-[0_0_12px_rgba(52,211,153,0.3)]"
-          }`}>
-            {ev.category}
+
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f12] via-[#0a0f12]/20 to-transparent" />
+
+        {/* Top Badges */}
+        <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider backdrop-blur-xl border ${
+              isPast
+                ? "bg-black/60 text-white/60 border-white/10"
+                : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_15px_rgba(52,211,153,0.3)]"
+            }`}
+          >
+            <Tag className="h-3 w-3" />
+            {ev.category || "EVENT"}
           </span>
+
+          {!isPast && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-400/10 px-3 py-1 text-[10px] font-mono font-bold text-emerald-300 border border-emerald-400/30 backdrop-blur-md">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+              UPCOMING
+            </span>
+          )}
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col p-6 pt-2">
-        <h3 className="font-syne text-2xl font-bold text-white mb-2 line-clamp-2 group-hover:text-emerald-300 transition-colors">
+      {/* Content */}
+      <div className="flex flex-1 flex-col p-6 pt-1">
+        <h3 className="font-syne text-2xl font-bold text-white mb-3 line-clamp-2 group-hover:text-emerald-300 transition-colors leading-tight">
           {ev.title}
         </h3>
-        
-        <p className="text-sm text-white/60 mb-6 line-clamp-3 leading-relaxed flex-1">
+
+        <p className="text-sm text-white/60 mb-6 line-clamp-3 leading-relaxed font-sans font-normal">
           {ev.description}
         </p>
 
-        <div className="flex flex-col gap-3 mt-auto pt-4 border-t border-white/10">
-          <div className="flex items-center gap-2 text-xs font-mono text-emerald-400/80">
-            <Calendar className="h-4 w-4" />
+        {/* Card Footer Details */}
+        <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-3">
+          <div className="flex items-center gap-2.5 text-xs font-mono text-emerald-400/90">
+            <Calendar className="h-4 w-4 shrink-0 text-emerald-400" />
             <span>{formatDate(ev.date)}</span>
           </div>
-          <div className="flex items-center justify-between">
+
+          <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2 text-xs font-mono text-white/50">
-              {isPast ? <Clock className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
-              <span>{isPast ? formatTime(ev.date) : ev.venue}</span>
+              {isPast ? (
+                <Clock className="h-4 w-4 shrink-0" />
+              ) : (
+                <MapPin className="h-4 w-4 shrink-0 text-emerald-400/70" />
+              )}
+              <span className="truncate max-w-[150px]">
+                {isPast ? formatTime(ev.date) : ev.venue || "Campus"}
+              </span>
             </div>
-            
+
             {ev.registerUrl && !isPast && (
               <a
                 href={ev.registerUrl}
                 onClick={(e) => e.stopPropagation()}
                 target={ev.registerUrl.startsWith("http") ? "_blank" : undefined}
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-bold text-emerald-400 border border-emerald-500/20 transition-all hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_16px_rgba(52,211,153,0.5)]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-bold text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(52,211,153,0.6)]"
               >
                 Register <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
+
             {isPast && (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-4 py-1.5 text-xs font-bold text-white/40 border border-white/10">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-mono font-medium text-white/40 border border-white/10">
                 Completed
               </span>
             )}
@@ -209,187 +270,335 @@ export default function EventsPage() {
           y: ((e.clientY - r.top) / r.height) * 100,
         });
       }}
-      className="relative min-h-screen bg-[#050505] font-syne text-white selection:bg-emerald-500/30 overflow-x-hidden"
+      className="relative min-h-screen bg-[#040608] font-syne text-white selection:bg-emerald-500/30 overflow-x-hidden"
     >
-      {/* Background Effects */}
+      {/* Dynamic Background */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
         <div
           className="absolute inset-0 transition-opacity duration-1000"
           style={{
-            background: `radial-gradient(1200px circle at ${mousePos.x}% ${mousePos.y}%, rgba(52, 211, 153, 0.08), transparent 60%)`,
+            background: `radial-gradient(1200px circle at ${mousePos.x}% ${mousePos.y}%, rgba(52, 211, 153, 0.09), transparent 60%), radial-gradient(900px circle at ${100 - mousePos.x}% ${100 - mousePos.y}%, rgba(16, 185, 129, 0.05), transparent 50%)`,
           }}
         />
-        <div className="absolute top-1/4 -right-1/4 h-[800px] w-[800px] rounded-full bg-gradient-to-bl from-[#34d399]/10 to-transparent blur-[120px] animate-[float_20s_ease-in-out_infinite]" />
-        <div className="absolute bottom-0 -left-1/4 h-[600px] w-[600px] rounded-full bg-gradient-to-tr from-[#059669]/10 to-transparent blur-[120px] animate-[float_25s_ease-in-out_infinite_reverse]" />
+        <div className="absolute top-1/4 -right-1/4 h-[800px] w-[800px] rounded-full bg-gradient-to-bl from-emerald-500/10 to-transparent blur-[140px] animate-pulse" />
+        <div className="absolute bottom-0 -left-1/4 h-[700px] w-[700px] rounded-full bg-gradient-to-tr from-teal-600/10 to-transparent blur-[140px]" />
         <div className="bg-grain absolute inset-0 opacity-20 mix-blend-overlay" />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-[1400px] px-6 sm:px-12 py-10 sm:py-16 min-h-screen flex flex-col">
-        <nav className="flex items-center justify-between mix-blend-difference mb-12 sm:mb-20">
+      <div className="relative z-10 mx-auto max-w-[1440px] px-6 sm:px-12 py-10 sm:py-16 min-h-screen flex flex-col">
+        {/* Navigation Bar */}
+        <nav className="flex items-center justify-between mb-12 sm:mb-16">
           <Link
             href="/"
             className="group inline-flex items-center gap-3 font-mono text-xs text-white/70 transition-all duration-300 hover:text-white"
           >
-            <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-2" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 transition-all group-hover:border-emerald-400 group-hover:bg-emerald-500/20 group-hover:text-emerald-300">
+              <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
+            </div>
             <span className="font-bold tracking-widest uppercase">BACK TO HOME</span>
           </Link>
-          <div className="hidden sm:flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-white/50">
-            <span>CTC</span>
-            <span className="h-1 w-1 rounded-full bg-white/50" />
-            <span>EVENTS</span>
+
+          <div className="hidden sm:flex items-center gap-3 font-mono text-[11px] uppercase tracking-widest text-white/50 bg-white/5 px-4 py-2 rounded-full border border-white/10">
+            <span className="text-emerald-400 font-bold">CTC</span>
+            <span className="h-1 w-1 rounded-full bg-white/40" />
+            <span>EVENT CHRONICLES</span>
           </div>
         </nav>
 
-        <header className="relative text-left mb-16 sm:mb-24">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 mb-6 text-xs font-mono font-bold uppercase tracking-widest text-emerald-400">
-            <Sparkles className="h-4 w-4" />
-            Discover What's Next
+        {/* Hero Section */}
+        <header className="relative text-left mb-12 sm:mb-16">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 mb-6 text-xs font-mono font-bold uppercase tracking-widest text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.2)]">
+            <Sparkles className="h-4 w-4 animate-spin" style={{ animationDuration: "6s" }} />
+            CRESCENT TECHNOCRATS CLUB
           </div>
-          <h1 className="font-syne font-black uppercase leading-[0.9] tracking-tighter text-[clamp(3rem,10vw,8rem)] text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-emerald-400/50 mix-blend-plus-lighter">
+
+          <h1 className="font-syne font-black uppercase leading-[0.88] tracking-tighter text-[clamp(3.5rem,10vw,8.5rem)] text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-100 to-emerald-400">
             ALL EVENTS
           </h1>
-          <p className="mt-6 max-w-2xl text-lg text-white/60 font-medium">
-            Explore upcoming workshops, hackathons, and tech talks hosted by the Crescent Technocrats Club. Join us in building the future.
+
+          <p className="mt-6 max-w-2xl text-lg text-white/70 font-sans font-normal leading-relaxed">
+            Explore workshops, hackathons, and tech summits hosted by the Crescent Technocrats Club. Empowering innovators to build the future.
           </p>
         </header>
 
-        <main ref={containerRef} className="flex-1 pb-32 flex flex-col gap-24">
+        {/* Search & Category Filter Bar */}
+        <div className="mb-16 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 p-4 rounded-3xl border border-white/10 bg-[#080d10]/90 backdrop-blur-2xl shadow-2xl">
+          {/* Search Box */}
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400/70" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search events by title, topic, venue..."
+              className="w-full rounded-2xl bg-white/5 pl-11 pr-4 py-3 text-sm font-sans text-white placeholder-white/40 border border-white/5 focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Category Filter Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+            {categories.map((cat) => {
+              const active = selectedCategory === cat;
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all whitespace-nowrap border ${
+                    active
+                      ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20"
+                  }`}
+                >
+                  {cat}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Main Content Area */}
+        <main ref={containerRef} className="flex-1 pb-32 flex flex-col gap-20">
           {loading ? (
-            <div className="flex-1 flex items-center justify-center">
+            <div className="flex-1 flex items-center justify-center py-28">
               <div className="flex flex-col items-center gap-4">
-                <div className="h-12 w-12 rounded-full border-4 border-white/10 border-t-emerald-400 animate-spin" />
-                <p className="font-mono text-xs uppercase tracking-widest text-emerald-400 animate-pulse">Loading Events...</p>
+                <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-emerald-400 animate-spin" />
+                <p className="font-mono text-xs uppercase tracking-widest text-emerald-400 animate-pulse">
+                  Loading Event Chronicles...
+                </p>
               </div>
             </div>
           ) : (
             <>
-              {upcoming.length > 0 && (
+              {/* Spotlight Featured Upcoming Event Banner */}
+              {featuredSpotlight && (
                 <section>
-                  <div className="section-title mb-10 flex items-center gap-6">
-                    <h2 className="font-syne text-4xl font-bold text-white">UPCOMING</h2>
+                  <div className="mb-6 flex items-center gap-3 text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold">
+                    <Flame className="h-4 w-4 text-emerald-400 animate-bounce" />
+                    NEXT UPCOMING FEATURED EVENT
+                  </div>
+
+                  <div
+                    onClick={() => setSelectedEvent(featuredSpotlight)}
+                    className="group cursor-pointer relative rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-[#0a1214] via-[#091518] to-[#04080a] p-8 sm:p-12 overflow-hidden transition-all duration-500 hover:border-emerald-400 hover:shadow-[0_16px_50px_rgba(52,211,153,0.2)]"
+                  >
+                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                      <div className="lg:col-span-7 flex flex-col items-start">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 mb-6">
+                          <Tag className="h-3.5 w-3.5" />
+                          {featuredSpotlight.category || "FEATURED EVENT"}
+                        </div>
+
+                        <h2 className="font-syne text-3xl sm:text-5xl font-extrabold text-white mb-4 group-hover:text-emerald-300 transition-colors leading-tight">
+                          {featuredSpotlight.title}
+                        </h2>
+
+                        <p className="text-white/70 font-sans text-base leading-relaxed mb-8 line-clamp-3">
+                          {featuredSpotlight.description}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-6 text-sm font-mono text-emerald-300">
+                          <div className="flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20">
+                            <Calendar className="h-4 w-4 text-emerald-400" />
+                            <span>{formatDate(featuredSpotlight.date)}</span>
+                          </div>
+                          <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl border border-white/10 text-white/70">
+                            <MapPin className="h-4 w-4 text-emerald-400" />
+                            <span>{featuredSpotlight.venue || "Campus"}</span>
+                          </div>
+                        </div>
+
+                        {featuredSpotlight.registerUrl && (
+                          <div className="mt-8">
+                            <a
+                              href={featuredSpotlight.registerUrl}
+                              onClick={(e) => e.stopPropagation()}
+                              target={featuredSpotlight.registerUrl.startsWith("http") ? "_blank" : undefined}
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
+                            >
+                              Register Now <ExternalLink className="h-4 w-4" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="lg:col-span-5 relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden border border-emerald-500/20">
+                        {featuredSpotlight.image ? (
+                          <img
+                            src={featuredSpotlight.image}
+                            alt={featuredSpotlight.title}
+                            className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-gradient-to-br from-emerald-900/40 to-black flex items-center justify-center">
+                            <Sparkles className="h-16 w-16 text-emerald-400/40 animate-pulse" />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* Standard Upcoming Events Grid */}
+              {standardUpcoming.length > 0 && (
+                <section>
+                  <div className="mb-8 flex items-center gap-6">
+                    <h2 className="font-syne text-3xl font-bold text-white uppercase tracking-tight flex items-center gap-3">
+                      <Layers className="h-6 w-6 text-emerald-400" />
+                      UPCOMING EVENTS ({standardUpcoming.length})
+                    </h2>
                     <div className="h-[1px] flex-1 bg-gradient-to-r from-emerald-500/40 to-transparent" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                    {upcoming.map(ev => renderEventCard(ev, false))}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {standardUpcoming.map((ev) => renderEventCard(ev, false))}
                   </div>
                 </section>
               )}
 
+              {/* Past Events Grid */}
               {past.length > 0 && (
                 <section>
-                  <div className="section-title mb-10 flex items-center gap-6">
-                    <h2 className="font-syne text-4xl font-bold text-white/60">PAST EVENTS</h2>
+                  <div className="mb-8 flex items-center gap-6">
+                    <h2 className="font-syne text-3xl font-bold text-white/50 uppercase tracking-tight">
+                      PAST EVENT ARCHIVES ({past.length})
+                    </h2>
                     <div className="h-[1px] flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-                    {past.map(ev => renderEventCard(ev, true))}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {past.map((ev) => renderEventCard(ev, true))}
                   </div>
                 </section>
               )}
 
-              {events.length === 0 && (
-                <div className="flex-1 flex items-center justify-center py-20">
-                  <p className="font-mono text-sm text-white/40 uppercase tracking-widest">No events found.</p>
+              {/* Empty Search Results */}
+              {filteredEvents.length === 0 && (
+                <div className="flex-1 flex flex-col items-center justify-center py-28 text-center bg-white/5 rounded-3xl border border-white/10 p-8">
+                  <Sparkles className="h-12 w-12 text-emerald-400/40 mb-4" />
+                  <p className="font-syne text-2xl font-bold text-white mb-2">No matching events found</p>
+                  <p className="text-sm font-sans text-white/50 max-w-md mb-6">
+                    Try adjusting your category filter or search terms to find what you&apos;re looking for.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSelectedCategory("ALL");
+                    }}
+                    className="px-6 py-2.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/30 hover:bg-emerald-500 hover:text-black transition-all"
+                  >
+                    RESET FILTERS
+                  </button>
                 </div>
               )}
             </>
           )}
         </main>
-        
-        <footer className="mt-auto border-t border-white/10 py-8 text-center">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-white/40">
-            © {new Date().getFullYear()} CRESCENT TECHNOCRATS CLUB
-          </p>
+
+        {/* Footer */}
+        <footer className="mt-auto border-t border-white/10 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs font-mono text-white/40">
+          <p>© {new Date().getFullYear()} CRESCENT TECHNOCRATS CLUB</p>
+          <p className="tracking-widest uppercase text-[10px]">DESIGNED FOR THE FUTURE</p>
         </footer>
       </div>
 
-      {/* Expanded Modal */}
+      {/* Expanded Modal Overlay */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4 sm:p-6 animate-in fade-in duration-300">
-          <div 
-            className="absolute inset-0" 
-            onClick={() => setSelectedEvent(null)} 
-          />
-          <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl border border-white/10 bg-[#0a0f12] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Modal Header Image */}
-            <div className="relative h-48 sm:h-64 w-full shrink-0 bg-black">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-2xl p-4 sm:p-8 animate-in fade-in duration-300">
+          <div className="absolute inset-0" onClick={() => setSelectedEvent(null)} />
+
+          <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl border border-emerald-500/30 bg-[#090e11] shadow-[0_20px_80px_rgba(0,0,0,0.9)] overflow-hidden animate-in zoom-in-95 duration-300">
+            {/* Cover Image */}
+            <div className="relative h-56 sm:h-72 w-full shrink-0 bg-black">
               {selectedEvent.image ? (
                 <img
                   src={selectedEvent.image}
                   alt={selectedEvent.title}
-                  className="h-full w-full object-cover opacity-80"
+                  className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="h-full w-full bg-gradient-to-br from-emerald-900/40 to-black flex items-center justify-center">
-                  <Sparkles className="h-16 w-16 text-emerald-500/30" />
+                <div className="h-full w-full bg-gradient-to-br from-emerald-950 to-black flex items-center justify-center">
+                  <Sparkles className="h-16 w-16 text-emerald-400/40" />
                 </div>
               )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f12] via-transparent to-transparent" />
-              
+              <div className="absolute inset-0 bg-gradient-to-t from-[#090e11] via-[#090e11]/40 to-transparent" />
+
               <button
                 onClick={() => setSelectedEvent(null)}
-                className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white/70 backdrop-blur-md border border-white/10 transition-colors hover:bg-white hover:text-black"
+                className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white/80 backdrop-blur-xl border border-white/20 transition-all hover:bg-white hover:text-black"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-6 sm:p-8">
+            <div className="flex-1 overflow-y-auto p-6 sm:p-10">
               <div className="flex items-center gap-3 mb-4">
-                <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-300 border border-emerald-500/30">
-                  {selectedEvent.category}
+                <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3.5 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40">
+                  {selectedEvent.category || "EVENT"}
                 </span>
                 {new Date(selectedEvent.date).getTime() <= Date.now() && (
-                  <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white/50 border border-white/10">
+                  <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/50 border border-white/10">
                     Completed
                   </span>
                 )}
               </div>
-              
-              <h2 className="font-syne text-3xl sm:text-4xl font-bold text-white mb-6">
+
+              <h2 className="font-syne text-3xl sm:text-4xl font-extrabold text-white mb-6 leading-tight">
                 {selectedEvent.title}
               </h2>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-white/5 rounded-2xl p-4 border border-white/5">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-white/5 rounded-2xl p-5 border border-white/10 font-mono">
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-full bg-emerald-500/10 p-2 text-emerald-400">
+                  <div className="rounded-xl bg-emerald-500/20 p-2.5 text-emerald-400 border border-emerald-500/30">
                     <Calendar className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-mono uppercase tracking-widest text-white/40 mb-1">Date & Time</p>
-                    <p className="text-sm font-medium text-white/90">{formatDate(selectedEvent.date)}</p>
-                    <p className="text-sm text-white/60">{formatTime(selectedEvent.date)}</p>
+                    <p className="text-[11px] uppercase tracking-widest text-white/40 mb-1">Date & Time</p>
+                    <p className="text-sm font-semibold text-white">{formatDate(selectedEvent.date)}</p>
+                    <p className="text-xs text-emerald-400">{formatTime(selectedEvent.date)}</p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-full bg-emerald-500/10 p-2 text-emerald-400">
+                  <div className="rounded-xl bg-emerald-500/20 p-2.5 text-emerald-400 border border-emerald-500/30">
                     <MapPin className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-mono uppercase tracking-widest text-white/40 mb-1">Venue</p>
-                    <p className="text-sm font-medium text-white/90">{selectedEvent.venue}</p>
+                    <p className="text-[11px] uppercase tracking-widest text-white/40 mb-1">Venue Location</p>
+                    <p className="text-sm font-semibold text-white">{selectedEvent.venue || "Crescent Campus"}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="prose prose-invert max-w-none">
-                <h3 className="font-syne text-xl font-bold text-white mb-3">About Event</h3>
-                <p className="text-white/70 leading-relaxed whitespace-pre-wrap">
+              <div>
+                <h3 className="font-syne text-xl font-bold text-white mb-3 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-emerald-400" />
+                  About Event
+                </h3>
+                <p className="text-white/80 font-sans leading-relaxed whitespace-pre-wrap text-base">
                   {selectedEvent.description}
                 </p>
               </div>
             </div>
 
-            {/* Modal Footer */}
+            {/* Modal Footer CTA */}
             {selectedEvent.registerUrl && new Date(selectedEvent.date).getTime() > Date.now() && (
-              <div className="p-6 sm:px-8 border-t border-white/10 bg-black/20 shrink-0 flex justify-end">
+              <div className="p-6 sm:px-10 border-t border-white/10 bg-black/40 shrink-0 flex justify-end">
                 <a
                   href={selectedEvent.registerUrl}
                   target={selectedEvent.registerUrl.startsWith("http") ? "_blank" : undefined}
                   rel="noreferrer"
-                  className="inline-flex w-full sm:w-auto justify-center items-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-400 px-8 py-3.5 text-sm font-bold text-black transition-all hover:scale-105 hover:shadow-[0_0_24px_rgba(52,211,153,0.4)]"
+                  className="inline-flex w-full sm:w-auto justify-center items-center gap-2.5 rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
                 >
                   Register Now <ExternalLink className="h-4 w-4" />
                 </a>
@@ -399,9 +608,21 @@ export default function EventsPage() {
         </div>
       )}
 
+      {/* Custom Mouse Cursor */}
       {!isTouchDevice && (
-        <div ref={cursorPngRef} className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference" style={{ opacity: cursorVisible ? 1 : 0 }}>
-          <Image src="/assets/cursor.png" alt="" width={48} height={48} className="w-full h-full object-contain" draggable={false} />
+        <div
+          ref={cursorPngRef}
+          className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference"
+          style={{ opacity: cursorVisible ? 1 : 0 }}
+        >
+          <Image
+            src="/assets/cursor.png"
+            alt=""
+            width={48}
+            height={48}
+            className="w-full h-full object-contain"
+            draggable={false}
+          />
         </div>
       )}
     </div>
