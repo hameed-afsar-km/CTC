@@ -37,45 +37,60 @@ function getPrivateKey(): string | undefined {
 }
 
 export function getFirebaseAdminApp() {
-  if (getApps().length > 0) {
-    return getApp();
+  try {
+    if (getApps().length > 0) {
+      return getApp();
+    }
+    const projectId = unwrap(process.env.FIREBASE_PROJECT_ID);
+    const clientEmail = unwrap(process.env.FIREBASE_CLIENT_EMAIL);
+    const privateKey = getPrivateKey();
+    if (!projectId || !clientEmail || !privateKey) {
+      return null;
+    }
+    return initializeApp({
+      credential: cert({ projectId, clientEmail, privateKey }),
+      projectId,
+    });
+  } catch (err) {
+    console.warn("Firebase Admin initialization error:", err instanceof Error ? err.message : err);
+    return null;
   }
-  const projectId = unwrap(process.env.FIREBASE_PROJECT_ID);
-  const clientEmail = unwrap(process.env.FIREBASE_CLIENT_EMAIL);
-  const privateKey = getPrivateKey();
-  if (!projectId || !clientEmail || !privateKey) {
-    const missing = [
-      !projectId && "FIREBASE_PROJECT_ID",
-      !clientEmail && "FIREBASE_CLIENT_EMAIL",
-      !privateKey && "FIREBASE_PRIVATE_KEY",
-    ]
-      .filter(Boolean)
-      .join(", ");
-    throw new Error(
-      `Missing Firebase Admin credentials (${missing}). Add them to your Vercel environment variables.`
-    );
-  }
-  return initializeApp({
-    credential: cert({ projectId, clientEmail, privateKey }),
-    projectId,
-  });
 }
 
 let cachedDb: Firestore | undefined;
 
-export function getDb(): Firestore {
-  if (!cachedDb) {
-    cachedDb = getFirestore(getFirebaseAdminApp());
+export function getDb(): Firestore | null {
+  try {
+    const app = getFirebaseAdminApp();
+    if (!app) return null;
+    if (!cachedDb) {
+      cachedDb = getFirestore(app);
+    }
+    return cachedDb;
+  } catch (err) {
+    console.warn("getDb error:", err instanceof Error ? err.message : err);
+    return null;
   }
-  return cachedDb;
 }
 
-export function getAdminAuth(): Auth {
-  return getAuth(getFirebaseAdminApp());
+export function getAdminAuth(): Auth | null {
+  try {
+    const app = getFirebaseAdminApp();
+    if (!app) return null;
+    return getAuth(app);
+  } catch {
+    return null;
+  }
 }
 
-export function getAdminStorage(): Storage {
-  return getStorage(getFirebaseAdminApp());
+export function getAdminStorage(): Storage | null {
+  try {
+    const app = getFirebaseAdminApp();
+    if (!app) return null;
+    return getStorage(app);
+  } catch {
+    return null;
+  }
 }
 
 export function getStorageBucket(): string {

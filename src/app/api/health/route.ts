@@ -52,11 +52,12 @@ export async function GET() {
   let firestore: string;
   try {
     firebaseAdmin = "initialized";
-    try {
-      await getDb().collection("_healthcheck").limit(1).get();
+    const db = getDb();
+    if (db) {
+      await db.collection("_healthcheck").limit(1).get();
       firestore = "reachable";
-    } catch (err) {
-      firestore = err instanceof Error ? err.message : String(err);
+    } else {
+      firestore = "unconfigured (using REST API fallback)";
     }
   } catch (err) {
     firebaseAdmin = err instanceof Error ? err.message : String(err);

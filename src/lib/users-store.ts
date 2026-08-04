@@ -12,12 +12,16 @@ export interface SiteUser {
 const COLLECTION = "users";
 
 export async function getUsers(): Promise<SiteUser[]> {
-  const snapshot = await getDb().collection(COLLECTION).orderBy("updatedAt", "desc").get();
+  const db = getDb();
+  if (!db) return [];
+  const snapshot = await db.collection(COLLECTION).orderBy("updatedAt", "desc").get();
   return snapshot.docs.map((doc) => doc.data() as SiteUser);
 }
 
 export async function getUser(email: string): Promise<SiteUser | null> {
-  const doc = await getDb().collection(COLLECTION).doc(email).get();
+  const db = getDb();
+  if (!db) return null;
+  const doc = await db.collection(COLLECTION).doc(email).get();
   return doc.exists ? (doc.data() as SiteUser) : null;
 }
 
@@ -28,7 +32,9 @@ export async function upsertUser(input: {
 }): Promise<void> {
   const email = input.email.trim().toLowerCase();
   if (!email) return;
-  const ref = getDb().collection(COLLECTION).doc(email);
+  const db = getDb();
+  if (!db) return;
+  const ref = db.collection(COLLECTION).doc(email);
   const existing = await ref.get();
   const now = new Date().toISOString();
   if (existing.exists) {
@@ -51,7 +57,9 @@ export async function upsertUser(input: {
 }
 
 export async function setUserRoles(email: string, roles: string[]): Promise<SiteUser | null> {
-  const ref = getDb().collection(COLLECTION).doc(email);
+  const db = getDb();
+  if (!db) return null;
+  const ref = db.collection(COLLECTION).doc(email);
   const existing = await ref.get();
   if (!existing.exists) return null;
   await ref.update({ roles, updatedAt: new Date().toISOString() });
@@ -74,6 +82,9 @@ export async function createUser(input: {
     createdAt: now,
     updatedAt: now,
   };
-  await getDb().collection(COLLECTION).doc(email).set(user);
+  const db = getDb();
+  if (db) {
+    await db.collection(COLLECTION).doc(email).set(user);
+  }
   return user;
 }

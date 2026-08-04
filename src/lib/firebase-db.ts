@@ -82,9 +82,11 @@ export async function fetchCollectionDocs(
 ): Promise<Record<string, unknown>[]> {
   try {
     const db = getDb();
-    const snapshot = await db.collection(collectionName).get();
-    if (!snapshot.empty) {
-      return snapshot.docs.map((d) => d.data());
+    if (db) {
+      const snapshot = await db.collection(collectionName).get();
+      if (!snapshot.empty) {
+        return snapshot.docs.map((d) => d.data());
+      }
     }
   } catch (err) {
     console.warn(
@@ -116,8 +118,10 @@ export async function saveDocument(
 ): Promise<void> {
   try {
     const db = getDb();
-    await db.collection(collectionName).doc(docId).set(data, { merge: true });
-    return;
+    if (db) {
+      await db.collection(collectionName).doc(docId).set(data, { merge: true });
+      return;
+    }
   } catch (err) {
     console.warn(
       `Firebase Admin save failed for '${collectionName}/${docId}'. Falling back to REST API:`,
@@ -157,8 +161,10 @@ export async function deleteDocument(
 ): Promise<boolean> {
   try {
     const db = getDb();
-    await db.collection(collectionName).doc(docId).delete();
-    return true;
+    if (db) {
+      await db.collection(collectionName).doc(docId).delete();
+      return true;
+    }
   } catch (err) {
     console.warn(
       `Firebase Admin delete failed for '${collectionName}/${docId}'. Falling back to REST API:`,

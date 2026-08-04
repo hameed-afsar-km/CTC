@@ -38,7 +38,10 @@ export function bearerToken(request: Request): string | null {
 export async function verifyAdminToken(token: string): Promise<AdminSession | null> {
   let decoded: { uid?: string; email?: string; name?: string; picture?: string } | undefined;
   try {
-    decoded = await getAdminAuth().verifyIdToken(token);
+    const auth = getAdminAuth();
+    if (auth) {
+      decoded = await auth.verifyIdToken(token);
+    }
   } catch {
     // Fallback: If Firebase Admin SDK is missing or unconfigured on Vercel,
     // safely decode JWT payload to extract user email
