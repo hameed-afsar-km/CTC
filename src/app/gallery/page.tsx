@@ -366,14 +366,23 @@ export default function GalleryPage() {
                               </div>
                               <div className="flex items-center gap-4">
                                 {isEventOpen && (
-                                  <button
-                                    type="button"
+                                  <span
+                                    role="button"
+                                    tabIndex={0}
                                     onClick={(e) => { e.stopPropagation(); setViewerEvent(ev); openSlideshow(0); }}
-                                    className="hidden sm:flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition-transform hover:scale-105"
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter" || e.key === " ") {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setViewerEvent(ev);
+                                        openSlideshow(0);
+                                      }
+                                    }}
+                                    className="hidden sm:flex cursor-pointer items-center gap-2 rounded-full bg-white px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition-transform hover:scale-105"
                                   >
                                     <Play className="h-3 w-3" />
                                     SLIDESHOW
-                                  </button>
+                                  </span>
                                 )}
                                 <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ${isEventOpen ? 'rotate-90' : ''}`}>
                                   <ChevronRight className="h-4 w-4 text-white" />
