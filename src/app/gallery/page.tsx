@@ -13,6 +13,7 @@ import {
   Minimize2,
   Pause,
   Play,
+  Search,
   X,
   Sparkles,
   Layers,
@@ -140,6 +141,7 @@ export default function GalleryPage() {
   const [uploadedYears, setUploadedYears] = useState<GalleryYear[]>([]);
   const [galleryError, setGalleryError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const mouseMoveRaf = useRef<number | null>(null);
 
@@ -184,9 +186,43 @@ export default function GalleryPage() {
     return ["ALL", ...Array.from(set)];
   }, [combined]);
 
+  const filteredYears = useMemo<GalleryYear[]>(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return combined
+      .map((yearGroup) => {
+        const events = yearGroup.events.filter((ev) => {
+          const matchesCat =
+            selectedCategory === "ALL" ||
+            ev.meta?.split("·")[0]?.trim()?.toUpperCase() === selectedCategory;
+          if (!matchesCat) return false;
+          if (!q) return true;
+          const haystack = [
+            ev.title,
+            ev.meta,
+            String(yearGroup.year),
+            ...ev.images.map((img) => img.alt),
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+          return haystack.includes(q);
+        });
+        return { ...yearGroup, events };
+      })
+      .filter((yearGroup) => yearGroup.events.length > 0);
+  }, [combined, selectedCategory, searchQuery]);
+
   const [expandedYears, setExpandedYears] = useState<number[]>([]);
   const [expandedEvents, setExpandedEvents] = useState<string[]>([]);
   const hasAutoExpanded = useRef(false);
+
+  const isSearching = searchQuery.trim().length > 0;
+  const effectiveExpandedYears = isSearching
+    ? filteredYears.map((y) => y.year)
+    : expandedYears;
+  const effectiveExpandedEvents = isSearching
+    ? filteredYears.flatMap((y) => y.events.map((ev) => ev.id))
+    : expandedEvents;
 
   useEffect(() => {
     if (combined.length === 0 || hasAutoExpanded.current) return;
@@ -406,27 +442,51 @@ export default function GalleryPage() {
           </div>
         </header>
 
-        {/* Category Filter Bar */}
-        {categories.length > 1 && (
-          <div className="mt-12 flex items-center justify-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {categories.map((cat) => {
-              const active = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-5 py-2.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all whitespace-nowrap border ${
-                    active
-                      ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]"
-                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
+        {/* Search & Category Filter Bar */}
+        <div className="mt-12 flex flex-col gap-4 rounded-3xl border border-white/10 bg-[#080d10]/90 backdrop-blur-2xl shadow-2xl p-4">
+          {/* Search Box */}
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400/70" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search albums by title, category, caption..."
+              className="w-full rounded-2xl bg-white/5 pl-11 pr-10 py-3 text-sm font-sans text-white placeholder-white/40 border border-white/5 focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                aria-label="Clear search"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
-        )}
+
+          {/* Category Filter Pills */}
+          {categories.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              {categories.map((cat) => {
+                const active = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all whitespace-nowrap border ${
+                      active
+                        ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                        : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Main Gallery Section */}
         <section className="mt-16 sm:mt-24 pb-32">
@@ -454,16 +514,29 @@ export default function GalleryPage() {
               </div>
             )}
 
-            {combined.map((yearGroup) => {
-              const isYearOpen = expandedYears.includes(yearGroup.year);
+            {!galleryError && combined.length > 0 && filteredYears.length === 0 && (
+              <div className="flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-white/5 p-12 text-center">
+                <Search className="h-10 w-10 text-emerald-400/40 mb-2" />
+                <p className="font-mono text-xs uppercase tracking-widest text-white/60 font-bold">
+                  NO MATCHING ALBUMS
+                </p>
+                <p className="text-sm font-sans text-white/40 max-w-md">
+                  Try adjusting your category filter or search terms to find what you&apos;re looking for.
+                </p>
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedCategory("ALL");
+                  }}
+                  className="px-6 py-2.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/30 hover:bg-emerald-500 hover:text-black transition-all"
+                >
+                  RESET FILTERS
+                </button>
+              </div>
+            )}
 
-              const matchingEvents = yearGroup.events.filter((ev) => {
-                if (selectedCategory === "ALL") return true;
-                const cat = ev.meta?.split("·")[0]?.trim()?.toUpperCase();
-                return cat === selectedCategory;
-              });
-
-              if (matchingEvents.length === 0 && selectedCategory !== "ALL") return null;
+            {filteredYears.map((yearGroup) => {
+              const isYearOpen = effectiveExpandedYears.includes(yearGroup.year);
 
               return (
                 <div key={yearGroup.year} className="border-b border-white/10 pb-16">
@@ -478,7 +551,7 @@ export default function GalleryPage() {
                         {yearGroup.year}
                       </h2>
                       <span className="font-mono text-xs text-emerald-400/80 bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
-                        {matchingEvents.length} ALBUMS
+                        {yearGroup.events.length} ALBUMS
                       </span>
                     </div>
 
@@ -500,8 +573,8 @@ export default function GalleryPage() {
                   {/* Year Events List */}
                   {isYearOpen && (
                     <div className="mt-8 flex flex-col gap-8 animate-in slide-in-from-top-4 fade-in duration-500">
-                      {matchingEvents.map((ev) => {
-                        const isEventOpen = expandedEvents.includes(ev.id);
+                      {yearGroup.events.map((ev) => {
+                        const isEventOpen = effectiveExpandedEvents.includes(ev.id);
                         return (
                           <div
                             key={ev.id}

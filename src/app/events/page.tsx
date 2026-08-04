@@ -12,11 +12,7 @@ import {
   Clock,
   X,
   Search,
-  Filter,
   Tag,
-  Flame,
-  ChevronRight,
-  Layers,
 } from "lucide-react";
 import type { ClubEvent } from "@/lib/events";
 import { gsap } from "gsap";
@@ -109,7 +105,7 @@ export default function EventsPage() {
     if (!loading && events.length > 0) {
       gsap.fromTo(
         ".event-card",
-        { opacity: 0, y: 30 },
+        { opacity: 0, y: 35 },
         {
           opacity: 1,
           y: 0,
@@ -156,9 +152,6 @@ export default function EventsPage() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredEvents, now]);
 
-  const featuredSpotlight = upcoming.length > 0 ? upcoming[0] : null;
-  const standardUpcoming = featuredSpotlight ? upcoming.slice(1) : upcoming;
-
   const renderEventCard = (ev: ClubEvent, isPast: boolean) => (
     <div
       key={ev.id}
@@ -166,11 +159,11 @@ export default function EventsPage() {
       className={`event-card group cursor-pointer relative flex flex-col rounded-3xl border transition-all duration-500 overflow-hidden ${
         isPast
           ? "border-white/5 bg-[#090d10]/60 hover:border-white/20 hover:bg-[#0d1318]"
-          : "border-emerald-500/20 bg-[#0a0f12]/90 hover:border-emerald-400/50 hover:shadow-[0_12px_40px_rgba(52,211,153,0.18)]"
+          : "border-emerald-500/20 bg-[#0a0f12]/90 hover:border-emerald-400/50 hover:shadow-[0_12px_40px_rgba(52,211,153,0.18)] hover:-translate-y-1.5"
       }`}
     >
-      {/* Top Banner Image */}
-      <div className="relative h-60 w-full overflow-hidden bg-black/40">
+      {/* Card Image Cover */}
+      <div className="relative h-56 w-full overflow-hidden bg-black/40">
         {ev.image ? (
           <img
             src={ev.image}
@@ -181,16 +174,15 @@ export default function EventsPage() {
           />
         ) : (
           <div className="h-full w-full bg-gradient-to-br from-emerald-950/60 via-black to-emerald-900/30 flex items-center justify-center">
-            <Sparkles className="h-14 w-14 text-emerald-400/30 animate-pulse" />
+            <Sparkles className="h-12 w-12 text-emerald-400/30" />
           </div>
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f12] via-[#0a0f12]/20 to-transparent" />
 
-        {/* Top Badges */}
         <div className="absolute top-4 left-4 right-4 z-10 flex items-center justify-between">
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-mono font-bold uppercase tracking-wider backdrop-blur-xl border ${
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider backdrop-blur-xl border ${
               isPast
                 ? "bg-black/60 text-white/60 border-white/10"
                 : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-[0_0_15px_rgba(52,211,153,0.3)]"
@@ -209,17 +201,17 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* Content */}
-      <div className="flex flex-1 flex-col p-6 pt-1">
+      {/* Card Content */}
+      <div className="flex flex-1 flex-col p-6 pt-2">
         <h3 className="font-syne text-2xl font-bold text-white mb-3 line-clamp-2 group-hover:text-emerald-300 transition-colors leading-tight">
           {ev.title}
         </h3>
 
-        <p className="text-sm text-white/60 mb-6 line-clamp-3 leading-relaxed font-sans font-normal">
+        <p className="text-sm text-white/60 mb-6 line-clamp-3 leading-relaxed font-sans">
           {ev.description}
         </p>
 
-        {/* Card Footer Details */}
+        {/* Footer Details */}
         <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-3">
           <div className="flex items-center gap-2.5 text-xs font-mono text-emerald-400/90">
             <Calendar className="h-4 w-4 shrink-0 text-emerald-400" />
@@ -244,14 +236,14 @@ export default function EventsPage() {
                 onClick={(e) => e.stopPropagation()}
                 target={ev.registerUrl.startsWith("http") ? "_blank" : undefined}
                 rel="noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500 px-4 py-1.5 text-xs font-bold text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(52,211,153,0.6)]"
+                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/30 transition-all hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_18px_rgba(52,211,153,0.5)]"
               >
                 Register <ExternalLink className="h-3.5 w-3.5" />
               </a>
             )}
 
             {isPast && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-mono font-medium text-white/40 border border-white/10">
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/5 px-3 py-1 text-[11px] font-mono text-white/40 border border-white/10">
                 Completed
               </span>
             )}
@@ -272,16 +264,16 @@ export default function EventsPage() {
       }}
       className="relative min-h-screen bg-[#040608] font-syne text-white selection:bg-emerald-500/30 overflow-x-hidden"
     >
-      {/* Dynamic Background */}
+      {/* Ambient Lighting Background */}
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden" aria-hidden>
         <div
           className="absolute inset-0 transition-opacity duration-1000"
           style={{
-            background: `radial-gradient(1200px circle at ${mousePos.x}% ${mousePos.y}%, rgba(52, 211, 153, 0.09), transparent 60%), radial-gradient(900px circle at ${100 - mousePos.x}% ${100 - mousePos.y}%, rgba(16, 185, 129, 0.05), transparent 50%)`,
+            background: `radial-gradient(1200px circle at ${mousePos.x}% ${mousePos.y}%, rgba(52, 211, 153, 0.08), transparent 60%)`,
           }}
         />
         <div className="absolute top-1/4 -right-1/4 h-[800px] w-[800px] rounded-full bg-gradient-to-bl from-emerald-500/10 to-transparent blur-[140px] animate-pulse" />
-        <div className="absolute bottom-0 -left-1/4 h-[700px] w-[700px] rounded-full bg-gradient-to-tr from-teal-600/10 to-transparent blur-[140px]" />
+        <div className="absolute bottom-0 -left-1/4 h-[600px] w-[600px] rounded-full bg-gradient-to-tr from-teal-600/10 to-transparent blur-[140px]" />
         <div className="bg-grain absolute inset-0 opacity-20 mix-blend-overlay" />
       </div>
 
@@ -305,10 +297,10 @@ export default function EventsPage() {
           </div>
         </nav>
 
-        {/* Hero Section */}
+        {/* Page Header */}
         <header className="relative text-left mb-12 sm:mb-16">
           <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-4 py-1.5 mb-6 text-xs font-mono font-bold uppercase tracking-widest text-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.2)]">
-            <Sparkles className="h-4 w-4 animate-spin" style={{ animationDuration: "6s" }} />
+            <Sparkles className="h-4 w-4" />
             CRESCENT TECHNOCRATS CLUB
           </div>
 
@@ -317,20 +309,19 @@ export default function EventsPage() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-lg text-white/70 font-sans font-normal leading-relaxed">
-            Explore workshops, hackathons, and tech summits hosted by the Crescent Technocrats Club. Empowering innovators to build the future.
+            Explore workshops, hackathons, and tech talks hosted by the Crescent Technocrats Club. Empowering innovators to build the future.
           </p>
         </header>
 
-        {/* Search & Category Filter Bar */}
-        <div className="mb-16 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 p-4 rounded-3xl border border-white/10 bg-[#080d10]/90 backdrop-blur-2xl shadow-2xl">
-          {/* Search Box */}
+        {/* Quick Search & Filter Controls */}
+        <div className="mb-14 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-6 p-4 rounded-3xl border border-white/10 bg-[#080d10]/90 backdrop-blur-2xl shadow-2xl">
           <div className="relative flex-1">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-400/70" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search events by title, topic, venue..."
+              placeholder="Search events by title, description, venue..."
               className="w-full rounded-2xl bg-white/5 pl-11 pr-4 py-3 text-sm font-sans text-white placeholder-white/40 border border-white/5 focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
             />
             {searchQuery && (
@@ -343,134 +334,63 @@ export default function EventsPage() {
             )}
           </div>
 
-          {/* Category Filter Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
-            {categories.map((cat) => {
-              const active = selectedCategory === cat;
-              return (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all whitespace-nowrap border ${
-                    active
-                      ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]"
-                      : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20"
-                  }`}
-                >
-                  {cat}
-                </button>
-              );
-            })}
-          </div>
+          {categories.length > 1 && (
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+              {categories.map((cat) => {
+                const active = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-4 py-2.5 rounded-xl text-xs font-mono font-bold tracking-wider uppercase transition-all whitespace-nowrap border ${
+                      active
+                        ? "bg-emerald-500 text-black border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.4)]"
+                        : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* Main Content Area */}
+        {/* Events Sections (UPCOMING & PAST) */}
         <main ref={containerRef} className="flex-1 pb-32 flex flex-col gap-20">
           {loading ? (
             <div className="flex-1 flex items-center justify-center py-28">
               <div className="flex flex-col items-center gap-4">
                 <div className="h-14 w-14 rounded-full border-4 border-white/10 border-t-emerald-400 animate-spin" />
                 <p className="font-mono text-xs uppercase tracking-widest text-emerald-400 animate-pulse">
-                  Loading Event Chronicles...
+                  Loading Events...
                 </p>
               </div>
             </div>
           ) : (
             <>
-              {/* Spotlight Featured Upcoming Event Banner */}
-              {featuredSpotlight && (
-                <section>
-                  <div className="mb-6 flex items-center gap-3 text-xs font-mono uppercase tracking-widest text-emerald-400 font-bold">
-                    <Flame className="h-4 w-4 text-emerald-400 animate-bounce" />
-                    NEXT UPCOMING FEATURED EVENT
-                  </div>
-
-                  <div
-                    onClick={() => setSelectedEvent(featuredSpotlight)}
-                    className="group cursor-pointer relative rounded-3xl border border-emerald-500/30 bg-gradient-to-r from-[#0a1214] via-[#091518] to-[#04080a] p-8 sm:p-12 overflow-hidden transition-all duration-500 hover:border-emerald-400 hover:shadow-[0_16px_50px_rgba(52,211,153,0.2)]"
-                  >
-                    <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-                      <div className="lg:col-span-7 flex flex-col items-start">
-                        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/20 px-4 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40 mb-6">
-                          <Tag className="h-3.5 w-3.5" />
-                          {featuredSpotlight.category || "FEATURED EVENT"}
-                        </div>
-
-                        <h2 className="font-syne text-3xl sm:text-5xl font-extrabold text-white mb-4 group-hover:text-emerald-300 transition-colors leading-tight">
-                          {featuredSpotlight.title}
-                        </h2>
-
-                        <p className="text-white/70 font-sans text-base leading-relaxed mb-8 line-clamp-3">
-                          {featuredSpotlight.description}
-                        </p>
-
-                        <div className="flex flex-wrap items-center gap-6 text-sm font-mono text-emerald-300">
-                          <div className="flex items-center gap-2 bg-emerald-500/10 px-4 py-2 rounded-xl border border-emerald-500/20">
-                            <Calendar className="h-4 w-4 text-emerald-400" />
-                            <span>{formatDate(featuredSpotlight.date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl border border-white/10 text-white/70">
-                            <MapPin className="h-4 w-4 text-emerald-400" />
-                            <span>{featuredSpotlight.venue || "Campus"}</span>
-                          </div>
-                        </div>
-
-                        {featuredSpotlight.registerUrl && (
-                          <div className="mt-8">
-                            <a
-                              href={featuredSpotlight.registerUrl}
-                              onClick={(e) => e.stopPropagation()}
-                              target={featuredSpotlight.registerUrl.startsWith("http") ? "_blank" : undefined}
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2 rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
-                            >
-                              Register Now <ExternalLink className="h-4 w-4" />
-                            </a>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="lg:col-span-5 relative h-72 sm:h-80 w-full rounded-2xl overflow-hidden border border-emerald-500/20">
-                        {featuredSpotlight.image ? (
-                          <img
-                            src={featuredSpotlight.image}
-                            alt={featuredSpotlight.title}
-                            className="h-full w-full object-cover transition-transform duration-[1.5s] group-hover:scale-110"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-gradient-to-br from-emerald-900/40 to-black flex items-center justify-center">
-                            <Sparkles className="h-16 w-16 text-emerald-400/40 animate-pulse" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {/* Standard Upcoming Events Grid */}
-              {standardUpcoming.length > 0 && (
+              {/* UPCOMING EVENTS SECTION */}
+              {upcoming.length > 0 && (
                 <section>
                   <div className="mb-8 flex items-center gap-6">
-                    <h2 className="font-syne text-3xl font-bold text-white uppercase tracking-tight flex items-center gap-3">
-                      <Layers className="h-6 w-6 text-emerald-400" />
-                      UPCOMING EVENTS ({standardUpcoming.length})
+                    <h2 className="font-syne text-3xl sm:text-4xl font-extrabold text-white uppercase tracking-tight">
+                      UPCOMING EVENTS ({upcoming.length})
                     </h2>
                     <div className="h-[1px] flex-1 bg-gradient-to-r from-emerald-500/40 to-transparent" />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {standardUpcoming.map((ev) => renderEventCard(ev, false))}
+                    {upcoming.map((ev) => renderEventCard(ev, false))}
                   </div>
                 </section>
               )}
 
-              {/* Past Events Grid */}
+              {/* PAST EVENTS SECTION */}
               {past.length > 0 && (
                 <section>
                   <div className="mb-8 flex items-center gap-6">
-                    <h2 className="font-syne text-3xl font-bold text-white/50 uppercase tracking-tight">
-                      PAST EVENT ARCHIVES ({past.length})
+                    <h2 className="font-syne text-3xl sm:text-4xl font-bold text-white/50 uppercase tracking-tight">
+                      PAST EVENTS ({past.length})
                     </h2>
                     <div className="h-[1px] flex-1 bg-gradient-to-r from-white/10 to-transparent" />
                   </div>
@@ -481,13 +401,13 @@ export default function EventsPage() {
                 </section>
               )}
 
-              {/* Empty Search Results */}
+              {/* EMPTY RESULTS */}
               {filteredEvents.length === 0 && (
                 <div className="flex-1 flex flex-col items-center justify-center py-28 text-center bg-white/5 rounded-3xl border border-white/10 p-8">
                   <Sparkles className="h-12 w-12 text-emerald-400/40 mb-4" />
                   <p className="font-syne text-2xl font-bold text-white mb-2">No matching events found</p>
                   <p className="text-sm font-sans text-white/50 max-w-md mb-6">
-                    Try adjusting your category filter or search terms to find what you&apos;re looking for.
+                    Try adjusting your category filter or search terms.
                   </p>
                   <button
                     onClick={() => {
@@ -517,7 +437,7 @@ export default function EventsPage() {
           <div className="absolute inset-0" onClick={() => setSelectedEvent(null)} />
 
           <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl border border-emerald-500/30 bg-[#090e11] shadow-[0_20px_80px_rgba(0,0,0,0.9)] overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Cover Image */}
+            {/* Modal Cover Image */}
             <div className="relative h-56 sm:h-72 w-full shrink-0 bg-black">
               {selectedEvent.image ? (
                 <img
@@ -540,7 +460,7 @@ export default function EventsPage() {
               </button>
             </div>
 
-            {/* Modal Body */}
+            {/* Modal Content */}
             <div className="flex-1 overflow-y-auto p-6 sm:p-10">
               <div className="flex items-center gap-3 mb-4">
                 <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3.5 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40">
