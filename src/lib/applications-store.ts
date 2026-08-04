@@ -1,32 +1,28 @@
-import { getDb } from "./firebase-admin";
+import { fetchCollectionDocs, saveDocument } from "./firebase-db";
 import type { Application } from "./applications";
 
 const COLLECTION = "applications";
 
 export async function getApplications(): Promise<Application[]> {
-  const db = getDb();
-  if (!db) return [];
-  const snapshot = await db.collection(COLLECTION).orderBy("submittedAt", "desc").get();
-  return snapshot.docs.map((doc) => doc.data() as Application);
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as Application[];
+  return items.sort(
+    (a, b) =>
+      new Date(b.submittedAt || 0).getTime() -
+      new Date(a.submittedAt || 0).getTime()
+  );
 }
 
 export async function saveApplication(application: Application): Promise<void> {
-  const db = getDb();
-  if (!db) return;
   const record = { ...application, status: application.status ?? "pending" };
-  await db.collection(COLLECTION).doc(application.id).set(record);
+  await saveDocument(COLLECTION, application.id, record as unknown as Record<string, unknown>);
 }
 
 export async function updateApplicationStatus(
   id: string,
   status: string
 ): Promise<Application | null> {
-  const db = getDb();
-  if (!db) return null;
-  const ref = db.collection(COLLECTION).doc(id);
-  const existing = await ref.get();
-  if (!existing.exists) return null;
-  await ref.update({ status });
-  const updated = await ref.get();
-  return updated.data() as Application;
+  await saveDocument(COLLECTION, id, { status });
+  const apps = await getApplications();
+  return apps.find((a) => a.id === id) || null;
 }

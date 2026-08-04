@@ -1,4 +1,4 @@
-import { getDb } from "./firebase-admin";
+import { fetchCollectionDocs, saveDocument } from "./firebase-db";
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 
@@ -22,25 +22,24 @@ export interface HostitSubmission {
 const COLLECTION = "hostit";
 
 export async function getHostitSubmissions(): Promise<HostitSubmission[]> {
-  const db = getDb();
-  if (!db) return [];
-  const snapshot = await db.collection(COLLECTION).orderBy("submittedAt", "desc").get();
-  return snapshot.docs.map((doc) => doc.data() as HostitSubmission);
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as HostitSubmission[];
+  return items.sort(
+    (a, b) =>
+      new Date(b.submittedAt || 0).getTime() -
+      new Date(a.submittedAt || 0).getTime()
+  );
 }
 
 export async function saveHostitSubmission(submission: HostitSubmission): Promise<void> {
-  const db = getDb();
-  if (!db) return;
-  await db.collection(COLLECTION).doc(submission.id).set(submission);
+  await saveDocument(COLLECTION, submission.id, submission as unknown as Record<string, unknown>);
 }
 
-export async function updateHostitStatus(id: string, status: SubmissionStatus): Promise<HostitSubmission | null> {
-  const db = getDb();
-  if (!db) return null;
-  const ref = db.collection(COLLECTION).doc(id);
-  const existing = await ref.get();
-  if (!existing.exists) return null;
-  await ref.update({ status });
-  const updated = await ref.get();
-  return updated.data() as HostitSubmission;
+export async function updateHostitStatus(
+  id: string,
+  status: SubmissionStatus
+): Promise<HostitSubmission | null> {
+  await saveDocument(COLLECTION, id, { status });
+  const subs = await getHostitSubmissions();
+  return subs.find((s) => s.id === id) || null;
 }

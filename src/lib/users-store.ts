@@ -1,4 +1,4 @@
-import { getDb } from "./firebase-admin";
+import { fetchCollectionDocs, saveDocument } from "./firebase-db";
 
 export interface SiteUser {
   email: string;
@@ -12,17 +12,18 @@ export interface SiteUser {
 const COLLECTION = "users";
 
 export async function getUsers(): Promise<SiteUser[]> {
-  const db = getDb();
-  if (!db) return [];
-  const snapshot = await db.collection(COLLECTION).orderBy("updatedAt", "desc").get();
-  return snapshot.docs.map((doc) => doc.data() as SiteUser);
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as SiteUser[];
+  return items.sort(
+    (a, b) =>
+      new Date(b.updatedAt || 0).getTime() -
+      new Date(a.updatedAt || 0).getTime()
+  );
 }
 
 export async function getUser(email: string): Promise<SiteUser | null> {
-  const db = getDb();
-  if (!db) return null;
-  const doc = await db.collection(COLLECTION).doc(email).get();
-  return doc.exists ? (doc.data() as SiteUser) : null;
+  const users = await getUsers();
+  return users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null;
 }
 
 export async function upsertUser(input: {
@@ -32,20 +33,16 @@ export async function upsertUser(input: {
 }): Promise<void> {
   const email = input.email.trim().toLowerCase();
   if (!email) return;
-  const db = getDb();
-  if (!db) return;
-  const ref = db.collection(COLLECTION).doc(email);
-  const existing = await ref.get();
+  const existing = await getUser(email);
   const now = new Date().toISOString();
-  if (existing.exists) {
-    const data = existing.data() as SiteUser;
-    await ref.update({
-      name: data.name || input.name,
-      sources: Array.from(new Set([...(data.sources ?? []), input.source])),
+  if (existing) {
+    await saveDocument(COLLECTION, email, {
+      name: existing.name || input.name,
+      sources: Array.from(new Set([...(existing.sources ?? []), input.source])),
       updatedAt: now,
     });
   } else {
-    await ref.set({
+    await saveDocument(COLLECTION, email, {
       email,
       name: input.name,
       roles: [],
@@ -57,14 +54,12 @@ export async function upsertUser(input: {
 }
 
 export async function setUserRoles(email: string, roles: string[]): Promise<SiteUser | null> {
-  const db = getDb();
-  if (!db) return null;
-  const ref = db.collection(COLLECTION).doc(email);
-  const existing = await ref.get();
-  if (!existing.exists) return null;
-  await ref.update({ roles, updatedAt: new Date().toISOString() });
-  const updated = await ref.get();
-  return updated.data() as SiteUser;
+  const cleanEmail = email.trim().toLowerCase();
+  const existing = await getUser(cleanEmail);
+  if (!existing) return null;
+  const now = new Date().toISOString();
+  await saveDocument(COLLECTION, cleanEmail, { roles, updatedAt: now });
+  return { ...existing, roles, updatedAt: now };
 }
 
 export async function createUser(input: {
@@ -82,9 +77,6 @@ export async function createUser(input: {
     createdAt: now,
     updatedAt: now,
   };
-  const db = getDb();
-  if (db) {
-    await db.collection(COLLECTION).doc(email).set(user);
-  }
+  await saveDocument(COLLECTION, email, user as unknown as Record<string, unknown>);
   return user;
 }

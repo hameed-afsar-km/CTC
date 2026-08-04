@@ -1,9 +1,34 @@
-import { getDb } from "./firebase-admin";
+import { initializeApp, getApps, getApp } from "firebase/app";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
 
-const PROJECT_ID =
-  process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
-  process.env.FIREBASE_PROJECT_ID ||
-  "technocrats-165f7";
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId:
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ||
+    process.env.FIREBASE_PROJECT_ID ||
+    "technocrats-165f7",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+};
+
+function getDbInstance() {
+  try {
+    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    return getFirestore(app);
+  } catch (err) {
+    console.warn("Firestore initialization warning:", err);
+    return null;
+  }
+}
 
 interface FirestoreRestValue {
   stringValue?: string;
@@ -77,29 +102,29 @@ function encodeRestValue(val: unknown): FirestoreRestValue {
   return { stringValue: String(val) };
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
-const keyParam = API_KEY ? `?key=${API_KEY}` : "";
-
 export async function fetchCollectionDocs(
   collectionName: string
 ): Promise<Record<string, unknown>[]> {
+  // 1. Try Firebase Web SDK
   try {
-    const db = getDb();
+    const db = getDbInstance();
     if (db) {
-      const snapshot = await db.collection(collectionName).get();
-      if (!snapshot.empty) {
-        return snapshot.docs.map((d) => d.data());
+      const snap = await getDocs(collection(db, collectionName));
+      if (!snap.empty) {
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       }
     }
   } catch (err) {
-    console.warn(
-      `Firebase Admin fetch failed for collection '${collectionName}'. Falling back to Firestore REST API:`,
-      err instanceof Error ? err.message : err
-    );
+    console.warn(`Firestore Web SDK fetch warning for '${collectionName}':`, err);
   }
 
+  // 2. Fallback to direct Firestore REST API
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}?pageSize=300${API_KEY ? `&key=${API_KEY}` : ""}`;
+    const PROJECT_ID = firebaseConfig.projectId;
+    const API_KEY = firebaseConfig.apiKey || "";
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}?pageSize=300${
+      API_KEY ? `&key=${API_KEY}` : ""
+    }`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
       return [];
@@ -119,18 +144,21 @@ export async function saveDocument(
   data: Record<string, unknown>,
   token?: string | null
 ): Promise<void> {
+  // 1. Try Firebase Web SDK
   try {
-    const db = getDb();
+    const db = getDbInstance();
     if (db) {
-      await db.collection(collectionName).doc(docId).set(data, { merge: true });
+      await setDoc(doc(db, collectionName, docId), data, { merge: true });
       return;
     }
   } catch (err) {
-    console.warn(
-      `Firebase Admin save failed for '${collectionName}/${docId}'. Falling back to REST API:`,
-      err instanceof Error ? err.message : err
-    );
+    console.warn(`Firestore Web SDK save warning for '${collectionName}/${docId}':`, err);
   }
+
+  // 2. REST API Fallback
+  const PROJECT_ID = firebaseConfig.projectId;
+  const API_KEY = firebaseConfig.apiKey || "";
+  const keyParam = API_KEY ? `?key=${API_KEY}` : "";
 
   const fields: Record<string, FirestoreRestValue> = {};
   for (const [k, v] of Object.entries(data)) {
@@ -153,7 +181,7 @@ export async function saveDocument(
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
-    throw new Error(`Firestore REST save failed (${res.status}): ${errText}`);
+    throw new Error(`Firestore save failed (${res.status}): ${errText}`);
   }
 }
 
@@ -162,18 +190,21 @@ export async function deleteDocument(
   docId: string,
   token?: string | null
 ): Promise<boolean> {
+  // 1. Try Firebase Web SDK
   try {
-    const db = getDb();
+    const db = getDbInstance();
     if (db) {
-      await db.collection(collectionName).doc(docId).delete();
+      await deleteDoc(doc(db, collectionName, docId));
       return true;
     }
   } catch (err) {
-    console.warn(
-      `Firebase Admin delete failed for '${collectionName}/${docId}'. Falling back to REST API:`,
-      err instanceof Error ? err.message : err
-    );
+    console.warn(`Firestore Web SDK delete warning for '${collectionName}/${docId}':`, err);
   }
+
+  // 2. REST API Fallback
+  const PROJECT_ID = firebaseConfig.projectId;
+  const API_KEY = firebaseConfig.apiKey || "";
+  const keyParam = API_KEY ? `?key=${API_KEY}` : "";
 
   const headers: Record<string, string> = {};
   if (token) {

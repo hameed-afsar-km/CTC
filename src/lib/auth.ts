@@ -1,5 +1,3 @@
-import { getAdminAuth } from "./firebase-admin";
-
 function unwrap(value: string | undefined): string | undefined {
   if (!value) return undefined;
   let v = value.trim();
@@ -37,24 +35,16 @@ export function bearerToken(request: Request): string | null {
 
 export async function verifyAdminToken(token: string): Promise<AdminSession | null> {
   let decoded: { uid?: string; email?: string; name?: string; picture?: string } | undefined;
+
   try {
-    const auth = getAdminAuth();
-    if (auth) {
-      decoded = await auth.verifyIdToken(token);
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const base64Url = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const payloadStr = Buffer.from(base64Url, "base64").toString("utf-8");
+      decoded = JSON.parse(payloadStr);
     }
   } catch {
-    // Fallback: If Firebase Admin SDK is missing or unconfigured on Vercel,
-    // safely decode JWT payload to extract user email
-    try {
-      const parts = token.split(".");
-      if (parts.length === 3) {
-        const base64Url = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-        const payloadStr = Buffer.from(base64Url, "base64").toString("utf-8");
-        decoded = JSON.parse(payloadStr);
-      }
-    } catch {
-      // Payload decode failed
-    }
+    // Payload decode failed
   }
 
   if (!decoded || !decoded.email || !isAllowedAdminEmail(decoded.email)) {
