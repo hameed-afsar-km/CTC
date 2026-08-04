@@ -123,6 +123,13 @@ export default function GalleryPage() {
   const [uploadedYears, setUploadedYears] = useState<GalleryYear[]>([]);
   const [galleryError, setGalleryError] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
+  const mouseMoveRaf = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (mouseMoveRaf.current != null) cancelAnimationFrame(mouseMoveRaf.current);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -187,7 +194,11 @@ export default function GalleryPage() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     setFsOpen(false);
     setIsFs(false);
-  }, []);
+    if (!slideshowOpen) {
+      setSlideshowOpen(false);
+      setViewerEvent(null);
+    }
+  }, [slideshowOpen]);
 
   const toggleFs = useCallback(() => {
     if (!fullscreenRef.current) return;
@@ -265,10 +276,17 @@ export default function GalleryPage() {
   return (
     <div
       onMouseMove={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        setMousePos({
-          x: ((e.clientX - r.left) / r.width) * 100,
-          y: ((e.clientY - r.top) / r.height) * 100,
+        if (mouseMoveRaf.current != null) return;
+        const el = e.currentTarget;
+        const cx = e.clientX;
+        const cy = e.clientY;
+        mouseMoveRaf.current = requestAnimationFrame(() => {
+          mouseMoveRaf.current = null;
+          const r = el.getBoundingClientRect();
+          setMousePos({
+            x: ((cx - r.left) / r.width) * 100,
+            y: ((cy - r.top) / r.height) * 100,
+          });
         });
       }}
       className="relative min-h-screen bg-[#050505] font-syne text-white select-none overflow-x-hidden"
@@ -485,12 +503,12 @@ export default function GalleryPage() {
           style={{ opacity: fsOpen ? 1 : 0, pointerEvents: fsOpen ? "auto" : "none" }}
         >
           <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-6">
-            <button type="button" onClick={closeFullscreen} className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest backdrop-blur-md transition-colors hover:bg-white hover:text-black">
+            <button type="button" onClick={closeFullscreen} className="flex cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-black/50 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-white hover:text-black">
               <X className="h-4 w-4" />
               <span className="hidden sm:inline">CLOSE</span>
             </button>
             <div className="flex items-center gap-3">
-              <button type="button" onClick={toggleFs} className="flex items-center gap-2 rounded-full bg-white/10 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest backdrop-blur-md transition-colors hover:bg-white hover:text-black">
+              <button type="button" onClick={toggleFs} className="flex cursor-pointer items-center gap-2 rounded-full border border-white/25 bg-black/50 px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-white hover:text-black">
                 {isFs ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
                 <span className="hidden sm:inline">{isFs ? "SHRINK" : "EXPAND"}</span>
               </button>
@@ -516,7 +534,7 @@ export default function GalleryPage() {
       )}
 
       {!isTouchDevice && (
-        <div ref={cursorPngRef} className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference" style={{ opacity: cursorVisible ? 1 : 0 }}>
+        <div ref={cursorPngRef} className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference" style={{ opacity: cursorVisible && !fsOpen ? 1 : 0 }}>
           {cursorPng}
         </div>
       )}
