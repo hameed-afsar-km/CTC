@@ -12,12 +12,14 @@ import { deleteCloudinaryImage, publicIdFromCloudinaryUrl } from "@/lib/cloudina
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  try {
+    const session = await requireAdmin(request);
+    const items = await getGalleryItems();
+    return NextResponse.json({ items });
+  } catch (err) {
+    console.error("GET /api/admin/gallery error:", err);
+    return NextResponse.json({ items: [] });
   }
-  const items = await getGalleryItems();
-  return NextResponse.json({ items });
 }
 
 export async function POST(request: Request) {

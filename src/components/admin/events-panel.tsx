@@ -41,19 +41,19 @@ export default function EventsPanel() {
         headers,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.events)) {
-          setEvents(data.events);
-          return;
-        }
+      const data = await res.json().catch(() => null);
+      if (data && Array.isArray(data.events)) {
+        setEvents(data.events);
+        setMessage(null);
+        return;
       }
 
-      // Public fallback if admin endpoint fails
+      // Public fallback if admin endpoint fails or returns unexpected payload
       const pubRes = await fetch("/api/events", { cache: "no-store" });
-      const pubData = await pubRes.json();
-      if (Array.isArray(pubData.events)) {
+      const pubData = await pubRes.json().catch(() => null);
+      if (pubData && Array.isArray(pubData.events)) {
         setEvents(pubData.events);
+        setMessage(null);
       }
     } catch {
       setMessage({ text: "Failed to load events", type: "error" });
