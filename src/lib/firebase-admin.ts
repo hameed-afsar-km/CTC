@@ -19,9 +19,21 @@ function unwrap(value: string | undefined): string | undefined {
 }
 
 function getPrivateKey(): string | undefined {
-  const value = unwrap(process.env.FIREBASE_PRIVATE_KEY);
+  let value = process.env.FIREBASE_PRIVATE_KEY;
   if (!value) return undefined;
-  return value.replace(/\\n/g, "\n");
+
+  try {
+    const parsed = JSON.parse(value);
+    if (typeof parsed === "string") {
+      value = parsed;
+    }
+  } catch {
+    // Not valid JSON, which is fine
+  }
+
+  value = unwrap(value) || value;
+  value = value.replace(/\\n/g, "\n").replace(/\\r/g, "\r");
+  return value;
 }
 
 export function getFirebaseAdminApp() {
