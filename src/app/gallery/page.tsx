@@ -16,7 +16,7 @@ import {
   X,
   Camera,
 } from "lucide-react";
-import { GALLERY, type GalleryEvent, type GalleryYear } from "@/lib/gallery";
+import type { GalleryEvent, GalleryYear } from "@/lib/gallery";
 
 const SLIDE_MS = 4000;
 
@@ -114,7 +114,7 @@ export default function GalleryPage() {
     };
   }, []);
 
-  const [activeEvent, setActiveEvent] = useState<GalleryEvent | null>(null);
+  const [viewerEvent, setViewerEvent] = useState<GalleryEvent | null>(null);
   const [slideIndex, setSlideIndex] = useState(0);
   const [slideshowOpen, setSlideshowOpen] = useState(false);
   const [autoplay, setAutoplay] = useState(true);
@@ -134,44 +134,27 @@ export default function GalleryPage() {
   }, []);
 
   const combined = useMemo<GalleryYear[]>(() => {
-    const byYear = new Map<number, GalleryEvent[]>(GALLERY.map(y => [y.year, [...y.events]]));
-    uploadedYears.forEach(y => {
-      const existing = byYear.get(y.year) || [];
-      byYear.set(y.year, [...existing, ...y.events]);
-    });
-    return Array.from(byYear.entries())
-      .sort((a, b) => b[0] - a[0])
-      .map(([year, events]) => ({ year, events }));
+    return [...uploadedYears].sort((a, b) => b.year - a.year);
   }, [uploadedYears]);
 
-  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
+  const [expandedYears, setExpandedYears] = useState<number[]>([]);
+  const [expandedEvents, setExpandedEvents] = useState<string[]>([]);
+  const [hasAutoExpanded, setHasAutoExpanded] = useState(false);
 
-  const categories = useMemo(() => {
-    const set = new Set<string>();
-    combined.forEach((y) => y.events.forEach((e) => {
-      const cat = e.meta.split("·")[0]?.trim();
-      if (cat) set.add(cat.toUpperCase());
-    }));
-    return ["ALL", ...Array.from(set)];
-  }, [combined]);
+  useEffect(() => {
+    if (combined.length > 0 && !hasAutoExpanded) {
+      setHasAutoExpanded(true);
+      const t = window.setTimeout(() => setExpandedYears([combined[0].year]), 0);
+      return () => window.clearTimeout(t);
+    }
+  }, [combined, hasAutoExpanded]);
 
-  const filteredEvents = useMemo(() => {
-    const allEvs: { event: GalleryEvent; year: number }[] = [];
-    combined.forEach((y) => y.events.forEach((e) => {
-      const cat = e.meta.split("·")[0]?.trim().toUpperCase();
-      if (selectedCategory === "ALL" || cat === selectedCategory) {
-        allEvs.push({ event: e, year: y.year });
-      }
-    }));
-    return allEvs;
-  }, [combined, selectedCategory]);
+  const toggleYear = useCallback((y: number) => {
+    setExpandedYears((prev) => prev.includes(y) ? prev.filter((year) => year !== y) : [...prev, y]);
+  }, []);
 
-  const openEvent = useCallback((ev: GalleryEvent) => {
-    setActiveEvent(ev);
-    setSlideIndex(0);
-    setSlideshowOpen(false);
-    setFsOpen(false);
-    setIsFs(false);
+  const toggleEvent = useCallback((id: string) => {
+    setExpandedEvents((prev) => prev.includes(id) ? prev.filter((e) => e !== id) : [...prev, id]);
   }, []);
 
   const openSlideshow = useCallback((idx: number) => {
@@ -205,14 +188,14 @@ export default function GalleryPage() {
   }, []);
 
   const nextSlide = useCallback(() => {
-    if (!activeEvent) return;
-    setSlideIndex((i) => (i + 1) % activeEvent.images.length);
-  }, [activeEvent]);
+    if (!viewerEvent) return;
+    setSlideIndex((i) => (i + 1) % viewerEvent.images.length);
+  }, [viewerEvent]);
 
   const prevSlide = useCallback(() => {
-    if (!activeEvent) return;
-    setSlideIndex((i) => (i - 1 + activeEvent.images.length) % activeEvent.images.length);
-  }, [activeEvent]);
+    if (!viewerEvent) return;
+    setSlideIndex((i) => (i - 1 + viewerEvent.images.length) % viewerEvent.images.length);
+  }, [viewerEvent]);
 
   useEffect(() => {
     if (!autoplay || (!slideshowOpen && !fsOpen)) return;
@@ -222,16 +205,16 @@ export default function GalleryPage() {
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (!activeEvent) return;
+      if (!viewerEvent) return;
       if (e.key === "Escape") {
         if (fsOpen) closeFullscreen();
         else if (slideshowOpen) setSlideshowOpen(false);
-        else setActiveEvent(null);
+        else setViewerEvent(null);
       } else if (e.key === "ArrowRight") nextSlide();
       else if (e.key === "ArrowLeft") prevSlide();
       else if (e.key === "f" || e.key === "F") {
         if (slideshowOpen || fsOpen) toggleFs();
-        else if (activeEvent) openFullscreen(slideIndex);
+        else if (viewerEvent) openFullscreen(slideIndex);
       } else if (e.key === " ") {
         e.preventDefault();
         setAutoplay((a) => !a);
@@ -239,12 +222,12 @@ export default function GalleryPage() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeEvent, slideshowOpen, fsOpen, nextSlide, prevSlide, closeFullscreen, toggleFs, slideIndex, openFullscreen]);
+  }, [viewerEvent, slideshowOpen, fsOpen, nextSlide, prevSlide, closeFullscreen, toggleFs, slideIndex, openFullscreen]);
 
   useEffect(() => {
-    document.body.style.overflow = (activeEvent || slideshowOpen || fsOpen) ? "hidden" : "";
+    document.body.style.overflow = (viewerEvent || slideshowOpen || fsOpen) ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [activeEvent, slideshowOpen, fsOpen]);
+  }, [viewerEvent, slideshowOpen, fsOpen]);
 
   const swipeHandlers = {
     onTouchStart: (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; },
@@ -310,60 +293,83 @@ export default function GalleryPage() {
           </div>
         </header>
 
-        <section className="mt-32 sm:mt-40 sticky top-4 z-40 flex justify-center">
-          <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/50 p-1.5 backdrop-blur-2xl shadow-2xl">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className={`px-5 py-2.5 rounded-full font-mono text-[10px] sm:text-xs font-bold tracking-widest uppercase transition-all duration-500 ${
-                  selectedCategory === cat ? "bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]" : "text-white/50 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </section>
+        <section className="mt-20 sm:mt-32 pb-32">
+          <div className="flex flex-col gap-12">
+            {combined.map((yearGroup) => {
+              const isYearOpen = expandedYears.includes(yearGroup.year);
+              return (
+                <div key={yearGroup.year} className="border-b border-white/10 pb-12">
+                  <button
+                    type="button"
+                    onClick={() => toggleYear(yearGroup.year)}
+                    className="flex w-full items-center justify-between group"
+                  >
+                    <h2 className="font-syne text-[3rem] sm:text-[5rem] font-black text-white/80 transition-colors group-hover:text-white">
+                      {yearGroup.year}
+                    </h2>
+                    <div className={`flex h-12 w-12 items-center justify-center rounded-full border border-white/20 transition-transform duration-500 ${isYearOpen ? 'rotate-90 bg-white text-black' : 'text-white'}`}>
+                      <ChevronRight className="h-6 w-6" />
+                    </div>
+                  </button>
 
-        <section className="mt-16 sm:mt-24 pb-32">
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-            {filteredEvents.map(({ event: ev, year }, i) => (
-              <button
-                key={`${ev.id}-${i}`}
-                type="button"
-                onClick={() => openEvent(ev)}
-                className="group relative block w-full overflow-hidden rounded-[2rem] bg-[#0a0a0a] border border-white/5 transition-all duration-700 hover:border-white/20 hover:shadow-[0_20px_80px_-20px_rgba(255,255,255,0.15)] break-inside-avoid gallery-fade-up"
-                style={{ animationDelay: `${i * 0.05}s` }}
-              >
-                <div className="relative w-full overflow-hidden" style={{ aspectRatio: i % 3 === 0 ? "4/5" : i % 2 === 0 ? "1/1" : "3/4" }}>
-                  <Image
-                    src={ev.images[0].src}
-                    alt={ev.images[0].alt}
-                    fill
-                    sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
-                    className="object-cover transition-transform duration-[1.5s] ease-[cubic-bezier(0.2,0.8,0.2,1)] group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-black/20 transition-colors duration-700 group-hover:bg-transparent" />
-                  <div className="absolute inset-0 bg-grain opacity-10 mix-blend-overlay" />
-                </div>
-                <div className="absolute inset-x-3 bottom-3 translate-y-4 opacity-0 transition-all duration-500 group-hover:translate-y-0 group-hover:opacity-100">
-                  <div className="flex items-center justify-between rounded-2xl border border-white/20 bg-black/40 p-4 backdrop-blur-xl">
-                    <div className="text-left">
-                      <h3 className="font-syne text-lg font-bold text-white leading-tight">{ev.title}</h3>
-                      <div className="mt-1 flex items-center gap-2 font-mono text-[9px] uppercase tracking-wider text-white/70">
-                        <span>{year}</span>
-                        <span className="h-1 w-1 rounded-full bg-white/30" />
-                        <span>{ev.meta}</span>
-                      </div>
+                  {isYearOpen && (
+                    <div className="mt-8 flex flex-col gap-6 animate-in slide-in-from-top-4 fade-in duration-500">
+                      {yearGroup.events.map((ev) => {
+                        const isEventOpen = expandedEvents.includes(ev.id);
+                        return (
+                          <div key={ev.id} className="rounded-2xl border border-white/10 bg-[#0a0a0a] overflow-hidden transition-all duration-500">
+                            <button
+                              type="button"
+                              onClick={() => toggleEvent(ev.id)}
+                              className="flex w-full items-center justify-between p-6 sm:p-8 hover:bg-white/5 transition-colors"
+                            >
+                              <div className="text-left">
+                                <h3 className="font-syne text-xl sm:text-2xl font-bold text-white">{ev.title}</h3>
+                                <p className="mt-1 font-mono text-[10px] uppercase tracking-widest text-white/50">{ev.meta} · {ev.images.length} CAPTURES</p>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                {isEventOpen && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => { e.stopPropagation(); setViewerEvent(ev); openSlideshow(0); }}
+                                    className="hidden sm:flex items-center gap-2 rounded-full bg-white px-5 py-2.5 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition-transform hover:scale-105"
+                                  >
+                                    <Play className="h-3 w-3" />
+                                    SLIDESHOW
+                                  </button>
+                                )}
+                                <div className={`flex h-8 w-8 items-center justify-center rounded-full bg-white/10 transition-transform duration-500 ${isEventOpen ? 'rotate-90' : ''}`}>
+                                  <ChevronRight className="h-4 w-4 text-white" />
+                                </div>
+                              </div>
+                            </button>
+
+                            {isEventOpen && (
+                              <div className="px-6 pb-6 sm:px-8 sm:pb-8 animate-in slide-in-from-top-4 fade-in duration-500">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
+                                  {ev.images.map((img, i) => {
+                                    const spanClasses = i % 7 === 0 ? "md:col-span-2 md:row-span-2" : i % 5 === 0 ? "md:col-span-2" : "";
+                                    return (
+                                      <div key={`${ev.id}-${i}`} className={`group relative overflow-hidden rounded-2xl bg-[#111] border border-white/5 hover:border-white/20 transition-all duration-500 ${spanClasses}`}>
+                                        <button type="button" onClick={() => { setViewerEvent(ev); openFullscreen(i); }} className="absolute inset-0 z-10" aria-label={`View ${img.alt}`} />
+                                        <div className="relative w-full h-full min-h-[200px]" style={{ aspectRatio: "4/3" }}>
+                                          <Image src={img.src} alt={img.alt} fill sizes="(min-width: 768px) 33vw, 50vw" className="object-cover transition-transform duration-[2s] group-hover:scale-110" />
+                                        </div>
+                                        <div className="absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/40" />
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-black transition-transform duration-300 hover:scale-110">
-                      <Camera className="h-4 w-4" />
-                    </div>
-                  </div>
+                  )}
                 </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </section>
 
@@ -372,56 +378,7 @@ export default function GalleryPage() {
         </footer>
       </div>
 
-      {activeEvent && (
-        <div key={activeEvent.id} className="fixed inset-0 z-50 overflow-y-auto bg-[#050505]/95 backdrop-blur-3xl gallery-zoom-in">
-          <div className="relative min-h-full flex flex-col">
-            <header className="sticky top-0 z-10 border-b border-white/10 bg-[#050505]/80 backdrop-blur-xl">
-              <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-6">
-                <button
-                  type="button"
-                  onClick={() => setActiveEvent(null)}
-                  className="group flex items-center gap-3 font-mono text-xs uppercase tracking-widest text-white/60 transition-colors hover:text-white"
-                >
-                  <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-                  RETURN
-                </button>
-                <div className="hidden sm:block text-center absolute left-1/2 -translate-x-1/2">
-                  <h2 className="font-syne text-xl font-bold text-white tracking-wide">{activeEvent.title}</h2>
-                  <p className="mt-1 font-mono text-[10px] uppercase tracking-[0.2em] text-white/50">{activeEvent.images.length} CAPTURES</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => openSlideshow(0)}
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 font-mono text-[10px] font-bold uppercase tracking-widest text-black transition-transform hover:scale-105"
-                  >
-                    <Play className="h-3 w-3" />
-                    SLIDESHOW
-                  </button>
-                </div>
-              </div>
-            </header>
-            <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-12">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-fr">
-                {activeEvent.images.map((img, i) => {
-                  const spanClasses = i % 7 === 0 ? "md:col-span-2 md:row-span-2" : i % 5 === 0 ? "md:col-span-2" : "";
-                  return (
-                    <div key={`${activeEvent.id}-${i}`} className={`group relative overflow-hidden rounded-2xl bg-[#111] border border-white/5 hover:border-white/20 transition-all duration-500 ${spanClasses}`}>
-                      <button type="button" onClick={() => openFullscreen(i)} className="absolute inset-0 z-10" aria-label={`View ${img.alt}`} />
-                      <div className="relative w-full h-full min-h-[200px]" style={{ aspectRatio: "4/3" }}>
-                        <Image src={img.src} alt={img.alt} fill sizes="(min-width: 768px) 33vw, 50vw" className="object-cover transition-transform duration-[2s] group-hover:scale-110" />
-                      </div>
-                      <div className="absolute inset-0 bg-black/0 transition-colors duration-500 group-hover:bg-black/40" />
-                    </div>
-                  );
-                })}
-              </div>
-            </main>
-          </div>
-        </div>
-      )}
-
-      {slideshowOpen && activeEvent && (
+      {slideshowOpen && viewerEvent && (
         <div className="fixed inset-0 z-[60] flex flex-col bg-[#000] text-white gallery-zoom-in">
           <header className="absolute top-0 inset-x-0 z-20 flex items-center justify-between p-6 mix-blend-difference">
             <div className="flex items-center gap-4">
@@ -433,8 +390,8 @@ export default function GalleryPage() {
                 <X className="h-5 w-5" />
               </button>
               <div className="hidden sm:block text-left">
-                <h3 className="font-syne text-lg font-bold">{activeEvent.title}</h3>
-                <p className="font-mono text-[10px] tracking-widest text-white/50">{pad(slideIndex + 1)} / {pad(activeEvent.images.length)}</p>
+                <h3 className="font-syne text-lg font-bold">{viewerEvent.title}</h3>
+                <p className="font-mono text-[10px] tracking-widest text-white/50">{pad(slideIndex + 1)} / {pad(viewerEvent.images.length)}</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -462,7 +419,7 @@ export default function GalleryPage() {
           <div className="relative h-full w-full" {...swipeHandlers}>
             <div key={slideIndex} className="absolute inset-0 gallery-slide flex items-center justify-center p-10">
               <div className="relative h-full w-full max-w-7xl max-h-[85vh]">
-                <Image src={activeEvent.images[slideIndex].src} alt={activeEvent.images[slideIndex].alt} fill sizes="100vw" className="object-contain" />
+                <Image src={viewerEvent.images[slideIndex].src} alt={viewerEvent.images[slideIndex].alt} fill sizes="100vw" className="object-contain" />
               </div>
             </div>
             <button type="button" onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-black/20 text-white backdrop-blur-xl transition-all hover:scale-110 hover:bg-white hover:text-black">
@@ -475,7 +432,7 @@ export default function GalleryPage() {
         </div>
       )}
 
-      {activeEvent && (
+      {viewerEvent && (
         <div
           ref={fullscreenRef}
           className="fixed inset-0 z-[80] flex flex-col bg-black text-white gallery-zoom-in transition-opacity duration-500"
@@ -495,7 +452,7 @@ export default function GalleryPage() {
           </header>
           <div className="relative h-full w-full" {...swipeHandlers}>
             <div key={slideIndex} className="absolute inset-0 gallery-slide">
-              <Image src={activeEvent.images[slideIndex].src} alt={activeEvent.images[slideIndex].alt} fill sizes="100vw" className="object-contain" />
+              <Image src={viewerEvent.images[slideIndex].src} alt={viewerEvent.images[slideIndex].alt} fill sizes="100vw" className="object-contain" />
             </div>
             <button type="button" onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 flex h-14 w-14 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-xl opacity-60 hover:opacity-100 transition-all hover:scale-110" aria-label="Previous">
               <ChevronLeft className="h-6 w-6" />
