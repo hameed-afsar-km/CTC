@@ -26,10 +26,16 @@ function pad(n: number) {
 function uploadedToYears(items: GalleryItem[]): GalleryYear[] {
   const yearMap = new Map<number, Map<string, GalleryEvent>>();
   for (const item of items) {
-    const year =
-      Number((item.date || "").slice(0, 4)) ||
-      new Date(item.createdAt).getFullYear() ||
-      2026;
+    if (!item || typeof item !== "object") continue;
+    let year = 2026;
+    if (item.date && typeof item.date === "string" && item.date.length >= 4) {
+      const y = parseInt(item.date.slice(0, 4), 10);
+      if (!Number.isNaN(y)) year = y;
+    } else if (item.createdAt) {
+      const dt = new Date(item.createdAt);
+      if (!Number.isNaN(dt.getTime())) year = dt.getFullYear();
+    }
+
     let events = yearMap.get(year);
     if (!events) {
       events = new Map();
@@ -43,12 +49,18 @@ function uploadedToYears(items: GalleryItem[]): GalleryYear[] {
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "") || "uploads";
-      const day = item.date
-        ? new Date(`${item.date}T00:00:00`).toLocaleDateString(undefined, {
+
+      let day = "Uploaded";
+      if (item.date) {
+        const d = new Date(item.date.includes("T") ? item.date : `${item.date}T00:00:00`);
+        if (!Number.isNaN(d.getTime())) {
+          day = d.toLocaleDateString(undefined, {
             month: "short",
             day: "numeric",
-          })
-        : "";
+          });
+        }
+      }
+
       event = {
         id: `up-${year}-${slug}`,
         title,
@@ -57,10 +69,12 @@ function uploadedToYears(items: GalleryItem[]): GalleryYear[] {
       };
       events.set(title, event);
     }
-    event.images.push({
-      src: item.imageUrl,
-      alt: item.title?.trim() || item.category?.trim() || "Gallery photo",
-    });
+    if (item.imageUrl) {
+      event.images.push({
+        src: item.imageUrl,
+        alt: item.title?.trim() || item.category?.trim() || "Gallery photo",
+      });
+    }
   }
   return Array.from(yearMap.entries())
     .sort((a, b) => b[0] - a[0])

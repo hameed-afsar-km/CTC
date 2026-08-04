@@ -22,8 +22,8 @@ export async function getGalleryItems(): Promise<GalleryItem[]> {
   );
 }
 
-export async function addGalleryItem(item: GalleryItem): Promise<void> {
-  await saveDocument(COLLECTION, item.id, item as unknown as Record<string, unknown>);
+export async function addGalleryItem(item: GalleryItem, token?: string | null): Promise<void> {
+  await saveDocument(COLLECTION, item.id, item as unknown as Record<string, unknown>, token);
 }
 
 export async function getGalleryItem(id: string): Promise<GalleryItem | null> {
@@ -31,6 +31,6 @@ export async function getGalleryItem(id: string): Promise<GalleryItem | null> {
   return items.find((i) => i.id === id) || null;
 }
 
-export async function deleteGalleryItem(id: string): Promise<boolean> {
-  return deleteDocument(COLLECTION, id);
+export async function deleteGalleryItem(id: string, token?: string | null): Promise<boolean> {
+  return deleteDocument(COLLECTION, id, token);
 }

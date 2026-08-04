@@ -111,7 +111,8 @@ export async function fetchCollectionDocs(
 export async function saveDocument(
   collectionName: string,
   docId: string,
-  data: Record<string, unknown>
+  data: Record<string, unknown>,
+  token?: string | null
 ): Promise<void> {
   try {
     const db = getDb();
@@ -126,19 +127,33 @@ export async function saveDocument(
 
   const fields: Record<string, FirestoreRestValue> = {};
   for (const [k, v] of Object.entries(data)) {
-    fields[k] = encodeRestValue(v);
+    if (v !== undefined) {
+      fields[k] = encodeRestValue(v);
+    }
   }
+
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${docId}`;
-  await fetch(url, {
+  const res = await fetch(url, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ fields }),
   });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Firestore REST save failed (${res.status}): ${errText}`);
+  }
 }
 
 export async function deleteDocument(
   collectionName: string,
-  docId: string
+  docId: string,
+  token?: string | null
 ): Promise<boolean> {
   try {
     const db = getDb();
@@ -151,7 +166,12 @@ export async function deleteDocument(
     );
   }
 
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${docId}`;
-  const res = await fetch(url, { method: "DELETE" });
+  const res = await fetch(url, { method: "DELETE", headers });
   return res.ok;
 }
