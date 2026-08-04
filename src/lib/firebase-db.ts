@@ -77,6 +77,9 @@ function encodeRestValue(val: unknown): FirestoreRestValue {
   return { stringValue: String(val) };
 }
 
+const API_KEY = process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "";
+const keyParam = API_KEY ? `?key=${API_KEY}` : "";
+
 export async function fetchCollectionDocs(
   collectionName: string
 ): Promise<Record<string, unknown>[]> {
@@ -96,7 +99,7 @@ export async function fetchCollectionDocs(
   }
 
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}?pageSize=300`;
+    const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}?pageSize=300${API_KEY ? `&key=${API_KEY}` : ""}`;
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) {
       return [];
@@ -141,7 +144,7 @@ export async function saveDocument(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${docId}`;
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${docId}${keyParam}`;
   const res = await fetch(url, {
     method: "PATCH",
     headers,
@@ -177,7 +180,7 @@ export async function deleteDocument(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${docId}`;
+  const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/${collectionName}/${docId}${keyParam}`;
   const res = await fetch(url, { method: "DELETE", headers });
   return res.ok;
 }

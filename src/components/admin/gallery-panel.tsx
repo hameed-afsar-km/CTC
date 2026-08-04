@@ -135,12 +135,13 @@ export default function GalleryPanel() {
         }),
       });
 
-      if (!metaRes.ok) throw new Error("Failed to save gallery item");
+      if (!metaRes.ok) {
+        const errData = await metaRes.json().catch(() => null);
+        throw new Error(errData?.error ?? "Failed to save gallery item");
+      }
 
       setMessage({ text: "Photo uploaded to the gallery!", type: "success" });
       setForm({ file: null, title: "", category: "", description: "", date: new Date().toISOString().slice(0, 10) });
-      setPreview(null);
-      await fetchAll();
       setPreview(null);
       await fetchAll();
     } catch (err) {
