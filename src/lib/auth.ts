@@ -45,7 +45,8 @@ export async function verifyAdminToken(token: string): Promise<AdminSession | nu
     try {
       const parts = token.split(".");
       if (parts.length === 3) {
-        const payloadStr = Buffer.from(parts[1], "base64").toString("utf-8");
+        const base64Url = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+        const payloadStr = Buffer.from(base64Url, "base64").toString("utf-8");
         decoded = JSON.parse(payloadStr);
       }
     } catch {

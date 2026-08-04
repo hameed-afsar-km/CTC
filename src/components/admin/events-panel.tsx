@@ -32,13 +32,29 @@ export default function EventsPanel() {
   const fetchEvents = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await getToken();
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch("/api/admin/events", {
         cache: "no-store",
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
-      const data = await res.json();
-      if (Array.isArray(data.events)) setEvents(data.events);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.events)) {
+          setEvents(data.events);
+          return;
+        }
+      }
+
+      // Public fallback if admin endpoint fails
+      const pubRes = await fetch("/api/events", { cache: "no-store" });
+      const pubData = await pubRes.json();
+      if (Array.isArray(pubData.events)) {
+        setEvents(pubData.events);
+      }
     } catch {
       setMessage({ text: "Failed to load events", type: "error" });
     } finally {

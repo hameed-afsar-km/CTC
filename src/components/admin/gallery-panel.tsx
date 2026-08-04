@@ -25,13 +25,29 @@ export default function GalleryPanel() {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const token = await getToken();
+      const token = await getToken().catch(() => null);
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
       const res = await fetch("/api/admin/gallery", {
         cache: "no-store",
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
       });
-      const data = await res.json();
-      if (Array.isArray(data.items)) setItems(data.items);
+
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.items)) {
+          setItems(data.items);
+          return;
+        }
+      }
+
+      // Public fallback
+      const pubRes = await fetch("/api/gallery", { cache: "no-store" });
+      const pubData = await pubRes.json();
+      if (Array.isArray(pubData.items)) {
+        setItems(pubData.items);
+      }
     } catch {
       // ignore
     } finally {
