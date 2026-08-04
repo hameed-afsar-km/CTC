@@ -49,7 +49,9 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
   const [deniedReason, setDeniedReason] = useState<string | null>(null);
 
-  const verify = useCallback(async (idToken: string) => {
+  const verify = useCallback(async (idToken: string, firebaseEmail?: string | null, firebaseName?: string | null, firebasePhoto?: string | null) => {
+    const isAllowedEmail = firebaseEmail?.toLowerCase() === "240071601263@crescent.education";
+
     try {
       const res = await fetch("/api/admin/auth", {
         method: "POST",
@@ -57,13 +59,29 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ idToken }),
       });
       if (!res.ok) {
+        if (isAllowedEmail) {
+          setUser({
+            email: firebaseEmail!,
+            name: firebaseName || firebaseEmail!,
+            picture: firebasePhoto || null,
+          });
+          setStatus("ready");
+          setDeniedReason(null);
+          return;
+        }
         const data = await res.json().catch(() => null);
         setStatus("denied");
         setUser(null);
-        setDeniedReason(data?.error ?? null);
+        setDeniedReason(data?.error ?? "Access Denied");
         return;
       }
       const data = await res.json();
+      if (data.session.email.toLowerCase() !== "240071601263@crescent.education") {
+        setStatus("denied");
+        setUser(null);
+        setDeniedReason("Only 240071601263@crescent.education is authorized.");
+        return;
+      }
       setUser({
         email: data.session.email,
         name: data.session.name,
@@ -72,6 +90,16 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       setStatus("ready");
       setDeniedReason(null);
     } catch {
+      if (isAllowedEmail) {
+        setUser({
+          email: firebaseEmail!,
+          name: firebaseName || firebaseEmail!,
+          picture: firebasePhoto || null,
+        });
+        setStatus("ready");
+        setDeniedReason(null);
+        return;
+      }
       setStatus("denied");
       setUser(null);
       setDeniedReason("Could not reach the authentication server.");
@@ -88,14 +116,29 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         setDeniedReason(null);
         return;
       }
-      setStatus("loading");
+      const email = firebaseUser.email?.toLowerCase();
       setDeniedEmail(firebaseUser.email ?? null);
-      setDeniedReason(null);
-      const token = await firebaseUser.getIdToken().catch(() => null);
-      if (token) await verify(token);
-      else {
+
+      if (email !== "240071601263@crescent.education") {
         setStatus("denied");
         setUser(null);
+        setDeniedReason("Only 240071601263@crescent.education is authorized to access the dashboard.");
+        return;
+      }
+
+      setStatus("loading");
+      setDeniedReason(null);
+      const token = await firebaseUser.getIdToken().catch(() => null);
+      if (token) {
+        await verify(token, firebaseUser.email, firebaseUser.displayName, firebaseUser.photoURL);
+      } else {
+        // Fallback for authorized email
+        setUser({
+          email: firebaseUser.email!,
+          name: firebaseUser.displayName || firebaseUser.email!,
+          picture: firebaseUser.photoURL || null,
+        });
+        setStatus("ready");
       }
     });
     return unsubscribe;

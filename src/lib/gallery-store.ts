@@ -1,4 +1,4 @@
-import { getDb } from "./firebase-admin";
+import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
 
 export interface GalleryItem {
   id: string;
@@ -13,25 +13,24 @@ export interface GalleryItem {
 const COLLECTION = "gallery";
 
 export async function getGalleryItems(): Promise<GalleryItem[]> {
-  const snapshot = await getDb().collection(COLLECTION).orderBy("createdAt", "desc").get();
-  return snapshot.docs.map((doc) => doc.data() as GalleryItem);
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as GalleryItem[];
+  return items.sort(
+    (a, b) =>
+      new Date(b.createdAt || b.date).getTime() -
+      new Date(a.createdAt || a.date).getTime()
+  );
 }
 
 export async function addGalleryItem(item: GalleryItem): Promise<void> {
-  await getDb().collection(COLLECTION).doc(item.id).set(item);
+  await saveDocument(COLLECTION, item.id, item as unknown as Record<string, unknown>);
 }
 
 export async function getGalleryItem(id: string): Promise<GalleryItem | null> {
-  const ref = getDb().collection(COLLECTION).doc(id);
-  const doc = await ref.get();
-  if (!doc.exists) return null;
-  return doc.data() as GalleryItem;
+  const items = await getGalleryItems();
+  return items.find((i) => i.id === id) || null;
 }
 
 export async function deleteGalleryItem(id: string): Promise<boolean> {
-  const ref = getDb().collection(COLLECTION).doc(id);
-  const existing = await ref.get();
-  if (!existing.exists) return false;
-  await ref.delete();
-  return true;
+  return deleteDocument(COLLECTION, id);
 }
