@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { gsap } from "gsap";
@@ -15,15 +15,19 @@ import {
   Loader2,
   Lock,
   LogIn,
+  History,
 } from "lucide-react";
 import { AdminProvider, useAdmin } from "@/components/admin/admin-context";
+import { scopesForRole, ROLE_LABELS } from "@/lib/roles";
+import type { AdminScope } from "@/lib/roles";
 import EventsPanel from "@/components/admin/events-panel";
 import ApplicationsPanel from "@/components/admin/applications-panel";
 import HostitPanel from "@/components/admin/hostit-panel";
 import UsersPanel from "@/components/admin/users-panel";
 import GalleryPanel from "@/components/admin/gallery-panel";
+import LogsPanel from "@/components/admin/logs-panel";
 
-type Tab = "events" | "applications" | "hostit" | "users" | "gallery";
+type Tab = AdminScope;
 
 const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
   { id: "events", label: "Events", icon: Calendar },
@@ -31,6 +35,7 @@ const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
   { id: "hostit", label: "Host'It", icon: CalendarClock },
   { id: "users", label: "Users & Roles", icon: Shield },
   { id: "gallery", label: "Gallery", icon: ImageIcon },
+  { id: "logs", label: "Activity Logs", icon: History },
 ];
 
 function CursorOverlay() {
@@ -113,10 +118,21 @@ function CursorOverlay() {
 }
 
 function DashboardShell() {
-  const { status, user, deniedEmail, deniedReason, signIn, signOut } = useAdmin();
+  const { status, user, signIn, signOut } = useAdmin();
   const [tab, setTab] = useState<Tab>("events");
   const [signingIn, setSigningIn] = useState(false);
   const [signInError, setSignInError] = useState<string | null>(null);
+
+  const visibleTabs = useMemo(
+    () => TABS.filter((t) => scopesForRole(user?.role).includes(t.id)),
+    [user?.role]
+  );
+
+  useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) {
+      setTab(visibleTabs[0].id);
+    }
+  }, [visibleTabs, tab]);
 
   if (status === "loading") {
     return (
@@ -187,15 +203,8 @@ function DashboardShell() {
         <div className="text-center">
           <h1 className="text-2xl font-extrabold">Access Denied</h1>
           <p className="mt-2 text-sm text-gray-400 max-w-sm">
-            The account{" "}
-            <span className="font-mono text-rose-300">{deniedEmail ?? "you used"}</span> is not
-            authorized to access the dashboard.
+            Your account is not authorized to access the dashboard.
           </p>
-          {deniedReason && (
-            <p className="mt-3 max-w-md rounded-xl border border-rose-500/30 bg-rose-950/40 p-3 text-xs font-mono text-rose-200 leading-relaxed text-left">
-              {deniedReason}
-            </p>
-          )}
         </div>
         <button
           onClick={() => signOut()}
@@ -235,6 +244,15 @@ function DashboardShell() {
             </div>
           </div>
 
+          <div className="hidden md:flex items-center gap-2 shrink-0">
+            {user?.role && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-[10px] font-mono font-bold uppercase tracking-widest text-emerald-300">
+                <Shield className="w-3 h-3" />
+                {ROLE_LABELS[user.role]}
+              </span>
+            )}
+          </div>
+
           <div className="flex items-center gap-3 shrink-0">
             {user?.picture ? (
               <img
@@ -262,7 +280,7 @@ function DashboardShell() {
       {/* Tabs */}
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 pt-6">
         <div className="flex flex-wrap items-center gap-2">
-          {TABS.map(({ id, label, icon: Icon }) => (
+          {visibleTabs.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
               onClick={() => setTab(id)}
@@ -286,6 +304,7 @@ function DashboardShell() {
         {tab === "hostit" && <HostitPanel />}
         {tab === "users" && <UsersPanel />}
         {tab === "gallery" && <GalleryPanel />}
+        {tab === "logs" && <LogsPanel />}
       </main>
     </div>
   );

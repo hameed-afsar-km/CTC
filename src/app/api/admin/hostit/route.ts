@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { resolveAccess } from "@/lib/auth";
 import {
   getHostitSubmissions,
   updateHostitStatus,
@@ -7,24 +7,31 @@ import {
   deleteHostitSubmission,
 } from "@/lib/hostit-store";
 import type { HostitSubmission, SubmissionStatus } from "@/lib/hostit-store";
+import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
 
 const VALID_STATUSES: SubmissionStatus[] = ["pending", "approved", "rejected"];
 
 export async function GET(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "hostit");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   const submissions = await getHostitSubmissions();
   return NextResponse.json({ submissions });
 }
 
 export async function PATCH(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "hostit");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   try {
     const body = (await request.json()) as { id?: string; status?: string; reason?: string };
@@ -38,6 +45,15 @@ export async function PATCH(request: Request) {
     if (!updated) {
       return NextResponse.json({ error: "submission not found" }, { status: 404 });
     }
+    await logAction(
+      request,
+      access.session,
+      "hostit",
+      `submission ${body.status}`,
+      `${body.status === "approved" ? "Approved" : body.status === "rejected" ? "Rejected" : "Reset"} Host'It submission ${body.id}${
+        body.reason ? ` — reason: ${body.reason}` : ""
+      }`
+    );
     return NextResponse.json({ submission: updated });
   } catch {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
@@ -45,9 +61,12 @@ export async function PATCH(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "hostit");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   try {
     const body = (await request.json()) as { id?: string } & Partial<HostitSubmission>;
@@ -61,6 +80,13 @@ export async function PUT(request: Request) {
     if (!updated) {
       return NextResponse.json({ error: "submission not found" }, { status: 404 });
     }
+    await logAction(
+      request,
+      access.session,
+      "hostit",
+      "update submission",
+      `Updated Host'It submission ${body.id}`
+    );
     return NextResponse.json({ submission: updated });
   } catch {
     return NextResponse.json({ error: "invalid payload" }, { status: 400 });
@@ -68,9 +94,12 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "hostit");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
@@ -81,5 +110,12 @@ export async function DELETE(request: Request) {
   if (!ok) {
     return NextResponse.json({ error: "failed to delete submission" }, { status: 500 });
   }
+  await logAction(
+    request,
+    access.session,
+    "hostit",
+    "delete submission",
+    `Deleted Host'It submission ${id}`
+  );
   return NextResponse.json({ ok: true });
 }

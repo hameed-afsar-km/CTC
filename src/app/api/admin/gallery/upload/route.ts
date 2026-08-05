@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { resolveAccess } from "@/lib/auth";
 import { isCloudinaryConfigured, uploadImageBuffer } from "@/lib/cloudinary";
+import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -16,9 +17,12 @@ const ALLOWED_TYPES = new Set([
 const MAX_BYTES = 15 * 1024 * 1024;
 
 export async function POST(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
 
   if (!isCloudinaryConfigured()) {
@@ -50,6 +54,13 @@ export async function POST(request: Request) {
       folder: "gallery",
       ...(file.type === "image/svg+xml" ? { format: "svg" } : {}),
     });
+    await logAction(
+      request,
+      access.session,
+      "gallery",
+      "upload photo",
+      `Uploaded gallery photo (${file.type}, ${Math.round(file.size / 1024)} KB)`
+    );
     return NextResponse.json({ imageUrl });
   } catch (err) {
     return NextResponse.json(

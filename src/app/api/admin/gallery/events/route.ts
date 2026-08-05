@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, bearerToken } from "@/lib/auth";
+import { resolveAccess, bearerToken } from "@/lib/auth";
 import {
   getGalleryEventFolders,
   addGalleryEventFolder,
@@ -12,12 +12,19 @@ import {
   deleteGalleryItem,
 } from "@/lib/gallery-store";
 import { deleteCloudinaryImage, publicIdFromCloudinaryUrl } from "@/lib/cloudinary";
+import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
+  }
   try {
-    await requireAdmin(request);
     const events = await getGalleryEventFolders();
     return NextResponse.json({ events });
   } catch (err) {
@@ -27,9 +34,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   try {
     const body = (await request.json()) as Partial<GalleryEventFolder>;
@@ -47,6 +57,13 @@ export async function POST(request: Request) {
       createdAt: body.createdAt || new Date().toISOString(),
     };
     await addGalleryEventFolder(folder, token);
+    await logAction(
+      request,
+      access.session,
+      "gallery",
+      "create event folder",
+      `Created gallery event folder "${name}"`
+    );
     return NextResponse.json({ event: folder }, { status: 201 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to create event folder";
@@ -55,9 +72,12 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   const token = bearerToken(request);
   const { searchParams } = new URL(request.url);
@@ -85,5 +105,12 @@ export async function DELETE(request: Request) {
     }
   }
   await deleteGalleryEventFolder(id, token);
+  await logAction(
+    request,
+    access.session,
+    "gallery",
+    "delete event folder",
+    `Deleted gallery event folder "${folder.name}" (${deleted} photos removed)`
+  );
   return NextResponse.json({ ok: true, deleted });
 }

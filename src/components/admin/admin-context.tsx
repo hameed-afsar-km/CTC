@@ -9,11 +9,13 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
+import type { AdminRole } from "@/lib/roles";
 
 export interface AdminUser {
   email: string;
   name: string;
   picture: string | null;
+  role: AdminRole;
 }
 
 export type AdminStatus = "loading" | "signed-out" | "denied" | "ready";
@@ -21,8 +23,6 @@ export type AdminStatus = "loading" | "signed-out" | "denied" | "ready";
 interface AdminContextValue {
   status: AdminStatus;
   user: AdminUser | null;
-  deniedEmail: string | null;
-  deniedReason: string | null;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   getToken: () => Promise<string>;
@@ -46,12 +46,8 @@ export function useAdmin(): AdminContextValue {
 export function AdminProvider({ children }: { children: React.ReactNode }) {
   const [status, setStatus] = useState<AdminStatus>("loading");
   const [user, setUser] = useState<AdminUser | null>(null);
-  const [deniedEmail, setDeniedEmail] = useState<string | null>(null);
-  const [deniedReason, setDeniedReason] = useState<string | null>(null);
 
-  const verify = useCallback(async (idToken: string, firebaseEmail?: string | null, firebaseName?: string | null, firebasePhoto?: string | null) => {
-    const isAllowedEmail = firebaseEmail?.toLowerCase() === "240071601263@crescent.education";
-
+  const verify = useCallback(async (idToken: string) => {
     try {
       const res = await fetch("/api/admin/auth", {
         method: "POST",
@@ -59,50 +55,21 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ idToken }),
       });
       if (!res.ok) {
-        if (isAllowedEmail) {
-          setUser({
-            email: firebaseEmail!,
-            name: firebaseName || firebaseEmail!,
-            picture: firebasePhoto || null,
-          });
-          setStatus("ready");
-          setDeniedReason(null);
-          return;
-        }
-        const data = await res.json().catch(() => null);
         setStatus("denied");
         setUser(null);
-        setDeniedReason(data?.error ?? "Access Denied");
         return;
       }
       const data = await res.json();
-      if (data.session.email.toLowerCase() !== "240071601263@crescent.education") {
-        setStatus("denied");
-        setUser(null);
-        setDeniedReason("Only 240071601263@crescent.education is authorized.");
-        return;
-      }
       setUser({
         email: data.session.email,
         name: data.session.name,
         picture: data.session.picture,
+        role: data.session.role ?? "admin",
       });
       setStatus("ready");
-      setDeniedReason(null);
     } catch {
-      if (isAllowedEmail) {
-        setUser({
-          email: firebaseEmail!,
-          name: firebaseName || firebaseEmail!,
-          picture: firebasePhoto || null,
-        });
-        setStatus("ready");
-        setDeniedReason(null);
-        return;
-      }
       setStatus("denied");
       setUser(null);
-      setDeniedReason("Could not reach the authentication server.");
     }
   }, []);
 
@@ -112,33 +79,15 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
       if (!firebaseUser) {
         setStatus("signed-out");
         setUser(null);
-        setDeniedEmail(null);
-        setDeniedReason(null);
         return;
       }
-      const email = firebaseUser.email?.toLowerCase();
-      setDeniedEmail(firebaseUser.email ?? null);
-
-      if (email !== "240071601263@crescent.education") {
-        setStatus("denied");
-        setUser(null);
-        setDeniedReason("Only 240071601263@crescent.education is authorized to access the dashboard.");
-        return;
-      }
-
       setStatus("loading");
-      setDeniedReason(null);
+      setUser(null);
       const token = await firebaseUser.getIdToken().catch(() => null);
       if (token) {
-        await verify(token, firebaseUser.email, firebaseUser.displayName, firebaseUser.photoURL);
+        await verify(token);
       } else {
-        // Fallback for authorized email
-        setUser({
-          email: firebaseUser.email!,
-          name: firebaseUser.displayName || firebaseUser.email!,
-          picture: firebaseUser.photoURL || null,
-        });
-        setStatus("ready");
+        setStatus("denied");
       }
     });
     return unsubscribe;
@@ -181,9 +130,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AdminContext.Provider
-      value={{ status, user, deniedEmail, deniedReason, signIn, signOut, getToken }}
-    >
+    <AdminContext.Provider value={{ status, user, signIn, signOut, getToken }}>
       {children}
     </AdminContext.Provider>
   );

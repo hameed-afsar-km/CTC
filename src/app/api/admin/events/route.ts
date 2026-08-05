@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, bearerToken } from "@/lib/auth";
+import { resolveAccess, bearerToken } from "@/lib/auth";
 import {
   getEvents,
   saveEvent,
@@ -9,12 +9,19 @@ import {
 } from "@/lib/events-store";
 import type { ClubEvent } from "@/lib/events";
 import { deleteCloudinaryImage, publicIdFromCloudinaryUrl } from "@/lib/cloudinary";
+import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const access = await resolveAccess(request, "events");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
+  }
   try {
-    await requireAdmin(request);
     const events = await getEvents();
     return NextResponse.json({ events });
   } catch (err) {
@@ -24,9 +31,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "events");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   try {
     const token = bearerToken(request);
@@ -45,6 +55,13 @@ export async function POST(request: Request) {
       registerUrl: body.registerUrl ?? "#",
     };
     await saveEvent(event, token);
+    await logAction(
+      request,
+      access.session,
+      "events",
+      "create event",
+      `Created event "${event.title}" (${event.date})`
+    );
     return NextResponse.json({ event }, { status: 201 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to save event";
@@ -53,9 +70,12 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "events");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   try {
     const token = bearerToken(request);
@@ -74,6 +94,16 @@ export async function PUT(request: Request) {
       }
     }
     const updated = await updateEvent(body.id, body, token);
+    if (!updated) {
+      return NextResponse.json({ error: "event update failed" }, { status: 404 });
+    }
+    await logAction(
+      request,
+      access.session,
+      "events",
+      "update event",
+      `Updated event "${updated.title}"`
+    );
     return NextResponse.json({ event: updated });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to update event";
@@ -82,9 +112,12 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "events");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   const token = bearerToken(request);
   const { searchParams } = new URL(request.url);
@@ -101,5 +134,12 @@ export async function DELETE(request: Request) {
     await deleteCloudinaryImage(publicId);
   }
   await deleteEvent(id, token);
+  await logAction(
+    request,
+    access.session,
+    "events",
+    "delete event",
+    `Deleted event "${event.title}"`
+  );
   return NextResponse.json({ ok: true });
 }

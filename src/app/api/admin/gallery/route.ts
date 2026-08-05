@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin, bearerToken } from "@/lib/auth";
+import { resolveAccess, bearerToken } from "@/lib/auth";
 import {
   getGalleryItems,
   addGalleryItem,
@@ -9,12 +9,19 @@ import {
 } from "@/lib/gallery-store";
 import type { GalleryItem } from "@/lib/gallery-store";
 import { deleteCloudinaryImage, publicIdFromCloudinaryUrl } from "@/lib/cloudinary";
+import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
+  }
   try {
-    await requireAdmin(request);
     const items = await getGalleryItems();
     return NextResponse.json({ items });
   } catch (err) {
@@ -24,9 +31,12 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   try {
     const body = (await request.json()) as Partial<GalleryItem>;
@@ -46,6 +56,13 @@ export async function POST(request: Request) {
       label: String(body.label ?? "").trim(),
     };
     await addGalleryItem(item, token);
+    await logAction(
+      request,
+      access.session,
+      "gallery",
+      "add photo",
+      `Added gallery photo "${item.title}"`
+    );
     return NextResponse.json({ item }, { status: 201 });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to save gallery item";
@@ -54,9 +71,12 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   try {
     const { searchParams } = new URL(request.url);
@@ -78,6 +98,13 @@ export async function PATCH(request: Request) {
     if (!updated) {
       return NextResponse.json({ error: "item not found" }, { status: 404 });
     }
+    await logAction(
+      request,
+      access.session,
+      "gallery",
+      "update photo",
+      `Updated gallery photo "${updated.title}"`
+    );
     return NextResponse.json({ item: updated });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Failed to update gallery item";
@@ -86,9 +113,12 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const session = await requireAdmin(request);
-  if (!session) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  const access = await resolveAccess(request, "gallery");
+  if (access.status !== 200) {
+    return NextResponse.json(
+      { error: access.status === 401 ? "unauthorized" : "forbidden" },
+      { status: access.status }
+    );
   }
   const token = bearerToken(request);
   const { searchParams } = new URL(request.url);
@@ -105,5 +135,12 @@ export async function DELETE(request: Request) {
     await deleteCloudinaryImage(publicId);
   }
   await deleteGalleryItem(id, token);
+  await logAction(
+    request,
+    access.session,
+    "gallery",
+    "delete photo",
+    `Deleted gallery photo "${item.title}"`
+  );
   return NextResponse.json({ ok: true });
 }

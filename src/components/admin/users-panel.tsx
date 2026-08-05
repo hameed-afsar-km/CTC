@@ -4,7 +4,22 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save } from "lucide-react";
 import type { SiteUser } from "@/lib/users-store";
 import { useAdmin } from "./admin-context";
+import { ADMIN_ROLES, ROLE_LABELS, ROLE_BADGE } from "@/lib/roles";
+import type { AdminRole } from "@/lib/roles";
 import { EmptyState, LoadingState, PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
+
+const ROLE_SET = new Set<string>(ADMIN_ROLES);
+
+function adminRoleOf(user: SiteUser): AdminRole | null {
+  for (const role of ADMIN_ROLES) {
+    if (user.roles.includes(role)) return role;
+  }
+  return null;
+}
+
+function otherRolesOf(user: SiteUser): string[] {
+  return user.roles.filter((r) => !ROLE_SET.has(r));
+}
 
 export default function UsersPanel() {
   const { getToken } = useAdmin();
@@ -12,7 +27,6 @@ export default function UsersPanel() {
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
   const [busyEmail, setBusyEmail] = useState<string | null>(null);
-  const [roleInput, setRoleInput] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "" });
@@ -44,34 +58,30 @@ export default function UsersPanel() {
     return () => clearTimeout(t);
   }, [fetchAll]);
 
-  const saveRoles = async (email: string, roles: string[]) => {
+  const assignRole = async (email: string, adminRole: string) => {
     setBusyEmail(email);
+    setMessage(null);
     try {
       const token = await getToken();
       const res = await fetch("/api/admin/users", {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ email, roles }),
+        body: JSON.stringify({ email, adminRole }),
       });
-      if (!res.ok) throw new Error("failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "failed");
+      }
+      setMessage({ text: `Role updated to "${adminRole === "none" ? "None" : ROLE_LABELS[adminRole as AdminRole]}" for ${email}`, type: "success" });
       await fetchAll();
-    } catch {
-      setMessage({ text: "Failed to update roles", type: "error" });
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? `Failed to update role: ${err.message}` : "Failed to update role",
+        type: "error",
+      });
     } finally {
       setBusyEmail(null);
     }
-  };
-
-  const addRole = (user: SiteUser) => {
-    const value = (roleInput[user.email] ?? "").trim();
-    if (!value) return;
-    const next = Array.from(new Set([...user.roles, value]));
-    saveRoles(user.email, next);
-    setRoleInput((prev) => ({ ...prev, [user.email]: "" }));
-  };
-
-  const removeRole = (user: SiteUser, role: string) => {
-    saveRoles(user.email, user.roles.filter((r) => r !== role));
   };
 
   const handleDelete = async (user: SiteUser) => {
@@ -90,11 +100,17 @@ export default function UsersPanel() {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "failed");
+      }
       setMessage({ text: `User "${user.name}" deleted.`, type: "success" });
       await fetchAll();
-    } catch {
-      setMessage({ text: "Failed to delete user", type: "error" });
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? `Failed to delete user: ${err.message}` : "Failed to delete user",
+        type: "error",
+      });
     } finally {
       setBusyEmail(null);
     }
@@ -107,9 +123,7 @@ export default function UsersPanel() {
     setMessage(null);
     try {
       const token = await getToken();
-      const roles = newUser.role
-        ? [newUser.role.trim()]
-        : [];
+      const roles = newUser.role ? [newUser.role.trim()] : [];
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -180,7 +194,10 @@ export default function UsersPanel() {
     const q = query.trim().toLowerCase();
     if (!q) return users;
     return users.filter(
-      (u) => u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.roles.join(" ").toLowerCase().includes(q)
+      (u) =>
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.roles.join(" ").toLowerCase().includes(q)
     );
   }, [users, query]);
 
@@ -192,7 +209,7 @@ export default function UsersPanel() {
           <PanelCard>
             <PanelHeading
               title="Add User"
-              subtitle="Manually register a member and assign a role."
+              subtitle="Register a member and assign a dashboard role."
               action={<UserPlus className="w-5 h-5 text-emerald-400" />}
             />
             {message && (
@@ -230,14 +247,19 @@ export default function UsersPanel() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Initial Role</label>
-                <input
-                  type="text"
+                <label className={labelCls}>Dashboard Role</label>
+                <select
                   value={newUser.role}
                   onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                  placeholder="e.g. Core Team"
                   className={inputCls}
-                />
+                >
+                  <option value="">None</option>
+                  {ADMIN_ROLES.map((role) => (
+                    <option key={role} value={role}>
+                      {ROLE_LABELS[role]}
+                    </option>
+                  ))}
+                </select>
               </div>
               <button
                 type="submit"
@@ -275,103 +297,103 @@ export default function UsersPanel() {
             </PanelCard>
           ) : (
             <div className="space-y-3">
-              {filtered.map((user) => (
-                <div
-                  key={user.email}
-                  className="rounded-2xl border border-white/10 bg-[#0d1317] p-5 transition-all hover:border-white/20"
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h3 className="text-base font-bold text-white">{user.name}</h3>
-                      <div className="text-xs font-mono text-emerald-400 mt-0.5">{user.email}</div>
-                      <div className="mt-1.5 flex flex-wrap gap-1.5">
-                        {user.sources.map((s) => (
-                          <span
-                            key={s}
-                            className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-gray-400 uppercase"
-                          >
-                            {s}
+              {filtered.map((user) => {
+                const current = adminRoleOf(user);
+                const others = otherRolesOf(user);
+                return (
+                  <div
+                    key={user.email}
+                    className="rounded-2xl border border-white/10 bg-[#0d1317] p-5 transition-all hover:border-white/20"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-base font-bold text-white">{user.name}</h3>
+                          {current ? (
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider ${ROLE_BADGE[current]}`}
+                            >
+                              <Shield className="w-3 h-3" />
+                              {ROLE_LABELS[current]}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-gray-400">
+                              No dashboard role
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs font-mono text-emerald-400 mt-0.5">{user.email}</div>
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {user.sources.map((s) => (
+                            <span
+                              key={s}
+                              className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-gray-400 uppercase"
+                            >
+                              {s}
+                            </span>
+                          ))}
+                          {others.map((r) => (
+                            <span
+                              key={r}
+                              className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-gray-400 uppercase"
+                            >
+                              {r}
+                            </span>
+                          ))}
+                          <span className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-gray-500">
+                            updated {new Date(user.updatedAt).toLocaleDateString()}
                           </span>
-                        ))}
-                        <span className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-gray-500">
-                          updated {new Date(user.updatedAt).toLocaleDateString()}
-                        </span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <Shield className="w-3.5 h-3.5 text-emerald-400 mr-0.5" />
-                      {user.roles.length === 0 && (
-                        <span className="text-[10px] font-mono text-gray-500 uppercase">No roles</span>
-                      )}
-                      {user.roles.map((role) => (
-                        <span
-                          key={role}
-                          className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-300"
+                    <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                      <div className="flex-1">
+                        <label className="block text-[10px] font-mono text-gray-500 mb-1 uppercase tracking-wider">
+                          Assign dashboard role
+                        </label>
+                        <select
+                          value={current ?? "none"}
+                          disabled={busyEmail === user.email}
+                          onChange={(e) => assignRole(user.email, e.target.value)}
+                          className="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-emerald-400 transition-colors disabled:opacity-60"
                         >
-                          {role}
-                          <button
-                            onClick={() => removeRole(user, role)}
-                            disabled={busyEmail === user.email}
-                            className="hover:text-white transition-colors disabled:opacity-40"
-                            title={`Remove ${role}`}
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </span>
-                      ))}
+                          <option value="none">None</option>
+                          {ADMIN_ROLES.map((role) => (
+                            <option key={role} value={role}>
+                              {ROLE_LABELS[role]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => openEdit(user)}
+                          disabled={busyEmail === user.email}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                          title="Edit user"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user)}
+                          disabled={busyEmail === user.email}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                          title="Delete user"
+                        >
+                          {busyEmail === user.email ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="mt-3 flex items-center gap-2">
-                    <input
-                      type="text"
-                      value={roleInput[user.email] ?? ""}
-                      onChange={(e) =>
-                        setRoleInput((prev) => ({ ...prev, [user.email]: e.target.value }))
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          addRole(user);
-                        }
-                      }}
-                      placeholder="Add custom role... e.g. Tech Lead"
-                      className="flex-1 px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-emerald-400 transition-colors"
-                    />
-                    <button
-                      onClick={() => addRole(user)}
-                      disabled={busyEmail === user.email}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      Add
-                    </button>
-                    <button
-                      onClick={() => openEdit(user)}
-                      disabled={busyEmail === user.email}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                      title="Edit user"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(user)}
-                      disabled={busyEmail === user.email}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                      title="Delete user"
-                    >
-                      {busyEmail === user.email ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -420,7 +442,7 @@ export default function UsersPanel() {
                   type="text"
                   value={editForm.roles}
                   onChange={(e) => setEditForm({ ...editForm, roles: e.target.value })}
-                  placeholder="e.g. Core Team, Tech Lead"
+                  placeholder="e.g. member"
                   className={inputCls}
                 />
               </div>

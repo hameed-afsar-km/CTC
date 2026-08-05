@@ -19,6 +19,7 @@ export async function GET() {
     NEXT_PUBLIC_CLOUDINARY_API_KEY: flag(process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY),
     CLOUDINARY_API_SECRET: flag(process.env.CLOUDINARY_API_SECRET),
     ADMIN_EMAIL: flag(process.env.ADMIN_EMAIL),
+    ADMIN_EMAILS: flag(process.env.ADMIN_EMAILS),
   };
 
   let firestore: string;
@@ -32,7 +33,6 @@ export async function GET() {
   return NextResponse.json({
     status: "healthy",
     env,
-    effectiveAdminEmail: "240071601263@crescent.education",
     firestore,
   });
 }

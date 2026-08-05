@@ -1,0 +1,1087 @@
+
+> ctc-temp@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.12 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.56.1:3000
+- Environments: .env.local
+✓ Ready in 572ms
+
+ GET / 200 in 705ms (next.js: 251ms, application-code: 454ms)
+ GET / 200 in 534ms (next.js: 17ms, application-code: 518ms)
+ GET /events 200 in 394ms (next.js: 146ms, application-code: 248ms)
+ GET /gallery 200 in 316ms (next.js: 80ms, application-code: 236ms)
+ GET /admin 200 in 1039ms (next.js: 139ms, application-code: 900ms)
+ GET /hostit 200 in 424ms (next.js: 152ms, application-code: 271ms)
+ GET /join 200 in 353ms (next.js: 136ms, application-code: 218ms)
+ GET /declined 200 in 394ms (next.js: 200ms, application-code: 194ms)
+ GET /broken-link 404 in 261ms (next.js: 141ms, application-code: 120ms)
+✓ Compiled in 900ms
+ GET / 200 in 544ms (next.js: 321ms, application-code: 222ms)
+✓ Compiled in 387ms
+ GET / 200 in 420ms (next.js: 314ms, application-code: 106ms)
+✓ Compiled in 376ms
+ GET / 200 in 335ms (next.js: 228ms, application-code: 107ms)
+ GET /api/events 200 in 1801ms (next.js: 606ms, application-code: 1196ms)
+ GET /api/events 200 in 664ms (next.js: 13ms, application-code: 651ms)
+ GET /api/events 200 in 606ms (next.js: 17ms, application-code: 589ms)
+ GET / 200 in 197ms (next.js: 5ms, application-code: 192ms)
+ GET /events 200 in 247ms (next.js: 83ms, application-code: 165ms)
+ GET /dead-link 404 in 223ms (next.js: 104ms, application-code: 119ms)
+ GET /api/events 200 in 441ms (next.js: 8ms, application-code: 433ms)
+ GET / 200 in 286ms (next.js: 35ms, application-code: 251ms)
+ GET /api/events 200 in 388ms (next.js: 12ms, application-code: 376ms)
+ GET /sigma 404 in 413ms (next.js: 18ms, application-code: 394ms)
+✓ Compiled in 1356ms
+ GET /sigma 404 in 926ms (next.js: 239ms, application-code: 687ms)
+ GET /sigma 404 in 636ms (next.js: 128ms, application-code: 508ms)
+ GET /sigma 404 in 933ms (next.js: 205ms, application-code: 727ms)
+✓ Compiled in 531ms
+ GET /sigma 404 in 562ms (next.js: 323ms, application-code: 238ms)
+ GET /sigma 404 in 363ms (next.js: 39ms, application-code: 324ms)
+ GET /dead-link 404 in 37ms (next.js: 8ms, application-code: 30ms)
+✓ Compiled in 355ms
+ GET /sigma 404 in 374ms (next.js: 246ms, application-code: 128ms)
+ GET /sigma 404 in 276ms (next.js: 25ms, application-code: 251ms)
+✓ Compiled in 478ms
+ GET /sigma 404 in 422ms (next.js: 276ms, application-code: 146ms)
+ GET /sigma 404 in 379ms (next.js: 37ms, application-code: 342ms)
+✓ Compiled in 410ms
+ GET /sigma 404 in 487ms (next.js: 286ms, application-code: 201ms)
+ GET /sigma 404 in 302ms (next.js: 33ms, application-code: 269ms)
+ GET /dead-link 404 in 318ms (next.js: 156ms, application-code: 162ms)
+ GET /dead-link 404 in 147ms (next.js: 48ms, application-code: 100ms)
+✓ Compiled in 866ms
+ GET /sigma 404 in 481ms (next.js: 254ms, application-code: 228ms)
+ GET /sigma 404 in 441ms (next.js: 128ms, application-code: 313ms)
+✓ Compiled in 959ms
+ GET /sigma 404 in 354ms (next.js: 254ms, application-code: 100ms)
+ GET /sigma 404 in 553ms (next.js: 26ms, application-code: 527ms)
+ GET /dead-link 404 in 181ms (next.js: 56ms, application-code: 125ms)
+ GET / 200 in 466ms (next.js: 363ms, application-code: 103ms)
+ GET /api/events 200 in 1828ms (next.js: 427ms, application-code: 1401ms)
+ GET /api/events 200 in 1041ms (next.js: 21ms, application-code: 1020ms)
+ GET /dead-link 404 in 194ms (next.js: 30ms, application-code: 164ms)
+ GET /api/events 200 in 1001ms (next.js: 11ms, application-code: 990ms)
+ GET /api/events 200 in 415ms (next.js: 11ms, application-code: 404ms)
+ GET /api/events 200 in 417ms (next.js: 16ms, application-code: 401ms)
+ GET /api/events 200 in 415ms (next.js: 7ms, application-code: 407ms)
+ GET /api/events 200 in 384ms (next.js: 9ms, application-code: 375ms)
+ GET /api/events 200 in 380ms (next.js: 9ms, application-code: 370ms)
+ GET /api/events 200 in 422ms (next.js: 19ms, application-code: 402ms)
+ GET /api/events 200 in 772ms (next.js: 9ms, application-code: 763ms)
+ GET /api/events 200 in 453ms (next.js: 8ms, application-code: 445ms)
+ GET /api/events 200 in 730ms (next.js: 5ms, application-code: 725ms)
+ GET / 200 in 115ms (next.js: 80ms, application-code: 35ms)
+ GET / 200 in 123ms (next.js: 80ms, application-code: 43ms)
+ GET / 200 in 108ms (next.js: 75ms, application-code: 32ms)
+ GET / 200 in 107ms (next.js: 74ms, application-code: 33ms)
+ GET /api/events 200 in 1152ms (next.js: 438ms, application-code: 714ms)
+ GET /api/events 200 in 505ms (next.js: 21ms, application-code: 484ms)
+ GET /api/events 200 in 52ms (next.js: 27ms, application-code: 25ms)
+ GET /admin 200 in 1357ms (next.js: 342ms, application-code: 1015ms)
+ POST /api/admin/auth 200 in 109ms (next.js: 82ms, application-code: 28ms)
+ GET /api/admin/events 200 in 945ms (next.js: 499ms, application-code: 446ms)
+ POST /api/admin/auth 403 in 109ms (next.js: 15ms, application-code: 94ms)
+ POST /api/admin/auth 200 in 36ms (next.js: 11ms, application-code: 25ms)
+ GET /api/admin/events 200 in 457ms (next.js: 13ms, application-code: 444ms)
+ GET /admin 200 in 136ms (next.js: 9ms, application-code: 127ms)
+ POST /api/admin/auth 403 in 36ms (next.js: 10ms, application-code: 26ms)
+ POST /api/admin/auth 403 in 21ms (next.js: 6ms, application-code: 15ms)
+  Reload env: .env.local
+✓ Compiled in 143ms
+ GET /admin 200 in 545ms (next.js: 183ms, application-code: 362ms)
+ GET /admin 200 in 536ms (next.js: 207ms, application-code: 328ms)
+ GET /admin 200 in 284ms (next.js: 84ms, application-code: 200ms)
+ GET /admin 200 in 284ms (next.js: 117ms, application-code: 167ms)
+ GET /admin 200 in 147ms (next.js: 6ms, application-code: 141ms)
+ GET /admin 200 in 147ms (next.js: 28ms, application-code: 119ms)
+ GET /admin 200 in 146ms (next.js: 72ms, application-code: 75ms)
+ GET /admin 200 in 147ms (next.js: 49ms, application-code: 98ms)
+ GET /admin 200 in 147ms (next.js: 99ms, application-code: 49ms)
+ GET /admin 200 in 147ms (next.js: 121ms, application-code: 26ms)
+ GET /admin 200 in 622ms (next.js: 22ms, application-code: 601ms)
+ POST /api/admin/auth 200 in 111ms (next.js: 86ms, application-code: 25ms)
+ GET /api/admin/events 200 in 1088ms (next.js: 319ms, application-code: 768ms)
+ GET /api/admin/users 200 in 507ms (next.js: 105ms, application-code: 402ms)
+✓ Compiled in 767ms
+ GET /admin 200 in 1217ms (next.js: 246ms, application-code: 971ms)
+ GET /admin 200 in 943ms (next.js: 16ms, application-code: 927ms)
+ GET /admin 200 in 816ms (next.js: 58ms, application-code: 758ms)
+ GET /admin 200 in 806ms (next.js: 553ms, application-code: 253ms)
+ GET /admin 200 in 818ms (next.js: 404ms, application-code: 414ms)
+ GET /admin 200 in 809ms (next.js: 620ms, application-code: 189ms)
+ GET /admin 200 in 718ms (next.js: 15ms, application-code: 704ms)
+ GET /admin 200 in 742ms (next.js: 33ms, application-code: 709ms)
+ GET /admin 200 in 630ms (next.js: 31ms, application-code: 599ms)
+ GET /admin 200 in 628ms (next.js: 313ms, application-code: 315ms)
+ GET /admin 200 in 633ms (next.js: 188ms, application-code: 445ms)
+ GET /admin 200 in 627ms (next.js: 420ms, application-code: 207ms)
+ GET /admin 200 in 581ms (next.js: 21ms, application-code: 560ms)
+ GET /admin 200 in 576ms (next.js: 18ms, application-code: 559ms)
+ GET /admin 200 in 505ms (next.js: 14ms, application-code: 491ms)
+ GET /admin 200 in 505ms (next.js: 87ms, application-code: 418ms)
+ GET /admin 200 in 507ms (next.js: 175ms, application-code: 332ms)
+ GET /admin 200 in 422ms (next.js: 115ms, application-code: 308ms)
+ GET /admin 200 in 493ms (next.js: 18ms, application-code: 475ms)
+ GET /admin 200 in 454ms (next.js: 19ms, application-code: 435ms)
+ GET /admin 200 in 378ms (next.js: 15ms, application-code: 363ms)
+ GET /admin 200 in 379ms (next.js: 73ms, application-code: 306ms)
+ GET /admin 200 in 379ms (next.js: 141ms, application-code: 238ms)
+ GET /admin 200 in 300ms (next.js: 16ms, application-code: 283ms)
+ GET /admin 200 in 236ms (next.js: 15ms, application-code: 221ms)
+ GET /admin 200 in 168ms (next.js: 12ms, application-code: 156ms)
+✓ Compiled in 950ms
+ GET /admin 200 in 887ms (next.js: 235ms, application-code: 652ms)
+ GET /admin 200 in 648ms (next.js: 31ms, application-code: 617ms)
+ GET /admin 200 in 422ms (next.js: 19ms, application-code: 402ms)
+ GET /admin 200 in 423ms (next.js: 88ms, application-code: 335ms)
+ GET /admin 200 in 424ms (next.js: 162ms, application-code: 262ms)
+ GET /admin 200 in 423ms (next.js: 244ms, application-code: 179ms)
+ GET /admin 200 in 480ms (next.js: 14ms, application-code: 466ms)
+ GET /admin 200 in 483ms (next.js: 21ms, application-code: 462ms)
+ GET /admin 200 in 411ms (next.js: 20ms, application-code: 391ms)
+ GET /admin 200 in 415ms (next.js: 85ms, application-code: 330ms)
+ GET /admin 200 in 417ms (next.js: 152ms, application-code: 265ms)
+ GET /admin 200 in 417ms (next.js: 213ms, application-code: 204ms)
+ GET /admin 200 in 754ms (next.js: 13ms, application-code: 741ms)
+ GET /admin 200 in 729ms (next.js: 18ms, application-code: 711ms)
+ GET /admin 200 in 656ms (next.js: 20ms, application-code: 636ms)
+ GET /admin 200 in 657ms (next.js: 83ms, application-code: 573ms)
+ GET /admin 200 in 656ms (next.js: 155ms, application-code: 501ms)
+ GET /admin 200 in 655ms (next.js: 433ms, application-code: 221ms)
+ GET /admin 200 in 496ms (next.js: 16ms, application-code: 480ms)
+ GET /admin 200 in 494ms (next.js: 20ms, application-code: 474ms)
+ GET /admin 200 in 383ms (next.js: 14ms, application-code: 368ms)
+ GET /admin 200 in 383ms (next.js: 74ms, application-code: 308ms)
+ GET /admin 200 in 385ms (next.js: 181ms, application-code: 204ms)
+ GET /admin 200 in 390ms (next.js: 237ms, application-code: 152ms)
+ GET /admin 200 in 563ms (next.js: 16ms, application-code: 547ms)
+ GET /admin 200 in 563ms (next.js: 20ms, application-code: 543ms)
+ GET /admin 200 in 495ms (next.js: 15ms, application-code: 480ms)
+ GET /admin 200 in 493ms (next.js: 181ms, application-code: 312ms)
+ GET /admin 200 in 497ms (next.js: 76ms, application-code: 421ms)
+ GET /admin 200 in 241ms (next.js: 34ms, application-code: 207ms)
+ GET /admin 200 in 416ms (next.js: 21ms, application-code: 396ms)
+ GET /admin 200 in 333ms (next.js: 13ms, application-code: 320ms)
+ GET /admin 200 in 318ms (next.js: 18ms, application-code: 300ms)
+ GET /admin 200 in 318ms (next.js: 78ms, application-code: 240ms)
+ GET /admin 200 in 318ms (next.js: 135ms, application-code: 183ms)
+ GET /admin 200 in 288ms (next.js: 74ms, application-code: 214ms)
+ GET /admin 200 in 477ms (next.js: 13ms, application-code: 464ms)
+ GET /admin 200 in 425ms (next.js: 17ms, application-code: 408ms)
+ GET /admin 200 in 408ms (next.js: 21ms, application-code: 387ms)
+ GET /admin 200 in 406ms (next.js: 79ms, application-code: 326ms)
+ GET /admin 200 in 305ms (next.js: 31ms, application-code: 274ms)
+ GET /admin 200 in 415ms (next.js: 112ms, application-code: 303ms)
+ GET /admin 200 in 474ms (next.js: 14ms, application-code: 460ms)
+ GET /admin 200 in 458ms (next.js: 55ms, application-code: 404ms)
+ GET /admin 200 in 337ms (next.js: 19ms, application-code: 317ms)
+ GET /admin 200 in 337ms (next.js: 79ms, application-code: 258ms)
+ GET /admin 200 in 327ms (next.js: 18ms, application-code: 309ms)
+ GET /admin 200 in 429ms (next.js: 15ms, application-code: 413ms)
+ GET /admin 200 in 438ms (next.js: 14ms, application-code: 424ms)
+ GET /admin 200 in 444ms (next.js: 14ms, application-code: 430ms)
+ GET /admin 200 in 444ms (next.js: 70ms, application-code: 374ms)
+ GET /admin 200 in 386ms (next.js: 81ms, application-code: 305ms)
+ GET /admin 200 in 201ms (next.js: 29ms, application-code: 173ms)
+ GET /admin 200 in 106ms (next.js: 20ms, application-code: 86ms)
+ GET /admin 200 in 630ms (next.js: 225ms, application-code: 404ms)
+ GET /admin 200 in 372ms (next.js: 50ms, application-code: 322ms)
+ GET /admin 200 in 90ms (next.js: 14ms, application-code: 76ms)
+ GET /admin 200 in 498ms (next.js: 209ms, application-code: 289ms)
+ GET /admin 200 in 194ms (next.js: 19ms, application-code: 175ms)
+ GET /admin 200 in 91ms (next.js: 18ms, application-code: 73ms)
+ GET /admin 200 in 571ms (next.js: 251ms, application-code: 321ms)
+ GET /admin 200 in 193ms (next.js: 15ms, application-code: 178ms)
+ GET /admin 200 in 105ms (next.js: 9ms, application-code: 96ms)
+ GET /admin 200 in 416ms (next.js: 232ms, application-code: 184ms)
+ GET /admin 200 in 169ms (next.js: 15ms, application-code: 154ms)
+ GET /admin 200 in 87ms (next.js: 19ms, application-code: 67ms)
+ GET /admin 200 in 606ms (next.js: 251ms, application-code: 355ms)
+ GET /admin 200 in 295ms (next.js: 47ms, application-code: 248ms)
+ GET /admin 200 in 79ms (next.js: 15ms, application-code: 64ms)
+ GET /admin 200 in 490ms (next.js: 233ms, application-code: 258ms)
+ GET /admin 200 in 209ms (next.js: 42ms, application-code: 167ms)
+ GET /admin 200 in 94ms (next.js: 24ms, application-code: 70ms)
+ GET /admin 200 in 491ms (next.js: 215ms, application-code: 276ms)
+ GET /admin 200 in 147ms (next.js: 21ms, application-code: 126ms)
+ GET /admin 200 in 63ms (next.js: 10ms, application-code: 53ms)
+ GET /admin 200 in 523ms (next.js: 217ms, application-code: 306ms)
+ GET /admin 200 in 174ms (next.js: 18ms, application-code: 156ms)
+ GET /admin 200 in 95ms (next.js: 13ms, application-code: 82ms)
+✓ Compiled in 245ms
+ GET /admin 200 in 2.0s (next.js: 275ms, application-code: 1764ms)
+ GET /api/admin/events 200 in 3.3s (next.js: 493ms, application-code: 2.8s)
+ POST /api/admin/auth 200 in 3.9s (next.js: 1247ms, application-code: 2.6s)
+ GET /api/admin/events 200 in 1048ms (next.js: 10ms, application-code: 1038ms)
+✓ Compiled in 261ms
+ GET /admin 200 in 1058ms (next.js: 271ms, application-code: 786ms)
+ GET /api/admin/events 200 in 2.3s (next.js: 503ms, application-code: 1792ms)
+ POST /api/admin/auth 200 in 2.8s (next.js: 335ms, application-code: 2.5s)
+ GET /api/admin/events 200 in 1398ms (next.js: 5ms, application-code: 1393ms)
+✓ Compiled in 1207ms
+ GET /admin 200 in 731ms (next.js: 289ms, application-code: 442ms)
+ GET /admin 200 in 338ms (next.js: 11ms, application-code: 327ms)
+ GET /admin 200 in 165ms (next.js: 23ms, application-code: 142ms)
+ GET /admin 200 in 166ms (next.js: 74ms, application-code: 92ms)
+✓ Compiled in 1002ms
+ GET /admin 200 in 1479ms (next.js: 294ms, application-code: 1185ms)
+ GET /admin 200 in 1074ms (next.js: 488ms, application-code: 586ms)
+ GET /admin 200 in 227ms (next.js: 50ms, application-code: 177ms)
+ GET /api/admin/events 200 in 2.1s (next.js: 449ms, application-code: 1688ms)
+✓ Compiled in 343ms
+ GET /admin 200 in 346ms (next.js: 244ms, application-code: 102ms)
+✓ Compiled in 262ms
+ GET /admin 200 in 373ms (next.js: 261ms, application-code: 111ms)
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+✓ Compiled in 691ms
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ GET /admin 500 in 1351ms (next.js: 534ms, application-code: 817ms)
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ GET /admin 500 in 72ms (next.js: 38ms, application-code: 33ms)
+[browser] Uncaught Error: ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  26 | import UsersPanel from "@/components/admin/users-panel";
+  27 | import GalleryPanel from "@/components/admin/gallery-panel";
+> 28 | import LogsPanel from "@/components/admin/logs-panel";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  29 |
+  30 | type Tab = AdminScope;
+  31 |
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/admin/page.tsx:28:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/admin/page.tsx:28:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+✓ Compiled in 705ms
+⨯ ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  [90m26 |[0m [36mimport[0m [33mUsersPanel[0m [36mfrom[0m [32m"@/components/admin/users-panel"[0m;
+  [90m27 |[0m [36mimport[0m [33mGalleryPanel[0m [36mfrom[0m [32m"@/components/admin/gallery-panel"[0m;
+[31m[1m>[0m [90m28 |[0m [36mimport[0m [33mLogsPanel[0m [36mfrom[0m [32m"@/components/admin/logs-panel"[0m;
+  [90m   |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m29 |[0m
+  [90m30 |[0m [36mtype[0m [33mTab[0m = [33mAdminScope[0m;
+  [90m31 |[0m
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+ GET /admin 500 in 80ms (next.js: 52ms, application-code: 28ms)
+[browser] Uncaught Error: ./src/app/admin/page.tsx:28:1
+Module not found: Can't resolve '@/components/admin/logs-panel'
+  26 | import UsersPanel from "@/components/admin/users-panel";
+  27 | import GalleryPanel from "@/components/admin/gallery-panel";
+> 28 | import LogsPanel from "@/components/admin/logs-panel";
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  29 |
+  30 | type Tab = AdminScope;
+  31 |
+
+Import map: aliased to relative './src/components/admin/logs-panel' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./src/app/admin/page.tsx [Client Component Browser]
+    ./src/app/admin/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./src/app/admin/page.tsx [Client Component SSR]
+    ./src/app/admin/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (Error: ./src/app/admin/page.tsx:28:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (Error: (./src/app/admin/page.tsx:28:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+✓ Compiled in 1641ms
+ GET /admin 200 in 3.0s (next.js: 1124ms, application-code: 1863ms)
+ GET /admin 200 in 465ms (next.js: 244ms, application-code: 221ms)
+ POST /api/admin/auth 200 in 2.1s (next.js: 361ms, application-code: 1766ms)
+ GET /api/admin/events 200 in 996ms (next.js: 191ms, application-code: 805ms)
+ GET /admin 200 in 320ms (next.js: 216ms, application-code: 103ms)
+✓ Compiled in 305ms
+ GET /admin 200 in 344ms (next.js: 244ms, application-code: 100ms)
+✓ Compiled in 285ms
+ GET /admin 200 in 436ms (next.js: 241ms, application-code: 195ms)
+✓ Compiled in 338ms
+ GET /admin 200 in 371ms (next.js: 239ms, application-code: 132ms)
