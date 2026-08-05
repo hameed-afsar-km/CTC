@@ -1,4 +1,5 @@
-import { fetchCollectionDocs, saveDocument } from "./firebase-db";
+import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
+import { syncMembershipRole } from "./users-store";
 import type { Application } from "./applications";
 
 const COLLECTION = "applications";
@@ -13,6 +14,19 @@ export async function getApplications(): Promise<Application[]> {
   );
 }
 
+export async function findApplicationByEmail(
+  email: string
+): Promise<Application | null> {
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as Application[];
+  const target = email.trim().toLowerCase();
+  return (
+    items.find(
+      (a) => (a.collegeMail || "").trim().toLowerCase() === target
+    ) || null
+  );
+}
+
 export async function saveApplication(application: Application): Promise<void> {
   const record = { ...application, status: application.status ?? "pending" };
   await saveDocument(COLLECTION, application.id, record as unknown as Record<string, unknown>);
@@ -20,9 +34,41 @@ export async function saveApplication(application: Application): Promise<void> {
 
 export async function updateApplicationStatus(
   id: string,
-  status: string
+  status: string,
+  rejectionReason?: string
 ): Promise<Application | null> {
-  await saveDocument(COLLECTION, id, { status });
+  const record: Record<string, unknown> = { status };
+  if (status === "rejected") {
+    record.rejectionReason = rejectionReason?.trim() ?? "";
+  } else {
+    record.rejectionReason = "";
+  }
+  await saveDocument(COLLECTION, id, record);
   const apps = await getApplications();
-  return apps.find((a) => a.id === id) || null;
+  const updated = apps.find((a) => a.id === id) || null;
+  if (updated) {
+    await syncMembershipRole(updated.collegeMail, updated.fullName, status === "approved");
+  }
+  return updated;
+}
+
+export async function updateApplication(
+  id: string,
+  patch: Partial<Application>
+): Promise<Application | null> {
+  const rest: Partial<Application> = { ...patch };
+  delete rest.id;
+  const record: Record<string, unknown> = { ...rest };
+  if (rest.status) record.status = rest.status;
+  await saveDocument(COLLECTION, id, record);
+  const apps = await getApplications();
+  const updated = apps.find((a) => a.id === id) || null;
+  if (updated && rest.status) {
+    await syncMembershipRole(updated.collegeMail, updated.fullName, rest.status === "approved");
+  }
+  return updated;
+}
+
+export async function deleteApplication(id: string): Promise<boolean> {
+  return deleteDocument(COLLECTION, id);
 }

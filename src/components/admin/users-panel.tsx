@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, UserPlus, X, Shield } from "lucide-react";
+import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save } from "lucide-react";
 import type { SiteUser } from "@/lib/users-store";
 import { useAdmin } from "./admin-context";
 import { EmptyState, LoadingState, PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
@@ -17,6 +17,10 @@ export default function UsersPanel() {
 
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "" });
   const [creating, setCreating] = useState(false);
+
+  const [editing, setEditing] = useState<SiteUser | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "", roles: "", sources: "" });
+  const [saving, setSaving] = useState(false);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -70,6 +74,32 @@ export default function UsersPanel() {
     saveRoles(user.email, user.roles.filter((r) => r !== role));
   };
 
+  const handleDelete = async (user: SiteUser) => {
+    if (
+      !window.confirm(
+        `Delete the user "${user.name}" (${user.email})? This removes them from the directory and cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    setBusyEmail(user.email);
+    setMessage(null);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/admin/users?email=${encodeURIComponent(user.email)}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("failed");
+      setMessage({ text: `User "${user.name}" deleted.`, type: "success" });
+      await fetchAll();
+    } catch {
+      setMessage({ text: "Failed to delete user", type: "error" });
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
   const createUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUser.name.trim() || !newUser.email.trim()) return;
@@ -93,6 +123,56 @@ export default function UsersPanel() {
       setMessage({ text: "Failed to add user", type: "error" });
     } finally {
       setCreating(false);
+    }
+  };
+
+  const openEdit = (user: SiteUser) => {
+    setEditing(user);
+    setEditForm({
+      name: user.name,
+      email: user.email,
+      roles: user.roles.join(", "),
+      sources: user.sources.join(", "),
+    });
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editing) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          email: editForm.email,
+          name: editForm.name,
+          roles: editForm.roles
+            .split(",")
+            .map((r) => r.trim())
+            .filter(Boolean),
+          sources: editForm.sources
+            .split(",")
+            .map((s) => s.trim())
+            .filter(Boolean),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "failed");
+      }
+      setEditing(null);
+      setMessage({ text: `User "${editForm.name}" updated.`, type: "success" });
+      await fetchAll();
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? `Failed to update user: ${err.message}` : "Failed to update user",
+        type: "error",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -267,6 +347,28 @@ export default function UsersPanel() {
                       <Plus className="w-3.5 h-3.5" />
                       Add
                     </button>
+                    <button
+                      onClick={() => openEdit(user)}
+                      disabled={busyEmail === user.email}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                      title="Edit user"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(user)}
+                      disabled={busyEmail === user.email}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                      title="Delete user"
+                    >
+                      {busyEmail === user.email ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
@@ -274,6 +376,87 @@ export default function UsersPanel() {
           )}
         </div>
       </div>
+
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0d1317] p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-lg font-bold text-white">Edit User</h3>
+                <p className="text-xs font-mono text-gray-400 mt-0.5">Update name, email, roles, or sources.</p>
+              </div>
+              <button
+                onClick={() => setEditing(null)}
+                disabled={saving}
+                className="text-gray-400 hover:text-white transition-colors disabled:opacity-40"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={saveEdit} className="space-y-3">
+              <div>
+                <label className={labelCls}>Name</label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Email</label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Roles (comma-separated)</label>
+                <input
+                  type="text"
+                  value={editForm.roles}
+                  onChange={(e) => setEditForm({ ...editForm, roles: e.target.value })}
+                  placeholder="e.g. Core Team, Tech Lead"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Sources (comma-separated)</label>
+                <input
+                  type="text"
+                  value={editForm.sources}
+                  onChange={(e) => setEditForm({ ...editForm, sources: e.target.value })}
+                  placeholder="e.g. Instagram, Website"
+                  className={inputCls}
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

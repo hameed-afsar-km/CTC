@@ -17,6 +17,7 @@ export interface Application {
   consented: boolean;
   submittedAt: string;
   status?: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
 }
 
 export const DEGREES = [

@@ -16,9 +16,7 @@ import {
   Search,
   X,
   Sparkles,
-  Layers,
   Camera,
-  Grid,
 } from "lucide-react";
 import type { GalleryEvent, GalleryYear } from "@/lib/gallery";
 
@@ -77,7 +75,11 @@ function uploadedToYears(items: GalleryItem[]): GalleryYear[] {
     if (item.imageUrl) {
       event.images.push({
         src: item.imageUrl,
-        alt: item.title?.trim() || item.category?.trim() || "Gallery photo",
+        alt:
+          item.label?.trim() ||
+          item.title?.trim() ||
+          item.category?.trim() ||
+          "Gallery photo",
       });
     }
   }
@@ -214,7 +216,6 @@ export default function GalleryPage() {
 
   const [expandedYears, setExpandedYears] = useState<number[]>([]);
   const [expandedEvents, setExpandedEvents] = useState<string[]>([]);
-  const hasAutoExpanded = useRef(false);
 
   const isSearching = searchQuery.trim().length > 0;
   const effectiveExpandedYears = isSearching
@@ -223,17 +224,6 @@ export default function GalleryPage() {
   const effectiveExpandedEvents = isSearching
     ? filteredYears.flatMap((y) => y.events.map((ev) => ev.id))
     : expandedEvents;
-
-  useEffect(() => {
-    if (combined.length === 0 || hasAutoExpanded.current) return;
-    hasAutoExpanded.current = true;
-    const first = combined[0];
-    const t = window.setTimeout(() => {
-      setExpandedYears([first.year]);
-      setExpandedEvents(first.events.map((ev) => ev.id));
-    }, 0);
-    return () => window.clearTimeout(t);
-  }, [combined]);
 
   const toggleYear = useCallback((y: number) => {
     setExpandedYears((prev) =>
@@ -451,7 +441,7 @@ export default function GalleryPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search albums by title, category, caption..."
+              placeholder="Search albums or photos by title, label, category, caption..."
               className="w-full rounded-2xl bg-white/5 pl-11 pr-10 py-3 text-sm font-sans text-white placeholder-white/40 border border-white/5 focus:border-emerald-500/50 focus:bg-emerald-500/5 focus:outline-none transition-all"
             />
             {searchQuery && (
@@ -665,6 +655,7 @@ export default function GalleryPage() {
                                             src={img.src}
                                             alt={img.alt}
                                             fill
+                                            unoptimized
                                             sizes="(min-width: 768px) 33vw, 50vw"
                                             className="object-cover transition-transform duration-[1.5s] group-hover:scale-110"
                                           />
@@ -751,6 +742,7 @@ export default function GalleryPage() {
                   src={viewerEvent.images[slideIndex].src}
                   alt={viewerEvent.images[slideIndex].alt}
                   fill
+                  unoptimized
                   sizes="100vw"
                   className="object-contain"
                 />
@@ -804,14 +796,38 @@ export default function GalleryPage() {
           </header>
 
           <div className="relative h-full w-full flex items-center justify-center" {...swipeHandlers}>
-            <div key={slideIndex} className="absolute inset-0 gallery-slide">
-              <Image
-                src={viewerEvent.images[slideIndex].src}
-                alt={viewerEvent.images[slideIndex].alt}
-                fill
-                sizes="100vw"
-                className="object-contain"
-              />
+            <div
+              key={slideIndex}
+              className={`gallery-slide flex items-center justify-center ${
+                isFs ? "absolute inset-0" : "p-6 sm:p-10"
+              }`}
+            >
+              {isFs ? (
+                <Image
+                  src={viewerEvent.images[slideIndex].src}
+                  alt={viewerEvent.images[slideIndex].alt}
+                  fill
+                  unoptimized
+                  sizes="100vw"
+                  className="object-contain"
+                />
+              ) : (
+                <Image
+                  src={viewerEvent.images[slideIndex].src}
+                  alt={viewerEvent.images[slideIndex].alt}
+                  width={1920}
+                  height={1080}
+                  unoptimized
+                  style={{
+                    width: "auto",
+                    height: "auto",
+                    maxWidth: "80vw",
+                    maxHeight: "70vh",
+                    objectFit: "contain",
+                  }}
+                  className="rounded-xl shadow-[0_20px_80px_rgba(0,0,0,0.8)]"
+                />
+              )}
             </div>
 
             <button

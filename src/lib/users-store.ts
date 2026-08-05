@@ -1,4 +1,4 @@
-import { fetchCollectionDocs, saveDocument } from "./firebase-db";
+import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
 
 export interface SiteUser {
   email: string;
@@ -79,4 +79,63 @@ export async function createUser(input: {
   };
   await saveDocument(COLLECTION, email, user as unknown as Record<string, unknown>);
   return user;
+}
+
+export async function deleteUser(email: string): Promise<boolean> {
+  const cleanEmail = email.trim().toLowerCase();
+  return deleteDocument(COLLECTION, cleanEmail);
+}
+
+export async function updateUser(
+  oldEmail: string,
+  patch: Partial<SiteUser>
+): Promise<SiteUser | null> {
+  const currentEmail = oldEmail.trim().toLowerCase();
+  const nextEmail = (patch.email?.trim().toLowerCase() || currentEmail).toLowerCase();
+  const existing = await getUser(currentEmail);
+  if (!existing) return null;
+
+  const now = new Date().toISOString();
+  const updated: SiteUser = {
+    email: nextEmail,
+    name: patch.name?.trim() || existing.name,
+    roles: Array.isArray(patch.roles)
+      ? Array.from(new Set(patch.roles.map((r) => String(r).trim()).filter(Boolean)))
+      : existing.roles,
+    sources: Array.isArray(patch.sources)
+      ? Array.from(new Set(patch.sources.map((s) => String(s).trim()).filter(Boolean)))
+      : existing.sources,
+    createdAt: existing.createdAt,
+    updatedAt: now,
+  };
+
+  await saveDocument(COLLECTION, nextEmail, updated as unknown as Record<string, unknown>);
+  if (nextEmail !== currentEmail) {
+    await deleteDocument(COLLECTION, currentEmail);
+  }
+  return updated;
+}
+
+export async function syncMembershipRole(
+  email: string,
+  name: string,
+  shouldBeMember: boolean
+): Promise<void> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return;
+  const existing = await getUser(cleanEmail);
+  const roles = existing?.roles ?? [];
+  const hasMember = roles.includes("member");
+
+  if (!existing) {
+    if (!shouldBeMember) return;
+    await createUser({ name: name.trim(), email: cleanEmail, roles: ["member"] });
+    return;
+  }
+
+  if (shouldBeMember && !hasMember) {
+    await setUserRoles(cleanEmail, [...roles, "member"]);
+  } else if (!shouldBeMember && hasMember) {
+    await setUserRoles(cleanEmail, roles.filter((r) => r !== "member"));
+  }
 }

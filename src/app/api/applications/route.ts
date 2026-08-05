@@ -1,10 +1,19 @@
 import { NextResponse } from "next/server";
-import { getApplications, saveApplication } from "@/lib/applications-store";
+import {
+  findApplicationByEmail,
+  getApplications,
+  saveApplication,
+} from "@/lib/applications-store";
 import type { Application } from "@/lib/applications";
 
 export const dynamic = "force-dynamic";
 
 const REQUIRED_FIELDS = ["fullName", "collegeMail", "contactNumber", "degree", "branch", "section", "year", "reason"] as const;
+
+// A person may only apply once per 24-hour window.
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+const DAILY_LIMIT_MESSAGE =
+  "You've already applied today. Please contact the team directly for any follow-ups or updates.";
 
 export async function GET() {
   const applications = await getApplications();
@@ -36,10 +45,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "contact consent is required" }, { status: 400 });
     }
 
+    const collegeMail = String(body.collegeMail).trim().toLowerCase();
+
+    const existing = await findApplicationByEmail(collegeMail);
+    if (existing) {
+      const submittedAt = new Date(existing.submittedAt || 0).getTime();
+      if (
+        Number.isFinite(submittedAt) &&
+        Date.now() - submittedAt < WINDOW_MS
+      ) {
+        return NextResponse.json({ error: DAILY_LIMIT_MESSAGE }, { status: 429 });
+      }
+    }
+
     const application: Application = {
       id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       fullName: String(body.fullName).trim(),
-      collegeMail: String(body.collegeMail).trim().toLowerCase(),
+      collegeMail,
       contactNumber: String(body.contactNumber).trim(),
       degree: String(body.degree).trim(),
       branch: String(body.branch).trim(),

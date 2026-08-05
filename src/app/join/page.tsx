@@ -16,6 +16,7 @@ import {
   FileText,
   Globe,
   GraduationCap,
+  Info,
   Layers,
   Link2,
   Mail,
@@ -313,6 +314,34 @@ export default function JoinPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
+  const [dailyLimit, setDailyLimit] = useState(false);
+
+  // A person can only apply once per 24 hours — check the college mail as it
+  // is typed and surface an early "contact the team" notice before submission.
+  useEffect(() => {
+    const email = form.collegeMail.trim();
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      if (!COLLEGE_EMAIL_RE.test(email)) {
+        setDailyLimit(false);
+        return;
+      }
+      fetch(`/api/applications/status?email=${encodeURIComponent(email)}`, {
+        cache: "no-store",
+      })
+        .then((r) => r.json())
+        .then((d) => {
+          if (!cancelled) setDailyLimit(!!d.appliedToday);
+        })
+        .catch(() => {
+          if (!cancelled) setDailyLimit(false);
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [form.collegeMail]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -355,15 +384,28 @@ export default function JoinPage() {
   };
 
   const handleNext = () => {
-    if (validateStep1()) {
-      setErrors({});
-      setStep(2);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    if (!validateStep1()) return;
+    if (dailyLimit) {
+      setErrors((prev) => ({
+        ...prev,
+        collegeMail:
+          "You've already applied today. Please contact the team directly for any follow-ups or updates.",
+      }));
+      return;
     }
+    setErrors({});
+    setStep(2);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleSubmit = async () => {
     setSubmitError(null);
+    if (dailyLimit) {
+      setSubmitError(
+        "You've already applied today. Please contact the team directly for any follow-ups or updates."
+      );
+      return;
+    }
     if (!validateStep2()) return;
     if (!consented) {
       setConsentOpen(true);
@@ -555,8 +597,17 @@ export default function JoinPage() {
                         <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.collegeMail}</p>
                       ) : (
                         <p className="mt-1.5 text-xs text-gray-500 font-mono">
-                          Only @crescent.education emails are accepted
+                          Only @crescent.education emails are accepted · one application per person per day
                         </p>
+                      )}
+                      {dailyLimit && (
+                        <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-950/40 p-3 text-xs font-mono text-amber-300">
+                          <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                          <span>
+                            You&apos;ve already applied today. Please contact the team directly for any
+                            follow-ups or updates.
+                          </span>
+                        </div>
                       )}
                     </div>
 

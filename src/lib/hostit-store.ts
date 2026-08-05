@@ -1,4 +1,4 @@
-import { fetchCollectionDocs, saveDocument } from "./firebase-db";
+import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
 
@@ -17,6 +17,7 @@ export interface HostitSubmission {
   proposedDate: string;
   status: SubmissionStatus;
   submittedAt: string;
+  rejectionReason?: string;
 }
 
 const COLLECTION = "hostit";
@@ -37,9 +38,33 @@ export async function saveHostitSubmission(submission: HostitSubmission): Promis
 
 export async function updateHostitStatus(
   id: string,
-  status: SubmissionStatus
+  status: SubmissionStatus,
+  rejectionReason?: string
 ): Promise<HostitSubmission | null> {
-  await saveDocument(COLLECTION, id, { status });
+  const record: Record<string, unknown> = { status };
+  if (status === "rejected") {
+    record.rejectionReason = rejectionReason?.trim() ?? "";
+  } else {
+    record.rejectionReason = "";
+  }
+  await saveDocument(COLLECTION, id, record);
   const subs = await getHostitSubmissions();
   return subs.find((s) => s.id === id) || null;
+}
+
+export async function updateHostitSubmission(
+  id: string,
+  patch: Partial<HostitSubmission>
+): Promise<HostitSubmission | null> {
+  const rest: Partial<HostitSubmission> = { ...patch };
+  delete rest.id;
+  const record: Record<string, unknown> = { ...rest };
+  if (rest.status) record.status = rest.status;
+  await saveDocument(COLLECTION, id, record);
+  const subs = await getHostitSubmissions();
+  return subs.find((s) => s.id === id) || null;
+}
+
+export async function deleteHostitSubmission(id: string): Promise<boolean> {
+  return deleteDocument(COLLECTION, id);
 }
