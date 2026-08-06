@@ -11,6 +11,7 @@ import HostItSection from "@/components/HostItSection";
 import IdeasMarquee from "@/components/IdeasMarquee";
 import HomeFooter from "@/components/HomeFooter";
 import MusicToggle from "@/components/MusicToggle";
+import FocusTicker from "@/components/FocusTicker";
 
 gsap.registerPlugin(ScrollTrigger, CustomEase);
 
@@ -22,6 +23,7 @@ export default function Home() {
   const [splashReveal, setSplashReveal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [focusTickerOn, setFocusTickerOn] = useState(false);
 
   // Detect touch/pointer-coarse devices (mobile/Android) — run once on mount
   useEffect(() => {
@@ -770,6 +772,12 @@ export default function Home() {
       {/* Background Music Toggle — bottom right, fades in after the splash ends */}
       <MusicToggle start={splashDone} />
 
+      {/* Currently Focusing Ticker — fixed to the very top of the page */}
+      <FocusTicker
+        onActiveChange={setFocusTickerOn}
+        hidden={mobileMenuOpen}
+      />
+
       {/* ── Full-Screen Mobile Overlay Menu ── */}
       <div
         aria-modal="true"
@@ -874,8 +882,8 @@ export default function Home() {
       {/* Floating Holographic 3D Glass Pill Navbar */}
       <div
         ref={navWrapRef}
-        className="fixed top-5 left-1/2 -translate-x-1/2 z-[85] w-[92%] max-w-5xl holo-border-wrapper shadow-2xl transition-transform duration-500 hover:scale-[1.01] rounded-full"
-        style={{ clipPath: "inset(0% 50% 0% 50%)" }}
+        className="fixed left-1/2 -translate-x-1/2 z-[85] w-[92%] max-w-5xl holo-border-wrapper shadow-2xl transition-transform duration-500 hover:scale-[1.01] rounded-full"
+        style={{ clipPath: "inset(0% 50% 0% 50%)", top: focusTickerOn ? "3.5rem" : "1.25rem" }}
       >
         <nav
           ref={navRef}

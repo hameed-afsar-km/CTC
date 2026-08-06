@@ -6,7 +6,8 @@ export type AdminScope =
   | "hostit"
   | "users"
   | "gallery"
-  | "logs";
+  | "logs"
+  | "focus";
 
 export const ADMIN_ROLES: AdminRole[] = [
   "super-admin",
@@ -39,6 +40,7 @@ export const SCOPE_ROLES: Record<AdminScope, AdminRole[]> = {
   gallery: ["super-admin", "admin", "media"],
   users: ["super-admin"],
   logs: ["super-admin"],
+  focus: ["super-admin", "admin", "tech"],
 };
 
 export const ALL_SCOPES: AdminScope[] = [
@@ -48,6 +50,7 @@ export const ALL_SCOPES: AdminScope[] = [
   "gallery",
   "users",
   "logs",
+  "focus",
 ];
 
 export function hasScope(role: AdminRole | null | undefined, scope: AdminScope): boolean {

@@ -16,6 +16,7 @@ import {
   Lock,
   LogIn,
   History,
+  Crosshair,
 } from "lucide-react";
 import { AdminProvider, useAdmin } from "@/components/admin/admin-context";
 import { scopesForRole, ROLE_LABELS } from "@/lib/roles";
@@ -26,6 +27,7 @@ import HostitPanel from "@/components/admin/hostit-panel";
 import UsersPanel from "@/components/admin/users-panel";
 import GalleryPanel from "@/components/admin/gallery-panel";
 import LogsPanel from "@/components/admin/logs-panel";
+import FocusPanel from "@/components/admin/focus-panel";
 
 type Tab = AdminScope;
 
@@ -35,6 +37,7 @@ const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
   { id: "hostit", label: "Host'It", icon: CalendarClock },
   { id: "users", label: "Users & Roles", icon: Shield },
   { id: "gallery", label: "Gallery", icon: ImageIcon },
+  { id: "focus", label: "Focus Ticker", icon: Crosshair },
   { id: "logs", label: "Activity Logs", icon: History },
 ];
 
@@ -304,6 +307,7 @@ function DashboardShell() {
         {tab === "hostit" && <HostitPanel />}
         {tab === "users" && <UsersPanel />}
         {tab === "gallery" && <GalleryPanel />}
+        {tab === "focus" && <FocusPanel />}
         {tab === "logs" && <LogsPanel />}
       </main>
     </div>
