@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { findApplicationByEmail } from "@/lib/applications-store";
+import { hasActiveApplicationLimit } from "@/lib/applications-store";
 import { bearerToken } from "@/lib/auth";
 import { verifyCollegeIdToken } from "@/lib/firebase-admin";
+import { getUser } from "@/lib/users-store";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +17,9 @@ export async function GET(request: Request) {
     return NextResponse.json({ hasApplied: false });
   }
 
-  const existing = await findApplicationByEmail(email);
+  const user = await getUser(email);
+  const resetAt = user?.joinResetAt ?? null;
+  const hasApplied = await hasActiveApplicationLimit(email, resetAt);
 
-  return NextResponse.json({
-    hasApplied: !!existing,
-  });
+  return NextResponse.json({ hasApplied });
 }

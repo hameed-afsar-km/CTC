@@ -27,6 +27,28 @@ export async function findApplicationByEmail(
   );
 }
 
+// Whether the once-per-email limit still blocks this address. If an admin has
+// revoked the limit (joinResetAt), applications submitted before that reset
+// no longer count — the person may apply again exactly once.
+export async function hasActiveApplicationLimit(
+  email: string,
+  resetAt?: string | null
+): Promise<boolean> {
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as Application[];
+  const target = email.trim().toLowerCase();
+  const matches = items.filter(
+    (a) => (a.collegeMail || "").trim().toLowerCase() === target
+  );
+  if (matches.length === 0) return false;
+  if (!resetAt) return true;
+  const resetTime = new Date(resetAt).getTime();
+  if (!Number.isFinite(resetTime)) return true;
+  return matches.some(
+    (a) => new Date(a.submittedAt || 0).getTime() > resetTime
+  );
+}
+
 export async function saveApplication(application: Application): Promise<void> {
   const record = { ...application, status: application.status ?? "pending" };
   await saveDocument(COLLECTION, application.id, record as unknown as Record<string, unknown>);

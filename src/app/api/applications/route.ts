@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import {
-  findApplicationByEmail,
   getApplications,
+  hasActiveApplicationLimit,
   saveApplication,
 } from "@/lib/applications-store";
 import type { Application } from "@/lib/applications";
 import { getJoinRolesConfig } from "@/lib/join-roles-store";
 import { bearerToken } from "@/lib/auth";
 import { verifyCollegeIdToken } from "@/lib/firebase-admin";
+import { clearJoinReset, getUser } from "@/lib/users-store";
 
 export const dynamic = "force-dynamic";
 
@@ -64,9 +65,11 @@ export async function POST(request: Request) {
     }
 
     // A person may only apply once with the same email address, regardless of
-    // the outcome of the earlier request. Any follow-ups go through the team.
-    const existing = await findApplicationByEmail(collegeMail);
-    if (existing) {
+    // the outcome of the earlier request — unless an admin has revoked the
+    // limit (joinResetAt), which allows exactly one more application.
+    const user = await getUser(collegeMail);
+    const resetAt = user?.joinResetAt ?? null;
+    if (await hasActiveApplicationLimit(collegeMail, resetAt)) {
       return NextResponse.json({ error: ALREADY_APPLIED_MESSAGE }, { status: 400 });
     }
 
@@ -93,6 +96,9 @@ export async function POST(request: Request) {
     };
 
     await saveApplication(application);
+    if (resetAt) {
+      await clearJoinReset(collegeMail);
+    }
     return NextResponse.json({ application }, { status: 201 });
   } catch (err) {
     const message =

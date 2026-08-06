@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save } from "lucide-react";
+import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save, RotateCcw } from "lucide-react";
 import type { SiteUser } from "@/lib/users-store";
 import { useAdmin } from "./admin-context";
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_BADGE } from "@/lib/roles";
@@ -109,6 +109,39 @@ export default function UsersPanel() {
     } catch (err) {
       setMessage({
         text: err instanceof Error ? `Failed to delete user: ${err.message}` : "Failed to delete user",
+        type: "error",
+      });
+    } finally {
+      setBusyEmail(null);
+    }
+  };
+
+  const revokeJoinLimit = async (user: SiteUser) => {
+    if (
+      !window.confirm(
+        `Revoke the join-application limit for "${user.name}" (${user.email})? They will be allowed to submit one more join request.`
+      )
+    ) {
+      return;
+    }
+    setBusyEmail(user.email);
+    setMessage(null);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/admin/users/revoke-join", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email: user.email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "failed");
+      }
+      setMessage({ text: `Join-application limit revoked for "${user.name}".`, type: "success" });
+      await fetchAll();
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? `Failed to revoke join limit: ${err.message}` : "Failed to revoke join limit",
         type: "error",
       });
     } finally {
@@ -343,6 +376,11 @@ export default function UsersPanel() {
                           <span className="rounded-full bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-gray-500">
                             updated {new Date(user.updatedAt).toLocaleDateString()}
                           </span>
+                          {user.joinResetAt && (
+                            <span className="rounded-full bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 text-[10px] font-mono text-amber-300 uppercase">
+                              Join limit lifted
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -367,6 +405,19 @@ export default function UsersPanel() {
                         </select>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => revokeJoinLimit(user)}
+                          disabled={busyEmail === user.email}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                          title="Revoke the join-application limit so this user can apply once more"
+                        >
+                          {busyEmail === user.email ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <RotateCcw className="w-3.5 h-3.5" />
+                          )}
+                          Revoke Join Limit
+                        </button>
                         <button
                           onClick={() => openEdit(user)}
                           disabled={busyEmail === user.email}

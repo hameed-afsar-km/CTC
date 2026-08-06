@@ -7,6 +7,7 @@ export interface SiteUser {
   sources: string[];
   createdAt: string;
   updatedAt: string;
+  joinResetAt?: string;
 }
 
 const COLLECTION = "users";
@@ -62,6 +63,23 @@ export async function setUserRoles(email: string, roles: string[]): Promise<Site
   return { ...existing, roles, updatedAt: now };
 }
 
+export async function revokeJoinLimit(email: string): Promise<SiteUser | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  const existing = await getUser(cleanEmail);
+  if (!existing) return null;
+  const now = new Date().toISOString();
+  await saveDocument(COLLECTION, cleanEmail, { joinResetAt: now, updatedAt: now });
+  return { ...existing, joinResetAt: now, updatedAt: now };
+}
+
+export async function clearJoinReset(email: string): Promise<void> {
+  const cleanEmail = email.trim().toLowerCase();
+  await saveDocument(COLLECTION, cleanEmail, {
+    joinResetAt: null,
+    updatedAt: new Date().toISOString(),
+  });
+}
+
 export async function createUser(input: {
   name: string;
   email: string;
@@ -107,6 +125,7 @@ export async function updateUser(
       : existing.sources,
     createdAt: existing.createdAt,
     updatedAt: now,
+    joinResetAt: existing.joinResetAt,
   };
 
   await saveDocument(COLLECTION, nextEmail, updated as unknown as Record<string, unknown>);
