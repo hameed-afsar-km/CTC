@@ -3,6 +3,7 @@ export interface Application {
   fullName: string;
   collegeMail: string;
   contactNumber: string;
+  role: string;
   degree: string;
   branch: string;
   section: string;

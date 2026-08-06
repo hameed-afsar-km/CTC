@@ -5,10 +5,11 @@ import {
   saveApplication,
 } from "@/lib/applications-store";
 import type { Application } from "@/lib/applications";
+import { getJoinRolesConfig } from "@/lib/join-roles-store";
 
 export const dynamic = "force-dynamic";
 
-const REQUIRED_FIELDS = ["fullName", "collegeMail", "contactNumber", "degree", "branch", "section", "year", "reason"] as const;
+const REQUIRED_FIELDS = ["fullName", "role", "collegeMail", "contactNumber", "degree", "branch", "section", "year", "reason"] as const;
 
 // A person may only apply once per 24-hour window.
 const WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -47,6 +48,16 @@ export async function POST(request: Request) {
 
     const collegeMail = String(body.collegeMail).trim().toLowerCase();
 
+    const config = await getJoinRolesConfig();
+    const role = String(body.role ?? "").trim() || "member";
+    const openRoles = config.roles.length > 0 ? config.roles : ["member"];
+    if (!openRoles.includes(role)) {
+      return NextResponse.json(
+        { error: "The selected role is no longer open for applications" },
+        { status: 400 }
+      );
+    }
+
     const existing = await findApplicationByEmail(collegeMail);
     if (existing) {
       const submittedAt = new Date(existing.submittedAt || 0).getTime();
@@ -63,6 +74,7 @@ export async function POST(request: Request) {
       fullName: String(body.fullName).trim(),
       collegeMail,
       contactNumber: String(body.contactNumber).trim(),
+      role,
       degree: String(body.degree).trim(),
       branch: String(body.branch).trim(),
       section: String(body.section).trim(),

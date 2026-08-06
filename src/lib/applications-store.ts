@@ -1,5 +1,5 @@
 import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
-import { syncMembershipRole } from "./users-store";
+import { syncAppliedRole } from "./users-store";
 import type { Application } from "./applications";
 
 const COLLECTION = "applications";
@@ -47,7 +47,12 @@ export async function updateApplicationStatus(
   const apps = await getApplications();
   const updated = apps.find((a) => a.id === id) || null;
   if (updated) {
-    await syncMembershipRole(updated.collegeMail, updated.fullName, status === "approved");
+    await syncAppliedRole(
+      updated.collegeMail,
+      updated.fullName,
+      updated.role || "member",
+      status === "approved"
+    );
   }
   return updated;
 }
@@ -64,7 +69,12 @@ export async function updateApplication(
   const apps = await getApplications();
   const updated = apps.find((a) => a.id === id) || null;
   if (updated && rest.status) {
-    await syncMembershipRole(updated.collegeMail, updated.fullName, rest.status === "approved");
+    await syncAppliedRole(
+      updated.collegeMail,
+      updated.fullName,
+      updated.role || "member",
+      rest.status === "approved"
+    );
   }
   return updated;
 }

@@ -17,6 +17,7 @@ import {
   LogIn,
   History,
   Crosshair,
+  BadgeCheck,
 } from "lucide-react";
 import { AdminProvider, useAdmin } from "@/components/admin/admin-context";
 import { scopesForRole, ROLE_LABELS } from "@/lib/roles";
@@ -28,6 +29,7 @@ import UsersPanel from "@/components/admin/users-panel";
 import GalleryPanel from "@/components/admin/gallery-panel";
 import LogsPanel from "@/components/admin/logs-panel";
 import FocusPanel from "@/components/admin/focus-panel";
+import JoinRolesPanel from "@/components/admin/join-roles-panel";
 
 type Tab = AdminScope;
 
@@ -38,6 +40,7 @@ const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
   { id: "users", label: "Users & Roles", icon: Shield },
   { id: "gallery", label: "Gallery", icon: ImageIcon },
   { id: "focus", label: "Focus Ticker", icon: Crosshair },
+  { id: "join", label: "Join Roles", icon: BadgeCheck },
   { id: "logs", label: "Activity Logs", icon: History },
 ];
 
@@ -131,11 +134,12 @@ function DashboardShell() {
     [user?.role]
   );
 
-  useEffect(() => {
-    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)) {
-      setTab(visibleTabs[0].id);
-    }
-  }, [visibleTabs, tab]);
+  // If the selected tab isn't visible to the current role, fall back to the
+  // first tab they do have access to — derived during render, no effect needed.
+  const activeTab: Tab =
+    visibleTabs.length > 0 && !visibleTabs.some((t) => t.id === tab)
+      ? visibleTabs[0].id
+      : tab;
 
   if (status === "loading") {
     return (
@@ -288,7 +292,7 @@ function DashboardShell() {
               key={id}
               onClick={() => setTab(id)}
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
-                tab === id
+                activeTab === id
                   ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_20px_rgba(52,211,153,0.15)]"
                   : "bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/20"
               }`}
@@ -302,13 +306,14 @@ function DashboardShell() {
 
       {/* Content */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
-        {tab === "events" && <EventsPanel />}
-        {tab === "applications" && <ApplicationsPanel />}
-        {tab === "hostit" && <HostitPanel />}
-        {tab === "users" && <UsersPanel />}
-        {tab === "gallery" && <GalleryPanel />}
-        {tab === "focus" && <FocusPanel />}
-        {tab === "logs" && <LogsPanel />}
+        {activeTab === "events" && <EventsPanel />}
+        {activeTab === "applications" && <ApplicationsPanel />}
+        {activeTab === "hostit" && <HostitPanel />}
+        {activeTab === "users" && <UsersPanel />}
+        {activeTab === "gallery" && <GalleryPanel />}
+        {activeTab === "focus" && <FocusPanel />}
+        {activeTab === "join" && <JoinRolesPanel />}
+        {activeTab === "logs" && <LogsPanel />}
       </main>
     </div>
   );

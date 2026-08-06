@@ -422,6 +422,10 @@ export default function EventsPanel() {
                 placeholder="https://example.com/register"
                 className={inputCls}
               />
+              <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                Leave empty to point the CTA to the 404 page — a real link redirects to the
+                assigned page.
+              </p>
             </div>
 
             <div>

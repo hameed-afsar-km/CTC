@@ -15,6 +15,7 @@ import {
   Tag,
 } from "lucide-react";
 import type { ClubEvent } from "@/lib/events";
+import { eventCtaHref, hasCtaLink } from "@/lib/events";
 import { gsap } from "gsap";
 
 function formatDate(dateStr: string) {
@@ -46,6 +47,8 @@ export default function EventsPage() {
 
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const [now] = useState(() => Date.now());
 
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const cursorPngRef = useRef<HTMLDivElement>(null);
@@ -139,7 +142,6 @@ export default function EventsPage() {
     });
   }, [events, selectedCategory, searchQuery]);
 
-  const now = Date.now();
   const upcoming = useMemo(() => {
     return filteredEvents
       .filter((e) => new Date(e.date).getTime() > now)
@@ -230,12 +232,12 @@ export default function EventsPage() {
               </span>
             </div>
 
-            {ev.registerUrl && !isPast && (
+            {!isPast && (
               <a
-                href={ev.registerUrl}
+                href={eventCtaHref(ev.registerUrl)}
                 onClick={(e) => e.stopPropagation()}
-                target={ev.registerUrl.startsWith("http") ? "_blank" : undefined}
-                rel="noreferrer"
+                target={hasCtaLink(ev.registerUrl) ? "_blank" : undefined}
+                rel={hasCtaLink(ev.registerUrl) ? "noreferrer" : undefined}
                 className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-4 py-1.5 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/30 transition-all hover:bg-emerald-500 hover:text-black hover:shadow-[0_0_18px_rgba(52,211,153,0.5)]"
               >
                 Register <ExternalLink className="h-3.5 w-3.5" />
@@ -466,7 +468,7 @@ export default function EventsPage() {
                 <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3.5 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40">
                   {selectedEvent.category || "EVENT"}
                 </span>
-                {new Date(selectedEvent.date).getTime() <= Date.now() && (
+                {new Date(selectedEvent.date).getTime() <= now && (
                   <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/50 border border-white/10">
                     Completed
                   </span>
@@ -512,12 +514,12 @@ export default function EventsPage() {
             </div>
 
             {/* Modal Footer CTA */}
-            {selectedEvent.registerUrl && new Date(selectedEvent.date).getTime() > Date.now() && (
+            {new Date(selectedEvent.date).getTime() > now && (
               <div className="p-6 sm:px-10 border-t border-white/10 bg-black/40 shrink-0 flex justify-end">
                 <a
-                  href={selectedEvent.registerUrl}
-                  target={selectedEvent.registerUrl.startsWith("http") ? "_blank" : undefined}
-                  rel="noreferrer"
+                  href={eventCtaHref(selectedEvent.registerUrl)}
+                  target={hasCtaLink(selectedEvent.registerUrl) ? "_blank" : undefined}
+                  rel={hasCtaLink(selectedEvent.registerUrl) ? "noreferrer" : undefined}
                   className="inline-flex w-full sm:w-auto justify-center items-center gap-2.5 rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
                 >
                   Register Now <ExternalLink className="h-4 w-4" />

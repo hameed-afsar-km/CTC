@@ -9,6 +9,19 @@ export interface ClubEvent {
   registerUrl: string;
 }
 
+const NO_CTA = new Set(["#", "#!", "#/", "/", ""]);
+
+export function hasCtaLink(registerUrl?: string): boolean {
+  if (!registerUrl) return false;
+  const trimmed = registerUrl.trim();
+  if (!trimmed) return false;
+  return !NO_CTA.has(trimmed.toLowerCase());
+}
+
+export function eventCtaHref(registerUrl?: string): string {
+  return hasCtaLink(registerUrl) ? registerUrl!.trim() : "/404";
+}
+
 export const defaultEvents: ClubEvent[] = [
   {
     id: "codestorm-2026",

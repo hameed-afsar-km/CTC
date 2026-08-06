@@ -7,7 +7,8 @@ export type AdminScope =
   | "users"
   | "gallery"
   | "logs"
-  | "focus";
+  | "focus"
+  | "join";
 
 export const ADMIN_ROLES: AdminRole[] = [
   "super-admin",
@@ -41,6 +42,7 @@ export const SCOPE_ROLES: Record<AdminScope, AdminRole[]> = {
   users: ["super-admin"],
   logs: ["super-admin"],
   focus: ["super-admin", "admin", "tech"],
+  join: ["super-admin", "admin"],
 };
 
 export const ALL_SCOPES: AdminScope[] = [
@@ -51,6 +53,7 @@ export const ALL_SCOPES: AdminScope[] = [
   "users",
   "logs",
   "focus",
+  "join",
 ];
 
 export function hasScope(role: AdminRole | null | undefined, scope: AdminScope): boolean {

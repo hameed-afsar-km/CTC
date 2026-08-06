@@ -116,26 +116,28 @@ export async function updateUser(
   return updated;
 }
 
-export async function syncMembershipRole(
+export async function syncAppliedRole(
   email: string,
   name: string,
-  shouldBeMember: boolean
+  role: string,
+  shouldHaveRole: boolean
 ): Promise<void> {
   const cleanEmail = email.trim().toLowerCase();
-  if (!cleanEmail) return;
+  const cleanRole = String(role || "").trim().toLowerCase();
+  if (!cleanEmail || !cleanRole) return;
   const existing = await getUser(cleanEmail);
   const roles = existing?.roles ?? [];
-  const hasMember = roles.includes("member");
+  const hasRole = roles.includes(cleanRole);
 
   if (!existing) {
-    if (!shouldBeMember) return;
-    await createUser({ name: name.trim(), email: cleanEmail, roles: ["member"] });
+    if (!shouldHaveRole) return;
+    await createUser({ name: name.trim(), email: cleanEmail, roles: [cleanRole] });
     return;
   }
 
-  if (shouldBeMember && !hasMember) {
-    await setUserRoles(cleanEmail, [...roles, "member"]);
-  } else if (!shouldBeMember && hasMember) {
-    await setUserRoles(cleanEmail, roles.filter((r) => r !== "member"));
+  if (shouldHaveRole && !hasRole) {
+    await setUserRoles(cleanEmail, [...roles, cleanRole]);
+  } else if (!shouldHaveRole && hasRole) {
+    await setUserRoles(cleanEmail, roles.filter((r) => r !== cleanRole));
   }
 }

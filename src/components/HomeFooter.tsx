@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ArrowUpRight, ChevronRight } from "lucide-react";
 import { ShinyButton } from "@/components/ui/shiny-button";
+import { useSmoothScroll } from "@/components/SmoothScroll";
 
 /* ─── Flip panel data ──────────────────────────────────── */
 const PANELS = [
@@ -86,10 +87,14 @@ function FlipPanel({
 
 /* ─── Main component ───────────────────────────────────── */
 export default function HomeFooter() {
+  const lenis = useSmoothScroll();
   const [mouse, setMouse] = useState({ x: 50, y: 50 });
   const [showContactModal, setShowContactModal] = useState(false);
 
-  const toTop  = () => window.scrollTo({ top: 0, behavior: "smooth" });
+  const toTop  = () => {
+    if (lenis) lenis.scrollTo(0);
+    else window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   const mailto = () => { window.location.href = "mailto:contact@crescenttechnocrats.club"; };
 
   return (

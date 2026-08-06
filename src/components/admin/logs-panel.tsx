@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Search, Download, FileDown, Loader2, RotateCcw } from "lucide-react";
+import { Search, Download, FileDown, Loader2, RotateCcw, Trash2 } from "lucide-react";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { LogEntry } from "@/lib/logs-store";
@@ -17,6 +17,8 @@ const SCOPE_LABELS: Record<string, string> = {
   users: "Users",
   gallery: "Gallery",
   logs: "Logs",
+  focus: "Focus Ticker",
+  join: "Join Roles",
   auth: "Auth",
 };
 
@@ -77,6 +79,7 @@ export default function LogsPanel() {
   const [sortField, setSortField] = useState<SortField>("timestamp");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [exporting, setExporting] = useState<"csv" | "pdf" | null>(null);
+  const [clearing, setClearing] = useState(false);
   const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
@@ -255,6 +258,36 @@ export default function LogsPanel() {
     setExporting(null);
   };
 
+  const clearFiltered = async () => {
+    if (filtered.length === 0) return;
+    const confirmed = window.confirm(
+      `Delete ${filtered.length} filtered log entr${filtered.length === 1 ? "y" : "ies"}? This cannot be undone.`
+    );
+    if (!confirmed) return;
+    setClearing(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/admin/logs", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ ids: filtered.map((r) => r.id) }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setLoadError(data?.error ? `Failed to clear logs (${res.status}): ${data.error}` : `Failed to clear logs (${res.status})`);
+        return;
+      }
+      await fetchLogs();
+    } catch {
+      setLoadError("Could not reach the logs server.");
+    } finally {
+      setClearing(false);
+    }
+  };
+
   const modified =
     query.trim() !== "" ||
     scope !== "all" ||
@@ -417,6 +450,16 @@ export default function LogsPanel() {
             >
               {exporting === "pdf" ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
               PDF
+            </button>
+            <span className="w-px h-6 bg-white/10" aria-hidden />
+            <button
+              onClick={clearFiltered}
+              disabled={exporting !== null || clearing || filtered.length === 0}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+              title="Delete the currently filtered, sorted entries"
+            >
+              {clearing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              Clear ({filtered.length})
             </button>
           </div>
         </div>

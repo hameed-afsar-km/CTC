@@ -33,6 +33,7 @@ import {
   normalizeUrl,
   isValidUrl,
 } from "@/lib/applications";
+import { ALL_JOIN_ROLES, displayJoinRole } from "@/lib/join-roles";
 import { downloadCsv, downloadPdf, type Row } from "@/lib/export-utils";
 import { useAdmin } from "./admin-context";
 import { DecisionModal, EmptyState, LoadingState, PanelCard, StatusBadge, inputCls, labelCls } from "./ui";
@@ -42,6 +43,7 @@ const FILTERS = ["all", "pending", "approved", "rejected"] as const;
 function toExportRows(apps: Application[]): Row[] {
   return apps.map((a) => ({
     Name: a.fullName,
+    Role: a.role ? displayJoinRole(a.role) : "Member",
     Email: a.collegeMail,
     Contact: a.contactNumber,
     Degree: a.degree,
@@ -229,6 +231,7 @@ export default function ApplicationsPanel() {
         fullName: form.fullName.trim(),
         collegeMail: form.collegeMail.trim(),
         contactNumber: form.contactNumber?.trim() ?? "",
+        role: form.role?.trim() || "member",
         degree: form.degree ?? "",
         branch: form.branch ?? "",
         section: form.section ?? "",
@@ -294,7 +297,7 @@ export default function ApplicationsPanel() {
     return apps.filter((a) => {
       if (filter !== "all" && (a.status ?? "pending") !== filter) return false;
       if (!q) return true;
-      return [a.fullName, a.collegeMail, a.degree, a.branch, a.section, a.year]
+      return [a.fullName, a.collegeMail, a.degree, a.branch, a.section, a.year, a.role]
         .join(" ")
         .toLowerCase()
         .includes(q);
@@ -303,6 +306,7 @@ export default function ApplicationsPanel() {
 
   const exportHeaders = [
     "Name",
+    "Role",
     "Email",
     "Contact",
     "Degree",
@@ -418,6 +422,9 @@ export default function ApplicationsPanel() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2 mb-1.5">
                     <h3 className="text-base font-bold text-white">{a.fullName}</h3>
+                    <span className="rounded-full bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-300">
+                      {a.role ? displayJoinRole(a.role) : "Member"}
+                    </span>
                     <StatusBadge status={a.status ?? "pending"} />
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gray-400">
@@ -601,6 +608,24 @@ export default function ApplicationsPanel() {
                         onChange={(e) => setForm({ ...form, contactNumber: e.target.value })}
                         className={inputCls}
                       />
+                    </div>
+                    <div>
+                      <label className={labelCls}>Role Applying For</label>
+                      <select
+                        value={form.role ?? ""}
+                        onChange={(e) => setForm({ ...form, role: e.target.value })}
+                        className={inputCls}
+                      >
+                        <option value="">Select role</option>
+                        {[
+                          ...ALL_JOIN_ROLES,
+                          ...((form.role && !ALL_JOIN_ROLES.includes(form.role))
+                            ? [form.role]
+                            : []),
+                        ].map((r) => (
+                          <option key={r} value={r}>{displayJoinRole(r)}</option>
+                        ))}
+                      </select>
                     </div>
                     <div>
                       <label className={labelCls}>Degree</label>
@@ -832,6 +857,12 @@ export default function ApplicationsPanel() {
                       <span className="inline-flex items-center gap-1.5">
                         <Phone className="w-3.5 h-3.5 text-emerald-400" />
                         {viewing.contactNumber || "—"}
+                      </span>
+                    </Field>
+                    <Field label="Role Applying For">
+                      <span className="inline-flex items-center gap-1.5">
+                        <User className="w-3.5 h-3.5 text-emerald-400" />
+                        {viewing.role ? displayJoinRole(viewing.role) : "Member"}
                       </span>
                     </Field>
                     <Field label="Degree">

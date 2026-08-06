@@ -12,6 +12,7 @@ import IdeasMarquee from "@/components/IdeasMarquee";
 import HomeFooter from "@/components/HomeFooter";
 import MusicToggle from "@/components/MusicToggle";
 import FocusTicker from "@/components/FocusTicker";
+import { useSmoothScroll } from "@/components/SmoothScroll";
 
 gsap.registerPlugin(ScrollTrigger, CustomEase);
 
@@ -19,6 +20,7 @@ CustomEase.create("smooth", "0.43, 0.13, 0.23, 0.96");
 CustomEase.create("smoothOut", "0.65, 0, 0.35, 1");
 
 export default function Home() {
+  const lenis = useSmoothScroll();
   const [splashDone, setSplashDone] = useState(false);
   const [splashReveal, setSplashReveal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -83,7 +85,11 @@ export default function Home() {
 
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (lenis) {
+      lenis.scrollTo(0);
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   // Keep the custom cursor hidden for the first 4 seconds after load

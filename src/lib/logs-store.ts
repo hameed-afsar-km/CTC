@@ -1,4 +1,8 @@
-import { fetchCollectionDocs, saveDocument } from "./firebase-db";
+import {
+  fetchCollectionDocs,
+  saveDocument,
+  deleteDocument,
+} from "./firebase-db";
 
 export interface LogEntry {
   id: string;
@@ -118,4 +122,12 @@ export async function getLogs(): Promise<LogEntry[]> {
       (a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
+}
+
+export async function clearLogs(ids: string[]): Promise<number> {
+  let deleted = 0;
+  for (const id of ids) {
+    if (await deleteDocument(COLLECTION, id)) deleted += 1;
+  }
+  return deleted;
 }

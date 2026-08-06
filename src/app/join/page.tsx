@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ArrowRight,
   AtSign,
+  BadgeCheck,
   Building2,
   Calendar,
   Check,
@@ -35,6 +36,8 @@ import {
   YEARS,
   isValidUrl,
 } from "@/lib/applications";
+import { displayJoinRole } from "@/lib/join-roles";
+import { useSmoothScroll } from "@/components/SmoothScroll";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
@@ -49,6 +52,7 @@ const textareaClass = inputClass + " resize-none";
 
 interface FormState {
   fullName: string;
+  role: string;
   collegeMail: string;
   contactNumber: string;
   degree: string;
@@ -66,6 +70,7 @@ interface FormState {
 
 const INITIAL_FORM: FormState = {
   fullName: "",
+  role: "",
   collegeMail: "",
   contactNumber: "",
   degree: "",
@@ -245,11 +250,17 @@ const OPTIONAL_URL_FIELDS: {
 ];
 
 export default function JoinPage() {
+  const lenis = useSmoothScroll();
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const cursorPngRef = useRef<HTMLDivElement>(null);
   const macHoverRef = useRef(false);
   const [cursorVisible, setCursorVisible] = useState(false);
   const [macHover, setMacHover] = useState(false);
+
+  const scrollToTop = (behavior: ScrollBehavior = "smooth") => {
+    if (lenis) lenis.scrollTo(0);
+    else window.scrollTo({ top: 0, behavior });
+  };
 
   // Detect touch/pointer-coarse devices — skip the custom cursor there
   useEffect(() => {
@@ -315,6 +326,29 @@ export default function JoinPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
   const [dailyLimit, setDailyLimit] = useState(false);
+  const [openRoles, setOpenRoles] = useState<string[]>([]);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
+
+  // Load the roles the admins have opened for applications.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/join-roles", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        const roles = Array.isArray(d?.roles) ? d.roles.filter((x: unknown): x is string => typeof x === "string") : [];
+        setOpenRoles(roles.length > 0 ? roles : ["member"]);
+      })
+      .catch(() => {
+        if (!cancelled) setOpenRoles(["member"]);
+      })
+      .finally(() => {
+        if (!cancelled) setRolesLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // A person can only apply once per 24 hours — check the college mail as it
   // is typed and surface an early "contact the team" notice before submission.
@@ -356,6 +390,10 @@ export default function JoinPage() {
   const validateStep1 = (): boolean => {
     const e: Record<string, string> = {};
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
+    if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
+    else if (rolesLoaded && !openRoles.includes(form.role)) {
+      e.role = "The selected role is no longer open for applications";
+    }
     const collegeMail = form.collegeMail.trim();
     if (!EMAIL_RE.test(collegeMail)) {
       e.collegeMail = "Enter a valid college email";
@@ -395,7 +433,7 @@ export default function JoinPage() {
     }
     setErrors({});
     setStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToTop();
   };
 
   const handleSubmit = async () => {
@@ -488,7 +526,7 @@ export default function JoinPage() {
                     setConsented(false);
                     setErrors({});
                     setStep(1);
-                    window.scrollTo({ top: 0 });
+                    scrollToTop("auto");
                   }}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
                 >
@@ -572,6 +610,41 @@ export default function JoinPage() {
                     </div>
                     {errors.fullName && (
                       <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.fullName}</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label htmlFor="role" className={labelClass}>
+                      Role Applying For *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                        <BadgeCheck className="w-4 h-4" />
+                      </span>
+                      <select
+                        id="role"
+                        value={form.role}
+                        onChange={(e) => set("role", e.target.value)}
+                        disabled={!rolesLoaded}
+                        className={`${selectClass} pl-10 ${errors.role ? "border-red-500/50" : ""}`}
+                      >
+                        <option value="" disabled>
+                          {rolesLoaded ? "Select a role" : "Loading roles…"}
+                        </option>
+                        {openRoles.map((r) => (
+                          <option key={r} value={r} className="bg-[#0d1317]">
+                            {displayJoinRole(r)}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    </div>
+                    {errors.role ? (
+                      <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.role}</p>
+                    ) : (
+                      <p className="mt-1.5 text-xs text-gray-500 font-mono">
+                        Pick the team you&apos;d like to join. Roles listed here are currently open.
+                      </p>
                     )}
                   </div>
 
@@ -884,7 +957,7 @@ export default function JoinPage() {
                       onClick={() => {
                         setErrors({});
                         setStep(1);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        scrollToTop();
                       }}
                       className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
                     >

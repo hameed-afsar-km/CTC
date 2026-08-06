@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import CountdownTimer from "./CountdownTimer";
-import { defaultEvents, type ClubEvent } from "@/lib/events";
+import { defaultEvents, eventCtaHref, hasCtaLink, type ClubEvent } from "@/lib/events";
 import { useInView } from "@/hooks/useInView";
 import {
   Calendar,
@@ -331,9 +331,9 @@ export default function EventsShowcase() {
                     {/* CTA row */}
                     <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
                       <a
-                        href={nextEvent.registerUrl}
-                        target={nextEvent.registerUrl.startsWith("http") ? "_blank" : undefined}
-                        rel="noreferrer"
+                        href={eventCtaHref(nextEvent.registerUrl)}
+                        target={hasCtaLink(nextEvent.registerUrl) ? "_blank" : undefined}
+                        rel={hasCtaLink(nextEvent.registerUrl) ? "noreferrer" : undefined}
                         className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-black font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_32px_rgba(52,211,153,0.5)] hover:shadow-[0_0_48px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
                       >
                         Register Now

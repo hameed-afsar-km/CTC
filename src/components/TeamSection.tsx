@@ -6,6 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ScrollToPlugin } from "gsap/ScrollToPlugin";
 import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { DitheringShader } from "@/components/ui/dithering-shader";
+import { useSmoothScroll } from "@/components/SmoothScroll";
 
 gsap.registerPlugin(ScrollTrigger, ScrollToPlugin);
 
@@ -313,6 +314,7 @@ function MemberCard({ member }: { member: TeamMember }) {
 function FacultyShowcase({ members }: { members: TeamMember[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const isMobile = useIsMobile();
+  const lenis = useSmoothScroll();
   const introRef = useRef<HTMLDivElement>(null);
   const headlineRef = useRef<HTMLDivElement>(null);
   const showcaseRef = useRef<HTMLDivElement>(null);
@@ -426,15 +428,21 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
     setActiveIndex(index);
 
     if (scrollTweenRef.current) scrollTweenRef.current.kill();
-    scrollTweenRef.current = gsap.to(window, {
-      scrollTo: targetScroll,
-      duration: 0.8,
-      ease: "power2.inOut",
-      overwrite: "auto",
-      onComplete: () => {
-        scrollTweenRef.current = null;
-      },
-    });
+    scrollTweenRef.current = null;
+
+    if (lenis) {
+      lenis.scrollTo(targetScroll, { duration: 0.8 });
+    } else {
+      scrollTweenRef.current = gsap.to(window, {
+        scrollTo: targetScroll,
+        duration: 0.8,
+        ease: "power2.inOut",
+        overwrite: "auto",
+        onComplete: () => {
+          scrollTweenRef.current = null;
+        },
+      });
+    }
   };
 
   return (
@@ -477,6 +485,7 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
 function StudentShowcase({ members }: { members: TeamMember[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const isMobile = useIsMobile();
+  const lenis = useSmoothScroll();
   const showcaseRef = useRef<HTMLDivElement>(null);
   const memberCardsRef = useRef<(HTMLDivElement | null)[]>([]);
   const scrollTweenRef = useRef<gsap.core.Tween | null>(null);
@@ -577,15 +586,21 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
     setActiveIndex(index);
 
     if (scrollTweenRef.current) scrollTweenRef.current.kill();
-    scrollTweenRef.current = gsap.to(window, {
-      scrollTo: targetScroll,
-      duration: 0.8,
-      ease: "power2.inOut",
-      overwrite: "auto",
-      onComplete: () => {
-        scrollTweenRef.current = null;
-      },
-    });
+    scrollTweenRef.current = null;
+
+    if (lenis) {
+      lenis.scrollTo(targetScroll, { duration: 0.8 });
+    } else {
+      scrollTweenRef.current = gsap.to(window, {
+        scrollTo: targetScroll,
+        duration: 0.8,
+        ease: "power2.inOut",
+        overwrite: "auto",
+        onComplete: () => {
+          scrollTweenRef.current = null;
+        },
+      });
+    }
   };
 
   return (
