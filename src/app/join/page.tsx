@@ -4,6 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import Link from "next/link";
 import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signInWithRedirect,
+  signOut as firebaseSignOut,
+} from "firebase/auth";
+import {
   ArrowLeft,
   ArrowRight,
   AtSign,
@@ -20,6 +27,9 @@ import {
   Info,
   Layers,
   Link2,
+  Loader2,
+  LogIn,
+  LogOut,
   Mail,
   Phone,
   Send,
@@ -27,6 +37,7 @@ import {
   User,
   X,
 } from "lucide-react";
+import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
 import {
   BRANCHES,
   DEGREES,
@@ -39,9 +50,15 @@ import {
 import { displayJoinRole } from "@/lib/join-roles";
 import { useSmoothScroll } from "@/components/SmoothScroll";
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 const PHONE_RE = /^[+]?[\d\s()-]{10,15}$/;
+
+function authErrorCode(err: unknown): string {
+  if (typeof err === "object" && err !== null && "code" in err) {
+    return String((err as { code?: unknown }).code ?? "");
+  }
+  return "";
+}
 
 const labelClass =
   "block text-[11px] font-mono uppercase tracking-wider text-gray-400 mb-2";
@@ -325,7 +342,15 @@ export default function JoinPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
-  const [dailyLimit, setDailyLimit] = useState(false);
+  const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [authStatus, setAuthStatus] = useState<"loading" | "signed-out" | "ready">("loading");
+  const [authUser, setAuthUser] = useState<{
+    email: string;
+    name: string;
+    picture: string | null;
+  } | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [signingIn, setSigningIn] = useState(false);
   const [openRoles, setOpenRoles] = useState<string[]>([]);
   const [rolesLoaded, setRolesLoaded] = useState(false);
 
@@ -350,32 +375,96 @@ export default function JoinPage() {
     };
   }, []);
 
-  // A person can only apply once per 24 hours — check the college mail as it
-  // is typed and surface an early "contact the team" notice before submission.
-  useEffect(() => {
-    const email = form.collegeMail.trim();
-    let cancelled = false;
-    const t = window.setTimeout(() => {
-      if (!COLLEGE_EMAIL_RE.test(email)) {
-        setDailyLimit(false);
+  const signInWithGoogle = async () => {
+    setAuthError(null);
+    setSigningIn(true);
+    const auth = getClientAuth();
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ hd: "crescent.education" });
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (err) {
+      const code = authErrorCode(err);
+      if (
+        code === "auth/popup-blocked" ||
+        code === "auth/operation-not-supported-in-this-environment"
+      ) {
+        await signInWithRedirect(auth, provider);
         return;
       }
-      fetch(`/api/applications/status?email=${encodeURIComponent(email)}`, {
-        cache: "no-store",
-      })
-        .then((r) => r.json())
-        .then((d) => {
-          if (!cancelled) setDailyLimit(!!d.appliedToday);
-        })
-        .catch(() => {
-          if (!cancelled) setDailyLimit(false);
-        });
-    }, 400);
+      if (code === "auth/unauthorized-domain") {
+        setAuthError(
+          "Google sign-in is not allowed on this domain yet. Add it in the Firebase Console (Authentication → Settings → Authorized domains)."
+        );
+      } else if (code === "auth/popup-closed-by-user") {
+        setAuthError("The sign-in window was closed before you finished.");
+      } else {
+        setAuthError("Something went wrong while signing in. Please try again.");
+      }
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
+  // Require a verified @crescent.education Google account to apply.
+  useEffect(() => {
+    const auth = getClientAuth();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setAlreadyApplied(false);
+      if (!firebaseUser || !firebaseUser.email) {
+        setAuthStatus("signed-out");
+        setAuthUser(null);
+        return;
+      }
+      const email = firebaseUser.email.toLowerCase();
+      if (!COLLEGE_EMAIL_RE.test(email)) {
+        setAuthUser(null);
+        setAuthError("Please sign in with your @crescent.education Google account.");
+        setAuthStatus("signed-out");
+        firebaseSignOut(auth).catch(() => {});
+        return;
+      }
+      setAuthError(null);
+      setAuthUser({
+        email,
+        name: firebaseUser.displayName || "",
+        picture: firebaseUser.photoURL || null,
+      });
+      setForm((prev) => ({
+        ...prev,
+        collegeMail: email,
+        fullName: prev.fullName.trim() ? prev.fullName : firebaseUser.displayName || "",
+      }));
+      setAuthStatus("ready");
+    });
+    return unsubscribe;
+  }, []);
+
+  // A person may only apply once with the same email address — check the
+  // verified college mail after sign-in and surface an early "contact the
+  // team" notice before submission.
+  useEffect(() => {
+    if (!authUser || !COLLEGE_EMAIL_RE.test(authUser.email)) return;
+    let cancelled = false;
+    const check = async () => {
+      const token = await getCurrentIdToken();
+      if (cancelled || !token) return;
+      try {
+        const res = await fetch(
+          `/api/applications/status?email=${encodeURIComponent(authUser.email)}`,
+          { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
+        );
+        const data = await res.json().catch(() => null);
+        if (!cancelled) setAlreadyApplied(!!data?.hasApplied);
+      } catch {
+        if (!cancelled) setAlreadyApplied(false);
+      }
+    };
+    check();
     return () => {
       cancelled = true;
-      window.clearTimeout(t);
     };
-  }, [form.collegeMail]);
+  }, [authUser]);
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -394,11 +483,8 @@ export default function JoinPage() {
     else if (rolesLoaded && !openRoles.includes(form.role)) {
       e.role = "The selected role is no longer open for applications";
     }
-    const collegeMail = form.collegeMail.trim();
-    if (!EMAIL_RE.test(collegeMail)) {
-      e.collegeMail = "Enter a valid college email";
-    } else if (!COLLEGE_EMAIL_RE.test(collegeMail)) {
-      e.collegeMail = "Only your official college email (@crescent.education) is accepted";
+    if (!authUser) {
+      e.collegeMail = "Please sign in with your college Google account first";
     }
     if (!PHONE_RE.test(form.contactNumber.trim())) e.contactNumber = "Enter a valid contact number";
     setErrors(e);
@@ -423,11 +509,11 @@ export default function JoinPage() {
 
   const handleNext = () => {
     if (!validateStep1()) return;
-    if (dailyLimit) {
+    if (alreadyApplied) {
       setErrors((prev) => ({
         ...prev,
         collegeMail:
-          "You've already applied today. Please contact the team directly for any follow-ups or updates.",
+          "An application has already been submitted with this email. Please contact the team directly for any follow-ups or updates.",
       }));
       return;
     }
@@ -438,9 +524,13 @@ export default function JoinPage() {
 
   const handleSubmit = async () => {
     setSubmitError(null);
-    if (dailyLimit) {
+    if (!authUser) {
+      setSubmitError("Please sign in with your college Google account to apply.");
+      return;
+    }
+    if (alreadyApplied) {
       setSubmitError(
-        "You've already applied today. Please contact the team directly for any follow-ups or updates."
+        "An application has already been submitted with this email. Please contact the team directly for any follow-ups or updates."
       );
       return;
     }
@@ -449,11 +539,19 @@ export default function JoinPage() {
       setConsentOpen(true);
       return;
     }
+    const idToken = await getCurrentIdToken();
+    if (!idToken) {
+      setSubmitError("Your session expired. Please sign in again.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/applications", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
         body: JSON.stringify({ ...form, consented }),
       });
       if (!res.ok) {
@@ -549,9 +647,80 @@ export default function JoinPage() {
                 Become part of Crescent Technocrats Club — build, ship, and grow with a community
                 of student engineers, designers, and innovators.
               </p>
+              <p className="text-xs text-gray-500 font-mono mt-4 flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-mint" />
+                Applications are verified with your college Google account (@crescent.education).
+              </p>
             </header>
 
+            {authStatus === "loading" ? (
+              <div className="rounded-3xl bg-[#0d1317] border border-white/10 shadow-2xl p-10">
+                <div className="flex flex-col items-center text-center py-6">
+                  <Loader2 className="w-8 h-8 text-mint animate-spin" />
+                  <p className="text-sm text-gray-400 font-mono mt-4">Checking your session…</p>
+                </div>
+              </div>
+            ) : authStatus === "signed-out" ? (
+              <div className="rounded-3xl bg-[#0d1317] border border-white/10 shadow-2xl p-8 sm:p-10">
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-16 h-16 rounded-full bg-mint/15 border border-mint/30 flex items-center justify-center mb-6">
+                    <ShieldCheck className="w-8 h-8 text-mint" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white">College account required</h2>
+                  <p className="text-sm text-gray-400 mt-3 max-w-sm leading-relaxed">
+                    Sign in with your official college Google account to verify your identity and
+                    submit an application. Only @crescent.education accounts are accepted.
+                  </p>
+                  {authError && (
+                    <div className="mt-5 w-full p-3.5 rounded-xl text-xs font-mono flex items-start gap-2 bg-amber-950/50 border border-amber-500/40 text-amber-300 text-left">
+                      <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                      {authError}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={signInWithGoogle}
+                    disabled={signingIn}
+                    className="mt-7 inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-mint hover:bg-mint-light text-black font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(52,211,153,0.3)] disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {signingIn ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <LogIn className="w-4 h-4" />
+                    )}
+                    {signingIn ? "Signing in…" : "Sign in with College Google Account"}
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="rounded-3xl bg-[#0d1317] border border-white/10 shadow-2xl p-6 sm:p-10">
+              {authUser && (
+                <div className="flex items-center justify-between gap-3 mb-8 pb-6 border-b border-white/10">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-mint/15 border border-mint/30 flex items-center justify-center shrink-0">
+                      <BadgeCheck className="w-5 h-5 text-mint" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{authUser.name}</p>
+                      <p className="text-xs text-gray-500 font-mono truncate">{authUser.email}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(INITIAL_FORM);
+                      setConsented(false);
+                      setErrors({});
+                      setStep(1);
+                      firebaseSignOut(getClientAuth()).catch(() => {});
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white text-xs font-mono uppercase tracking-wider transition-all shrink-0"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    Sign out
+                  </button>
+                </div>
+              )}
               {/* Progress */}
               <div className="flex items-center gap-3 mb-10">
                 {steps.map((s, i) => (
@@ -661,24 +830,28 @@ export default function JoinPage() {
                           id="collegeMail"
                           type="email"
                           value={form.collegeMail}
-                          onChange={(e) => set("collegeMail", e.target.value)}
+                          readOnly
                           placeholder="you@crescent.education"
-                          className={`${inputClass} pl-10 ${errors.collegeMail ? "border-red-500/50" : ""}`}
+                          className={`${inputClass} pl-10 pr-24 opacity-80 cursor-not-allowed ${errors.collegeMail ? "border-red-500/50" : ""}`}
                         />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-xs font-mono text-mint pointer-events-none">
+                          <BadgeCheck className="w-3.5 h-3.5" />
+                          Verified
+                        </span>
                       </div>
                       {errors.collegeMail ? (
                         <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.collegeMail}</p>
                       ) : (
                         <p className="mt-1.5 text-xs text-gray-500 font-mono">
-                          Only @crescent.education emails are accepted · one application per person per day
+                          Verified via your college Google account · one application per email address
                         </p>
                       )}
-                      {dailyLimit && (
+                      {alreadyApplied && (
                         <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-950/40 p-3 text-xs font-mono text-amber-300">
                           <Info className="w-4 h-4 shrink-0 mt-0.5" />
                           <span>
-                            You&apos;ve already applied today. Please contact the team directly for any
-                            follow-ups or updates.
+                            An application has already been submitted with this email. Please contact
+                            the team directly for any follow-ups or updates.
                           </span>
                         </div>
                       )}
@@ -980,6 +1153,7 @@ export default function JoinPage() {
                 </div>
               )}
             </div>
+            )}
           </>
         )}
       </div>

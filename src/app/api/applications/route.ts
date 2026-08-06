@@ -6,15 +6,15 @@ import {
 } from "@/lib/applications-store";
 import type { Application } from "@/lib/applications";
 import { getJoinRolesConfig } from "@/lib/join-roles-store";
+import { bearerToken } from "@/lib/auth";
+import { verifyCollegeIdToken } from "@/lib/firebase-admin";
 
 export const dynamic = "force-dynamic";
 
-const REQUIRED_FIELDS = ["fullName", "role", "collegeMail", "contactNumber", "degree", "branch", "section", "year", "reason"] as const;
+const REQUIRED_FIELDS = ["fullName", "role", "contactNumber", "degree", "branch", "section", "year", "reason"] as const;
 
-// A person may only apply once per 24-hour window.
-const WINDOW_MS = 24 * 60 * 60 * 1000;
-const DAILY_LIMIT_MESSAGE =
-  "You've already applied today. Please contact the team directly for any follow-ups or updates.";
+const ALREADY_APPLIED_MESSAGE =
+  "An application has already been submitted with this email. Please contact the team directly for any follow-ups or updates.";
 
 export async function GET() {
   const applications = await getApplications();
@@ -23,18 +23,23 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // The applicant must be signed in with their official college Google
+    // account. The verified email from the ID token is the only trusted one —
+    // anything typed into the form is ignored so no one can spoof an address.
+    const identity = await verifyCollegeIdToken(bearerToken(request) ?? "");
+    if (!identity) {
+      return NextResponse.json(
+        { error: "Please sign in with your college Google account to apply." },
+        { status: 401 }
+      );
+    }
+
     const body = (await request.json()) as Partial<Application>;
 
     for (const key of REQUIRED_FIELDS) {
       if (!body[key]) {
         return NextResponse.json({ error: `${key} is required` }, { status: 400 });
       }
-    }
-    if (!/^[^\s@]+@crescent\.education$/i.test(String(body.collegeMail).trim())) {
-      return NextResponse.json(
-        { error: "collegeMail must be an official @crescent.education address" },
-        { status: 400 }
-      );
     }
     if (!Array.isArray(body.interests) || body.interests.length === 0) {
       return NextResponse.json({ error: "interests are required" }, { status: 400 });
@@ -46,7 +51,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "contact consent is required" }, { status: 400 });
     }
 
-    const collegeMail = String(body.collegeMail).trim().toLowerCase();
+    const collegeMail = identity.email;
 
     const config = await getJoinRolesConfig();
     const role = String(body.role ?? "").trim() || "member";
@@ -58,15 +63,11 @@ export async function POST(request: Request) {
       );
     }
 
+    // A person may only apply once with the same email address, regardless of
+    // the outcome of the earlier request. Any follow-ups go through the team.
     const existing = await findApplicationByEmail(collegeMail);
     if (existing) {
-      const submittedAt = new Date(existing.submittedAt || 0).getTime();
-      if (
-        Number.isFinite(submittedAt) &&
-        Date.now() - submittedAt < WINDOW_MS
-      ) {
-        return NextResponse.json({ error: DAILY_LIMIT_MESSAGE }, { status: 429 });
-      }
+      return NextResponse.json({ error: ALREADY_APPLIED_MESSAGE }, { status: 400 });
     }
 
     const application: Application = {
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
       socialMediaUrl: String(body.socialMediaUrl ?? "").trim(),
       portfolioUrl: String(body.portfolioUrl ?? "").trim(),
       consented: Boolean(body.consented),
+      authUid: identity.uid,
       submittedAt: new Date().toISOString(),
     };
 

@@ -17,6 +17,7 @@ export interface Application {
   portfolioUrl: string;
   consented: boolean;
   submittedAt: string;
+  authUid?: string;
   status?: "pending" | "approved" | "rejected";
   rejectionReason?: string;
 }

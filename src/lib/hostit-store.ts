@@ -32,6 +32,17 @@ export async function getHostitSubmissions(): Promise<HostitSubmission[]> {
   );
 }
 
+export async function findHostitSubmissionByEmail(
+  email: string
+): Promise<HostitSubmission | null> {
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as HostitSubmission[];
+  const target = email.trim().toLowerCase();
+  return (
+    items.find((s) => (s.email || "").trim().toLowerCase() === target) || null
+  );
+}
+
 export async function saveHostitSubmission(submission: HostitSubmission): Promise<void> {
   await saveDocument(COLLECTION, submission.id, submission as unknown as Record<string, unknown>);
 }

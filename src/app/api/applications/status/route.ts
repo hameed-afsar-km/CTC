@@ -1,30 +1,24 @@
 import { NextResponse } from "next/server";
 import { findApplicationByEmail } from "@/lib/applications-store";
+import { bearerToken } from "@/lib/auth";
+import { verifyCollegeIdToken } from "@/lib/firebase-admin";
 
 export const dynamic = "force-dynamic";
 
-const WINDOW_MS = 24 * 60 * 60 * 1000;
-
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const email = searchParams.get("email") || "";
+  const email = (searchParams.get("email") || "").trim().toLowerCase();
 
-  if (!/^[^\s@]+@crescent\.education$/i.test(email.trim())) {
-    return NextResponse.json({ appliedToday: false, nextAllowedAt: null });
+  // Only the signed-in college account may check its own status — never
+  // reveal whether any arbitrary address has already applied.
+  const identity = await verifyCollegeIdToken(bearerToken(request) ?? "");
+  if (!identity || identity.email !== email) {
+    return NextResponse.json({ hasApplied: false });
   }
 
-  const existing = await findApplicationByEmail(email.trim().toLowerCase());
-  const submittedAt = existing
-    ? new Date(existing.submittedAt || 0).getTime()
-    : Number.NaN;
-
-  const appliedToday =
-    !!existing && Number.isFinite(submittedAt) && Date.now() - submittedAt < WINDOW_MS;
+  const existing = await findApplicationByEmail(email);
 
   return NextResponse.json({
-    appliedToday,
-    nextAllowedAt: appliedToday
-      ? new Date(submittedAt + WINDOW_MS).toISOString()
-      : null,
+    hasApplied: !!existing,
   });
 }

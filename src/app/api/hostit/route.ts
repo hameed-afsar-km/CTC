@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { saveHostitSubmission, type HostitSubmission } from "@/lib/hostit-store";
+import {
+  findHostitSubmissionByEmail,
+  saveHostitSubmission,
+  type HostitSubmission,
+} from "@/lib/hostit-store";
 import { upsertUser } from "@/lib/users-store";
 
 export const dynamic = "force-dynamic";
+
+const WINDOW_MS = 24 * 60 * 60 * 1000;
+const COOLDOWN_MESSAGE =
+  "You've already submitted an event proposal with this email in the last 24 hours. Please try again later.";
 
 export async function POST(request: Request) {
   try {
@@ -30,11 +38,28 @@ export async function POST(request: Request) {
       );
     }
 
+    const email = String(body.email).trim().toLowerCase();
+
+    // One proposal per email per rolling 24-hour window.
+    const existing = await findHostitSubmissionByEmail(email);
+    if (existing) {
+      const submittedAt = new Date(existing.submittedAt || 0).getTime();
+      if (Number.isFinite(submittedAt) && Date.now() - submittedAt < WINDOW_MS) {
+        return NextResponse.json(
+          {
+            error: COOLDOWN_MESSAGE,
+            nextAllowedAt: new Date(submittedAt + WINDOW_MS).toISOString(),
+          },
+          { status: 429 }
+        );
+      }
+    }
+
     const submission: HostitSubmission = {
       id: `host-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       eventType: String(body.eventType ?? "").trim(),
       organizerName: String(body.organizerName).trim(),
-      email: String(body.email).trim().toLowerCase(),
+      email,
       contactNumber: String(body.contactNumber).trim(),
       degree: String(body.degree).trim(),
       department: String(body.department).trim(),
