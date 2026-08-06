@@ -362,6 +362,12 @@ export default function JoinRolesPanel() {
               application is approved, that role is granted to the applicant&apos;s user record.
               Rejecting keeps any existing team roles untouched.
             </p>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Each college account can submit one join application. To let a member apply again,
+              revoke their join limit in{" "}
+              <span className="text-gray-300">Users &amp; Roles</span>. Existing members who want a
+              different team role are updated there directly by an admin.
+            </p>
             <p className="text-xs text-gray-500 leading-relaxed font-mono">
               Last updated: {config?.updatedAt ? new Date(config.updatedAt).toLocaleString() : "—"}
             </p>

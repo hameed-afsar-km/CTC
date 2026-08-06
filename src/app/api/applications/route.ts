@@ -8,7 +8,7 @@ import type { Application } from "@/lib/applications";
 import { getJoinRolesConfig } from "@/lib/join-roles-store";
 import { bearerToken } from "@/lib/auth";
 import { verifyCollegeIdToken } from "@/lib/firebase-admin";
-import { clearJoinReset, getUser } from "@/lib/users-store";
+import { clearJoinReset, getUser, upsertUser } from "@/lib/users-store";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +96,7 @@ export async function POST(request: Request) {
     };
 
     await saveApplication(application);
+    await upsertUser({ email: collegeMail, name: application.fullName, source: "join" });
     if (resetAt) {
       await clearJoinReset(collegeMail);
     }
