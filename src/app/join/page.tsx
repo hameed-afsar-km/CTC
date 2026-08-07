@@ -21,9 +21,11 @@ import {
   CheckCircle,
   ChevronDown,
   ChevronLeft,
+  Clock,
   FileText,
   Globe,
   GraduationCap,
+  Home,
   Info,
   Layers,
   Link2,
@@ -79,6 +81,7 @@ interface FormState {
   interests: string[];
   skills: string[];
   reason: string;
+  experience: string;
   linkedinUrl: string;
   githubUrl: string;
   socialMediaUrl: string;
@@ -97,6 +100,7 @@ const INITIAL_FORM: FormState = {
   interests: [],
   skills: [],
   reason: "",
+  experience: "",
   linkedinUrl: "",
   githubUrl: "",
   socialMediaUrl: "",
@@ -343,6 +347,9 @@ export default function JoinPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [memberMode, setMemberMode] = useState(false);
+  const [currentRoles, setCurrentRoles] = useState<string[]>([]);
+  const [hasPending, setHasPending] = useState(false);
   const [authStatus, setAuthStatus] = useState<"loading" | "signed-out" | "ready">("loading");
   const [authUser, setAuthUser] = useState<{
     email: string;
@@ -411,6 +418,9 @@ export default function JoinPage() {
     const auth = getClientAuth();
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setAlreadyApplied(false);
+      setMemberMode(false);
+      setCurrentRoles([]);
+      setHasPending(false);
       if (!firebaseUser || !firebaseUser.email) {
         setAuthStatus("signed-out");
         setAuthUser(null);
@@ -455,7 +465,15 @@ export default function JoinPage() {
           { headers: { Authorization: `Bearer ${token}` }, cache: "no-store" }
         );
         const data = await res.json().catch(() => null);
-        if (!cancelled) setAlreadyApplied(!!data?.hasApplied);
+        if (cancelled) return;
+        setAlreadyApplied(!!data?.hasApplied);
+        setMemberMode(data?.mode === "role");
+        setCurrentRoles(
+          Array.isArray(data?.roles)
+            ? data.roles.filter((r: unknown): r is string => typeof r === "string")
+            : []
+        );
+        setHasPending(!!data?.hasPending);
       } catch {
         if (!cancelled) setAlreadyApplied(false);
       }
@@ -574,6 +592,69 @@ export default function JoinPage() {
     }
   };
 
+  const validateRoleForm = (): boolean => {
+    const e: Record<string, string> = {};
+    if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
+    if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
+    else if (rolesLoaded && !openRoles.includes(form.role)) {
+      e.role = "The selected role is no longer open for applications";
+    }
+    if (!authUser) {
+      e.collegeMail = "Please sign in with your college Google account first";
+    }
+    if (!form.reason.trim()) e.reason = "Tell us why you're interested in this role";
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const handleRoleSubmit = async () => {
+    setSubmitError(null);
+    if (!authUser) {
+      setSubmitError("Please sign in with your college Google account to apply.");
+      return;
+    }
+    if (hasPending) {
+      setSubmitError(
+        "You already have a pending application. The team will review it before you can apply again."
+      );
+      return;
+    }
+    if (!validateRoleForm()) return;
+    const idToken = await getCurrentIdToken();
+    if (!idToken) {
+      setSubmitError("Your session expired. Please sign in again.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/applications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${idToken}`,
+        },
+        body: JSON.stringify({ ...form, consented: false }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(
+          data?.error || "Your application could not be submitted. Please try again."
+        );
+      }
+      setSubmitted(true);
+      setSubmittedName(form.fullName);
+      setHasPending(true);
+    } catch (err) {
+      setSubmitError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const steps = [
     { n: 1, label: "Basic Details", icon: User },
     { n: 2, label: "Academics & Profile", icon: GraduationCap },
@@ -638,14 +719,24 @@ export default function JoinPage() {
             {/* Header */}
             <header className="mb-10">
               <div className="text-shine text-[10px] font-mono uppercase tracking-widest font-medium mb-4">
-                Applications Open
+                {memberMode ? "Role Applications Open" : "Applications Open"}
               </div>
               <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
-                Join the Club
+                {memberMode ? "Apply for a Role" : "Join the Club"}
               </h1>
               <p className="text-sm text-gray-400 mt-3 max-w-md leading-relaxed">
-                Become part of Crescent Technocrats Club — build, ship, and grow with a community
-                of student engineers, designers, and innovators.
+                {memberMode ? (
+                  <>
+                    You&apos;re already a CTC member — take on a new team role. Pick an open role and
+                    tell us why you&apos;re the right fit. Your current roles stay untouched until an
+                    admin reviews your application.
+                  </>
+                ) : (
+                  <>
+                    Become part of Crescent Technocrats Club — build, ship, and grow with a community
+                    of student engineers, designers, and innovators.
+                  </>
+                )}
               </p>
               <p className="text-xs text-gray-500 font-mono mt-4 flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-mint" />
@@ -721,6 +812,197 @@ export default function JoinPage() {
                   </button>
                 </div>
               )}
+              {memberMode ? (
+                <div className="space-y-6">
+                  {hasPending ? (
+                    <div className="flex flex-col items-center justify-center text-center py-20 space-y-5">
+                      <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                        <Clock className="w-7 h-7 text-amber-400" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-white">
+                          Application Under Review
+                        </h3>
+                        <p className="text-sm text-gray-400 mt-1.5 max-w-sm mx-auto leading-relaxed">
+                          You already have a pending application. The team will review it before
+                          you can apply for another role.
+                        </p>
+                      </div>
+                      <Link
+                        href="/"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white text-xs font-mono uppercase tracking-wider transition-all"
+                      >
+                        <Home className="w-4 h-4" />
+                        Back to Home
+                      </Link>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="rounded-2xl bg-black/30 border border-white/10 p-4">
+                        <p className="text-xs font-mono uppercase tracking-wider text-gray-500 mb-2.5">
+                          Your current roles
+                        </p>
+                        {currentRoles.length > 0 ? (
+                          <div className="flex flex-wrap gap-2">
+                            {currentRoles.map((r) => (
+                              <span
+                                key={r}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-mint/10 border border-mint/30 text-xs font-mono text-mint"
+                              >
+                                <BadgeCheck className="w-3.5 h-3.5" />
+                                {displayJoinRole(r)}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-500 font-mono">
+                            No active roles — this will be your first one.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="fullName" className={labelClass}>
+                          Full Name *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                            <User className="w-4 h-4" />
+                          </span>
+                          <input
+                            id="fullName"
+                            type="text"
+                            value={form.fullName}
+                            onChange={(e) => set("fullName", e.target.value)}
+                            placeholder="e.g. John Doe"
+                            className={`${inputClass} pl-10 ${errors.fullName ? "border-red-500/50" : ""}`}
+                          />
+                        </div>
+                        {errors.fullName && (
+                          <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.fullName}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="collegeMail" className={labelClass}>
+                          College Mail *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                            <Mail className="w-4 h-4" />
+                          </span>
+                          <input
+                            id="collegeMail"
+                            type="email"
+                            value={form.collegeMail}
+                            readOnly
+                            placeholder="you@crescent.education"
+                            className={`${inputClass} pl-10 pr-24 opacity-80 cursor-not-allowed`}
+                          />
+                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 text-xs font-mono text-mint pointer-events-none">
+                            <BadgeCheck className="w-3.5 h-3.5" />
+                            Verified
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-xs text-gray-500 font-mono">
+                          Verified via your college Google account
+                        </p>
+                      </div>
+
+                      <div>
+                        <label htmlFor="role" className={labelClass}>
+                          Role Applying For *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                            <BadgeCheck className="w-4 h-4" />
+                          </span>
+                          <select
+                            id="role"
+                            value={form.role}
+                            onChange={(e) => set("role", e.target.value)}
+                            disabled={!rolesLoaded}
+                            className={`${selectClass} pl-10 ${errors.role ? "border-red-500/50" : ""}`}
+                          >
+                            <option value="" disabled>
+                              {rolesLoaded ? "Select a role" : "Loading roles…"}
+                            </option>
+                            {openRoles.map((r) => (
+                              <option key={r} value={r} className="bg-[#0d1317]">
+                                {displayJoinRole(r)}
+                              </option>
+                            ))}
+                          </select>
+                          <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                        </div>
+                        {errors.role ? (
+                          <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.role}</p>
+                        ) : (
+                          <p className="mt-1.5 text-xs text-gray-500 font-mono">
+                            Pick the team role you&apos;d like to take on. Roles listed here are
+                            currently open.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="roleReason" className={labelClass}>
+                          Why do you want this role? *
+                        </label>
+                        <textarea
+                          id="roleReason"
+                          rows={4}
+                          value={form.reason}
+                          onChange={(e) => set("reason", e.target.value)}
+                          placeholder="Tell us what you'll bring to the team and why you're the right fit…"
+                          className={`${textareaClass} ${errors.reason ? "border-red-500/50" : ""}`}
+                        />
+                        {errors.reason && (
+                          <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.reason}</p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label htmlFor="experience" className={labelClass}>
+                          Relevant Experience{" "}
+                          <span className="text-gray-600">(optional)</span>
+                        </label>
+                        <textarea
+                          id="experience"
+                          rows={3}
+                          value={form.experience}
+                          onChange={(e) => set("experience", e.target.value)}
+                          placeholder="Past roles, projects, or contributions that back up your application…"
+                          className={textareaClass}
+                        />
+                      </div>
+
+                      {submitError && (
+                        <div className="p-3.5 rounded-xl text-xs font-mono flex items-center gap-2 bg-red-950/60 border border-red-500/40 text-red-400">
+                          <X className="w-4 h-4 shrink-0" />
+                          {submitError}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2">
+                        <p className="text-xs text-gray-600 font-mono">
+                          {openRoles.length} role{openRoles.length === 1 ? "" : "s"} open
+                        </p>
+                        <button
+                          type="button"
+                          onClick={handleRoleSubmit}
+                          disabled={submitting || !rolesLoaded}
+                          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-mint hover:bg-mint-light text-black font-bold text-xs uppercase tracking-wider transition-all shadow-[0_0_20px_rgba(52,211,153,0.25)] disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          <Send className="w-4 h-4" />
+                          {submitting ? "Submitting…" : "Submit Application"}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <>
               {/* Progress */}
               <div className="flex items-center gap-3 mb-10">
                 {steps.map((s, i) => (
@@ -1151,6 +1433,8 @@ export default function JoinPage() {
                     </div>
                   </div>
                 </div>
+              )}
+                </>
               )}
             </div>
             )}

@@ -1,3 +1,9 @@
+export interface EventScheduleItem {
+  time: string;
+  title: string;
+  description?: string;
+}
+
 export interface ClubEvent {
   id: string;
   title: string;
@@ -7,6 +13,15 @@ export interface ClubEvent {
   venue: string;
   date: string;
   registerUrl: string;
+  registrationDeadline?: string;
+  featured?: boolean;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  highlights?: string[];
+  dos?: string[];
+  donts?: string[];
+  schedule?: EventScheduleItem[];
 }
 
 const NO_CTA = new Set(["#", "#!", "#/", "/", ""]);
@@ -32,6 +47,35 @@ export const defaultEvents: ClubEvent[] = [
     venue: "Main Auditorium",
     date: "2026-08-14T09:00:00+05:30",
     registerUrl: "#",
+    registrationDeadline: "2026-08-12T23:59:00+05:30",
+    featured: true,
+    contactName: "Event Core Team",
+    contactEmail: "events@crescent.education",
+    contactPhone: "+91 98765 43210",
+    highlights: [
+      "Prize pool worth ₹50,000 across three tracks",
+      "Mentor-guided builds with industry engineers",
+      "Free food, swag, and certification for all participants",
+    ],
+    dos: [
+      "Bring your own laptop and charger",
+      "Form a team of up to 4 members",
+      "Push code to your own repository as you build",
+    ],
+    donts: [
+      "Don't reuse code from previous hackathons",
+      "Don't build outside the assigned problem track",
+      "Don't submit after the 24-hour deadline",
+    ],
+    schedule: [
+      { time: "09:00 AM", title: "Check-in & Breakfast" },
+      { time: "10:00 AM", title: "Opening Ceremony & Track Reveal", description: "Problem statements for all three tracks are announced." },
+      { time: "11:00 AM", title: "Hacking Begins" },
+      { time: "05:00 PM", title: "Mid-way Demo & Mentors", description: "Show progress to mentors and get course corrections." },
+      { time: "11:00 PM", title: "Midnight Snack Break" },
+      { time: "08:00 AM", title: "Hacking Ends & Submissions" },
+      { time: "10:00 AM", title: "Judging & Prize Ceremony" },
+    ],
   },
   {
     id: "ai-summit-2026",
@@ -42,6 +86,18 @@ export const defaultEvents: ClubEvent[] = [
     venue: "Seminar Hall B",
     date: "2026-08-28T10:00:00+05:30",
     registerUrl: "#",
+    highlights: [
+      "Keynotes from founders and AI researchers",
+      "Live product demos and networking lounge",
+      "Certificate of participation for all attendees",
+    ],
+    schedule: [
+      { time: "09:30 AM", title: "Registration & Coffee" },
+      { time: "10:00 AM", title: "Opening Keynote", description: "The state of AI in 2026 and what's next." },
+      { time: "12:00 PM", title: "Panel: Building with LLMs" },
+      { time: "02:00 PM", title: "Hands-on Demos" },
+      { time: "04:30 PM", title: "Closing Remarks & Networking" },
+    ],
   },
   {
     id: "webforge-2026",

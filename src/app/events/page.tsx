@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { ClubEvent } from "@/lib/events";
 import { eventCtaHref, hasCtaLink } from "@/lib/events";
+import EventDetailsModal from "@/components/EventDetailsModal";
 import { gsap } from "gsap";
 
 function formatDate(dateStr: string) {
@@ -219,6 +220,24 @@ export default function EventsPage() {
             <Calendar className="h-4 w-4 shrink-0 text-emerald-400" />
             <span>{formatDate(ev.date)}</span>
           </div>
+
+          {!isPast && ev.registrationDeadline && (
+            <div
+              className={`flex items-center gap-2.5 text-xs font-mono ${
+                new Date(ev.registrationDeadline).getTime() > now
+                  ? "text-amber-300/90"
+                  : "text-rose-300/90"
+              }`}
+            >
+              <Clock className="h-4 w-4 shrink-0" />
+              <span>
+                {new Date(ev.registrationDeadline).getTime() > now
+                  ? "Register by"
+                  : "Registration closed"}{" "}
+                {formatDate(ev.registrationDeadline)}
+              </span>
+            </div>
+          )}
 
           <div className="flex items-center justify-between pt-1">
             <div className="flex items-center gap-2 text-xs font-mono text-white/50">
@@ -428,106 +447,14 @@ export default function EventsPage() {
 
         {/* Footer */}
         <footer className="mt-auto border-t border-white/10 py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-xs font-mono text-white/40">
-          <p>© {new Date().getFullYear()} CRESCENT TECHNOCRATS CLUB</p>
+          <p>Â© {new Date().getFullYear()} CRESCENT TECHNOCRATS CLUB</p>
           <p className="tracking-widest uppercase text-[10px]">DESIGNED FOR THE FUTURE</p>
         </footer>
       </div>
 
       {/* Expanded Modal Overlay */}
       {selectedEvent && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-2xl p-4 sm:p-8 animate-in fade-in duration-300">
-          <div className="absolute inset-0" onClick={() => setSelectedEvent(null)} />
-
-          <div className="relative w-full max-w-3xl max-h-[90vh] flex flex-col rounded-3xl border border-emerald-500/30 bg-[#090e11] shadow-[0_20px_80px_rgba(0,0,0,0.9)] overflow-hidden animate-in zoom-in-95 duration-300">
-            {/* Modal Cover Image */}
-            <div className="relative h-56 sm:h-72 w-full shrink-0 bg-black">
-              {selectedEvent.image ? (
-                <img
-                  src={selectedEvent.image}
-                  alt={selectedEvent.title}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="h-full w-full bg-gradient-to-br from-emerald-950 to-black flex items-center justify-center">
-                  <Sparkles className="h-16 w-16 text-emerald-400/40" />
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-[#090e11] via-[#090e11]/40 to-transparent" />
-
-              <button
-                onClick={() => setSelectedEvent(null)}
-                className="absolute top-4 right-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-black/60 text-white/80 backdrop-blur-xl border border-white/20 transition-all hover:bg-white hover:text-black"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Modal Content */}
-            <div className="flex-1 overflow-y-auto p-6 sm:p-10">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="inline-flex items-center rounded-full bg-emerald-500/20 px-3.5 py-1 text-xs font-mono font-bold text-emerald-300 border border-emerald-500/40">
-                  {selectedEvent.category || "EVENT"}
-                </span>
-                {new Date(selectedEvent.date).getTime() <= now && (
-                  <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/50 border border-white/10">
-                    Completed
-                  </span>
-                )}
-              </div>
-
-              <h2 className="font-syne text-3xl sm:text-4xl font-extrabold text-white mb-6 leading-tight">
-                {selectedEvent.title}
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8 bg-white/5 rounded-2xl p-5 border border-white/10 font-mono">
-                <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-emerald-500/20 p-2.5 text-emerald-400 border border-emerald-500/30">
-                    <Calendar className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-widest text-white/40 mb-1">Date & Time</p>
-                    <p className="text-sm font-semibold text-white">{formatDate(selectedEvent.date)}</p>
-                    <p className="text-xs text-emerald-400">{formatTime(selectedEvent.date)}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <div className="rounded-xl bg-emerald-500/20 p-2.5 text-emerald-400 border border-emerald-500/30">
-                    <MapPin className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] uppercase tracking-widest text-white/40 mb-1">Venue Location</p>
-                    <p className="text-sm font-semibold text-white">{selectedEvent.venue || "Crescent Campus"}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-syne text-xl font-bold text-white mb-3 flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-emerald-400" />
-                  About Event
-                </h3>
-                <p className="text-white/80 font-sans leading-relaxed whitespace-pre-wrap text-base">
-                  {selectedEvent.description}
-                </p>
-              </div>
-            </div>
-
-            {/* Modal Footer CTA */}
-            {new Date(selectedEvent.date).getTime() > now && (
-              <div className="p-6 sm:px-10 border-t border-white/10 bg-black/40 shrink-0 flex justify-end">
-                <a
-                  href={eventCtaHref(selectedEvent.registerUrl)}
-                  target={hasCtaLink(selectedEvent.registerUrl) ? "_blank" : undefined}
-                  rel={hasCtaLink(selectedEvent.registerUrl) ? "noreferrer" : undefined}
-                  className="inline-flex w-full sm:w-auto justify-center items-center gap-2.5 rounded-full bg-emerald-500 px-8 py-3.5 text-sm font-bold text-black transition-all hover:scale-105 hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(52,211,153,0.6)]"
-                >
-                  Register Now <ExternalLink className="h-4 w-4" />
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
+        <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       )}
 
       {/* Custom Mouse Cursor */}

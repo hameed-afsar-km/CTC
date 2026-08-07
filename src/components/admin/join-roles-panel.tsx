@@ -365,8 +365,13 @@ export default function JoinRolesPanel() {
             <p className="text-xs text-gray-400 leading-relaxed">
               Each college account can submit one join application. To let a member apply again,
               revoke their join limit in{" "}
-              <span className="text-gray-300">Users &amp; Roles</span>. Existing members who want a
-              different team role are updated there directly by an admin.
+              <span className="text-gray-300">Users &amp; Roles</span>.
+            </p>
+            <p className="text-xs text-gray-400 leading-relaxed">
+              Existing members can apply for a new team role themselves on the Join page — the form
+              auto-detects members and asks only for the role, a reason, and optional experience.
+              One pending application is allowed at a time. Approving a role application grants the
+              role to the member&apos;s user record; their existing roles stay untouched.
             </p>
             <p className="text-xs text-gray-500 leading-relaxed font-mono">
               Last updated: {config?.updatedAt ? new Date(config.updatedAt).toLocaleString() : "—"}

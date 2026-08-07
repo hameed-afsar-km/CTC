@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import CountdownTimer from "./CountdownTimer";
+import EventDetailsModal from "./EventDetailsModal";
 import { defaultEvents, eventCtaHref, hasCtaLink, type ClubEvent } from "@/lib/events";
 import { useInView } from "@/hooks/useInView";
 import {
@@ -63,8 +64,16 @@ export default function EventsShowcase() {
 
   const [events, setEvents] = useState<ClubEvent[]>(defaultEvents);
   const [now, setNow] = useState(INITIAL_NOW);
+  const [selectedEvent, setSelectedEvent] = useState<ClubEvent | null>(null);
 
-  const nextEvent = useMemo(() => sortUpcoming(events, now)[0], [events, now]);
+  // Only events flagged as "featured" in the admin dashboard drive the home
+  // page events section. Falls back to all events if none are featured yet.
+  const featuredEvents = useMemo(() => {
+    const featured = events.filter((e) => e.featured === true);
+    return featured.length > 0 ? featured : events;
+  }, [events]);
+
+  const nextEvent = useMemo(() => sortUpcoming(featuredEvents, now)[0], [featuredEvents, now]);
 
   // Periodic clock used to keep upcoming-event sorting fresh — paused while the
   // section is off-screen.
@@ -339,6 +348,14 @@ export default function EventsShowcase() {
                         Register Now
                         <ExternalLink className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
                       </a>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEvent(nextEvent)}
+                        className="inline-flex items-center gap-1.5 px-5 py-2.5 sm:px-6 sm:py-3.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-semibold text-xs sm:text-sm hover:border-emerald-300/70 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
+                      >
+                        View Details
+                        <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      </button>
                       <a
                         href="/events"
                         className="inline-flex items-center gap-1.5 px-5 py-2.5 sm:px-6 sm:py-3.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white font-semibold text-xs sm:text-sm hover:border-white/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
@@ -373,6 +390,10 @@ export default function EventsShowcase() {
           </div>
         </div>
       </div>
+
+      {selectedEvent && (
+        <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      )}
     </section>
   );
 }

@@ -43,8 +43,8 @@ export default function FocusPanel() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!text.trim()) {
-      setMessage({ text: "Focus text is required", type: "error" });
+    if (!text.split("\n").some((line) => line.trim())) {
+      setMessage({ text: "At least one focus text is required", type: "error" });
       return;
     }
     setSaving(true);
@@ -111,15 +111,15 @@ export default function FocusPanel() {
               <div>
                 <label className={labelCls}>Focus text *</label>
                 <textarea
-                  rows={3}
+                  rows={4}
                   required
                   value={text}
                   onChange={(e) => setText(e.target.value)}
-                  placeholder="e.g. Focused on WebForge Workshop — registrations open!"
+                  placeholder={"e.g. Focused on WebForge Workshop — registrations open!\nFocused on Tech Talk — Hackathon Saturday"}
                   className={`${inputCls} resize-none`}
                 />
                 <p className="mt-1.5 text-[10px] font-mono text-gray-500">
-                  {text.trim().length} characters
+                  {text.trim().length} characters — one ticker per line, separated by ✦
                 </p>
               </div>
 
@@ -195,19 +195,25 @@ export default function FocusPanel() {
               </span>
             </div>
             <div className="relative h-12 overflow-hidden bg-[#040706] border-b border-emerald-500/20 flex items-center">
-              {enabled && text.trim() ? (
+              {enabled &&
+              text.split("\n").some((line) => line.trim()) ? (
                 <div className="flex items-center w-full overflow-hidden">
                   <div className="animate-marquee items-center" aria-hidden="true">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                      <span
-                        key={i}
-                        className="flex items-center whitespace-nowrap px-4 text-sm font-syne font-bold uppercase tracking-wider text-emerald-300"
-                      >
-                        <span className="text-emerald-400 mr-3">✦</span>
-                        {text.trim()}
-                        <span className="text-emerald-400 ml-3">✦</span>
-                      </span>
-                    ))}
+                    {Array.from({ length: 8 }).map((_, i) =>
+                      text
+                        .split("\n")
+                        .map((line) => line.trim())
+                        .filter(Boolean)
+                        .map((line, j) => (
+                          <span
+                            key={`${i}-${j}`}
+                            className="flex items-center whitespace-nowrap px-4 text-sm font-syne font-bold uppercase tracking-wider text-emerald-300"
+                          >
+                            <span className="text-emerald-400 mr-3">✦</span>
+                            {line}
+                          </span>
+                        ))
+                    )}
                   </div>
                 </div>
               ) : (

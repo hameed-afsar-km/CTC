@@ -1,5 +1,6 @@
 export interface Application {
   id: string;
+  type?: "join" | "role";
   fullName: string;
   collegeMail: string;
   contactNumber: string;
@@ -11,6 +12,8 @@ export interface Application {
   interests: string[];
   skills: string[];
   reason: string;
+  experience?: string;
+  memberRoles?: string[];
   linkedinUrl: string;
   githubUrl: string;
   socialMediaUrl: string;

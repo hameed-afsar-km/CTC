@@ -10,6 +10,14 @@ import { getClientApp } from "@/lib/firebase-client";
 
 const DEFAULT_EVENT_DATE = new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16);
 
+const linesToArray = (value: string): string[] =>
+  value
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+const EMPTY_SCHEDULE_ROW = { time: "", title: "", description: "" };
+
 export default function EventsPanel() {
   const { getToken } = useAdmin();
   const [events, setEvents] = useState<ClubEvent[]>([]);
@@ -31,7 +39,20 @@ export default function EventsPanel() {
     venue: "Main Auditorium",
     date: DEFAULT_EVENT_DATE,
     registerUrl: "#",
+    registrationDeadline: "",
+    featured: false,
+    contactName: "",
+    contactEmail: "",
+    contactPhone: "",
+    highlights: [],
+    dos: [],
+    donts: [],
+    schedule: [],
   });
+
+  const [highlightsText, setHighlightsText] = useState("");
+  const [dosText, setDosText] = useState("");
+  const [dontsText, setDontsText] = useState("");
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -96,6 +117,10 @@ export default function EventsPanel() {
     const localIso = !Number.isNaN(dt.getTime())
       ? new Date(dt.getTime() - dt.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
       : event.date;
+    const regDt = event.registrationDeadline ? new Date(event.registrationDeadline) : null;
+    const regLocalIso = regDt && !Number.isNaN(regDt.getTime())
+      ? new Date(regDt.getTime() - regDt.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+      : event.registrationDeadline ?? "";
     setForm({
       id: event.id,
       title: event.title,
@@ -105,7 +130,19 @@ export default function EventsPanel() {
       venue: event.venue,
       date: localIso,
       registerUrl: event.registerUrl,
+      registrationDeadline: regLocalIso,
+      featured: event.featured === true,
+      contactName: event.contactName ?? "",
+      contactEmail: event.contactEmail ?? "",
+      contactPhone: event.contactPhone ?? "",
+      highlights: Array.isArray(event.highlights) ? event.highlights : [],
+      dos: Array.isArray(event.dos) ? event.dos : [],
+      donts: Array.isArray(event.donts) ? event.donts : [],
+      schedule: Array.isArray(event.schedule) ? event.schedule : [],
     });
+    setHighlightsText((Array.isArray(event.highlights) ? event.highlights : []).join("\n"));
+    setDosText((Array.isArray(event.dos) ? event.dos : []).join("\n"));
+    setDontsText((Array.isArray(event.donts) ? event.donts : []).join("\n"));
   };
 
   const handleResetForm = () => {
@@ -120,7 +157,19 @@ export default function EventsPanel() {
       venue: "Main Auditorium",
       date: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
       registerUrl: "#",
+      registrationDeadline: "",
+      featured: false,
+      contactName: "",
+      contactEmail: "",
+      contactPhone: "",
+      highlights: [],
+      dos: [],
+      donts: [],
+      schedule: [],
     });
+    setHighlightsText("");
+    setDosText("");
+    setDontsText("");
   };
 
   const handleImageFile = (file: File | null) => {
@@ -211,6 +260,19 @@ export default function EventsPanel() {
         venue: form.venue ?? "Crescent Campus",
         date: new Date(form.date).toISOString(),
         registerUrl: form.registerUrl ?? "#",
+        registrationDeadline: form.registrationDeadline
+          ? new Date(form.registrationDeadline).toISOString()
+          : undefined,
+        featured: form.featured === true,
+        contactName: form.contactName?.trim() || undefined,
+        contactEmail: form.contactEmail?.trim() || undefined,
+        contactPhone: form.contactPhone?.trim() || undefined,
+        highlights: linesToArray(highlightsText),
+        dos: linesToArray(dosText),
+        donts: linesToArray(dontsText),
+        schedule: (form.schedule ?? []).filter(
+          (row) => row.title?.trim() || row.time?.trim() || row.description?.trim()
+        ),
       };
 
       const res = await fetch("/api/admin/events", {
@@ -267,6 +329,30 @@ export default function EventsPanel() {
       setMessage({ text: "Error deleting event", type: "error" });
     }
   };
+
+  const updateScheduleRow = (
+    index: number,
+    patch: Partial<{ time: string; title: string; description: string }>
+  ) => {
+    setForm((prev) => {
+      const rows = (prev.schedule ?? []).map((row, i) =>
+        i === index ? { ...row, ...patch } : row
+      );
+      return { ...prev, schedule: rows };
+    });
+  };
+
+  const addScheduleRow = () =>
+    setForm((prev) => ({
+      ...prev,
+      schedule: [...(prev.schedule ?? []), { ...EMPTY_SCHEDULE_ROW }],
+    }));
+
+  const removeScheduleRow = (index: number) =>
+    setForm((prev) => ({
+      ...prev,
+      schedule: (prev.schedule ?? []).filter((_, i) => i !== index),
+    }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -353,6 +439,47 @@ export default function EventsPanel() {
             </div>
 
             <div>
+              <label className={`${labelCls} text-amber-400`}>
+                Registration Deadline
+              </label>
+              <input
+                type="datetime-local"
+                value={form.registrationDeadline || ""}
+                onChange={(e) => setForm({ ...form, registrationDeadline: e.target.value })}
+                className={`${inputCls} font-mono text-amber-300 border-amber-500/40`}
+              />
+              <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                Optional — shown on the event as the last date to register. Leave empty for no
+                deadline.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">Show on Homepage</p>
+                <p className="text-[11px] font-mono text-gray-500 mt-0.5">
+                  Featured events appear in the home page events section. The next upcoming featured
+                  event drives the homepage countdown.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.featured === true}
+                onClick={() => setForm({ ...form, featured: !(form.featured === true) })}
+                className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${
+                  form.featured === true ? "bg-emerald-500" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    form.featured === true ? "translate-x-5" : ""
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div>
               <label className={labelCls}>Event Image</label>
               <label className="block cursor-pointer">
                 <input
@@ -429,6 +556,36 @@ export default function EventsPanel() {
             </div>
 
             <div>
+              <label className={`${labelCls} text-cyan-400`}>Contact Information</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  value={form.contactName ?? ""}
+                  onChange={(e) => setForm({ ...form, contactName: e.target.value })}
+                  placeholder="Contact name"
+                  className={inputCls}
+                />
+                <input
+                  type="email"
+                  value={form.contactEmail ?? ""}
+                  onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
+                  placeholder="Contact email"
+                  className={inputCls}
+                />
+                <input
+                  type="tel"
+                  value={form.contactPhone ?? ""}
+                  onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
+                  placeholder="Contact phone"
+                  className={inputCls}
+                />
+              </div>
+              <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                Optional — shown in the footer of the expanded event details.
+              </p>
+            </div>
+
+            <div>
               <label className={labelCls}>Description</label>
               <textarea
                 rows={3}
@@ -437,6 +594,106 @@ export default function EventsPanel() {
                 placeholder="Brief summary of the upcoming event..."
                 className={`${inputCls} resize-none`}
               />
+            </div>
+
+            <div>
+              <label className={labelCls}>Key Highlights</label>
+              <textarea
+                rows={3}
+                value={highlightsText}
+                onChange={(e) => setHighlightsText(e.target.value)}
+                placeholder={"One highlight per line\ne.g. Prize pool worth ₹50,000"}
+                className={`${inputCls} resize-none`}
+              />
+              <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                One bullet point per line — shown in the expanded event details.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={`${labelCls} text-emerald-400`}>Do&apos;s</label>
+                <textarea
+                  rows={4}
+                  value={dosText}
+                  onChange={(e) => setDosText(e.target.value)}
+                  placeholder={"One per line\ne.g. Bring your own laptop"}
+                  className={`${inputCls} resize-none`}
+                />
+              </div>
+              <div>
+                <label className={`${labelCls} text-red-400`}>Don&apos;ts</label>
+                <textarea
+                  rows={4}
+                  value={dontsText}
+                  onChange={(e) => setDontsText(e.target.value)}
+                  placeholder={"One per line\ne.g. Don't submit after deadline"}
+                  className={`${inputCls} resize-none`}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className={labelCls}>Event Schedule</span>
+                <button
+                  type="button"
+                  onClick={addScheduleRow}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/20 text-[10px] font-mono font-bold uppercase tracking-wider transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Slot
+                </button>
+              </div>
+
+              {form.schedule && form.schedule.length > 0 ? (
+                <div className="space-y-3">
+                  {form.schedule.map((row, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-2"
+                    >
+                      <div className="grid grid-cols-[110px_1fr] gap-2">
+                        <input
+                          type="text"
+                          value={row.time || ""}
+                          onChange={(e) => updateScheduleRow(i, { time: e.target.value })}
+                          placeholder="10:00 AM"
+                          className={`${inputCls} font-mono`}
+                        />
+                        <input
+                          type="text"
+                          value={row.title || ""}
+                          onChange={(e) => updateScheduleRow(i, { title: e.target.value })}
+                          placeholder="Slot title (e.g. Opening Ceremony)"
+                          className={inputCls}
+                        />
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <input
+                          type="text"
+                          value={row.description || ""}
+                          onChange={(e) => updateScheduleRow(i, { description: e.target.value })}
+                          placeholder="Optional: short description for this slot"
+                          className={inputCls}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeScheduleRow(i)}
+                          className="shrink-0 p-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
+                          title="Remove slot"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] font-mono text-gray-500 rounded-xl border border-dashed border-white/10 bg-black/20 px-4 py-4">
+                  No schedule slots yet — add the event&apos;s timeline here.
+                </p>
+              )}
             </div>
 
             <button
@@ -513,6 +770,11 @@ export default function EventsPanel() {
                       <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-mono border border-emerald-500/30">
                         {evt.category}
                       </span>
+                      {evt.featured === true && (
+                        <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-mono border border-amber-500/30">
+                          ★ Homepage
+                        </span>
+                      )}
                     </div>
                     <h3 className="text-base font-bold text-white">{evt.title}</h3>
                     <div className="flex items-center gap-3 text-xs font-mono text-gray-400 mt-1">

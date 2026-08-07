@@ -27,6 +27,21 @@ export async function findApplicationByEmail(
   );
 }
 
+// True when the email already has an unresolved application. This is the
+// single anti-spam / anti-redundancy gate for both join and role requests:
+// a member may only have one pending application at a time. Resolved
+// (approved/rejected) applications never block a future application.
+export async function hasPendingApplication(email: string): Promise<boolean> {
+  const docs = await fetchCollectionDocs(COLLECTION);
+  const items = docs as unknown as Application[];
+  const target = email.trim().toLowerCase();
+  return items.some(
+    (a) =>
+      (a.collegeMail || "").trim().toLowerCase() === target &&
+      (a.status ?? "pending") === "pending"
+  );
+}
+
 // Whether the once-per-email limit still blocks this address. If an admin has
 // revoked the limit (joinResetAt), applications submitted before that reset
 // no longer count — the person may apply again exactly once.

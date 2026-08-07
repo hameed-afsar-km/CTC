@@ -53,6 +53,18 @@ export async function POST(request: Request) {
       venue: body.venue ?? "Crescent Campus",
       date: body.date,
       registerUrl: body.registerUrl ?? "#",
+      registrationDeadline:
+        typeof body.registrationDeadline === "string" && body.registrationDeadline.trim()
+          ? body.registrationDeadline
+          : undefined,
+      featured: body.featured === true,
+      contactName: typeof body.contactName === "string" ? body.contactName : undefined,
+      contactEmail: typeof body.contactEmail === "string" ? body.contactEmail : undefined,
+      contactPhone: typeof body.contactPhone === "string" ? body.contactPhone : undefined,
+      highlights: Array.isArray(body.highlights) ? body.highlights : [],
+      dos: Array.isArray(body.dos) ? body.dos : [],
+      donts: Array.isArray(body.donts) ? body.donts : [],
+      schedule: Array.isArray(body.schedule) ? body.schedule : [],
     };
     await saveEvent(event, token);
     await logAction(

@@ -23,6 +23,7 @@ import {
   User,
   MessageSquare,
   CheckCircle2,
+  BadgeCheck,
 } from "lucide-react";
 import {
   type Application,
@@ -39,11 +40,15 @@ import { useAdmin } from "./admin-context";
 import { DecisionModal, EmptyState, LoadingState, PanelCard, StatusBadge, inputCls, labelCls } from "./ui";
 
 const FILTERS = ["all", "pending", "approved", "rejected"] as const;
+const TYPE_FILTERS = ["all", "join", "role"] as const;
 
 function toExportRows(apps: Application[]): Row[] {
   return apps.map((a) => ({
     Name: a.fullName,
+    Type: a.type === "role" ? "Role" : "Join",
     Role: a.role ? displayJoinRole(a.role) : "Member",
+    CurrentRoles: (a.memberRoles ?? []).map((r) => displayJoinRole(r)).join(", "),
+    Experience: a.experience ?? "",
     Email: a.collegeMail,
     Contact: a.contactNumber,
     Degree: a.degree,
@@ -93,6 +98,7 @@ export default function ApplicationsPanel() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
+  const [typeFilter, setTypeFilter] = useState<(typeof TYPE_FILTERS)[number]>("all");
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -239,6 +245,8 @@ export default function ApplicationsPanel() {
         interests: form.interests ?? [],
         skills: form.skills ?? [],
         reason: form.reason ?? "",
+        experience: form.experience ?? "",
+        memberRoles: form.memberRoles ?? [],
         linkedinUrl: form.linkedinUrl?.trim() ?? "",
         githubUrl: form.githubUrl?.trim() ?? "",
         socialMediaUrl: form.socialMediaUrl?.trim() ?? "",
@@ -296,17 +304,21 @@ export default function ApplicationsPanel() {
     const q = query.trim().toLowerCase();
     return apps.filter((a) => {
       if (filter !== "all" && (a.status ?? "pending") !== filter) return false;
+      if (typeFilter !== "all" && (a.type ?? "join") !== typeFilter) return false;
       if (!q) return true;
       return [a.fullName, a.collegeMail, a.degree, a.branch, a.section, a.year, a.role]
         .join(" ")
         .toLowerCase()
         .includes(q);
     });
-  }, [apps, filter, query]);
+  }, [apps, filter, typeFilter, query]);
 
   const exportHeaders = [
     "Name",
+    "Type",
     "Role",
+    "Current Roles",
+    "Experience",
     "Email",
     "Contact",
     "Degree",
@@ -332,15 +344,16 @@ export default function ApplicationsPanel() {
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-400" />
-                Join Applications ({filtered.length})
+                Applications ({filtered.length})
               </h2>
               <p className="text-xs text-gray-400 mt-1">
-                Review, approve, or reject membership requests from the join form.
+                Review membership and role applications. Approving a role application grants the role
+                to the member.
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => downloadCsv(toExportRows(filtered), "join-applications.csv")}
+                onClick={() => downloadCsv(toExportRows(filtered), "applications.csv")}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wider transition-all"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-400" />
@@ -348,7 +361,7 @@ export default function ApplicationsPanel() {
               </button>
               <button
                 onClick={() =>
-                  downloadPdf("CTC Join Applications", exportHeaders, toExportRows(filtered), "join-applications.pdf")
+                  downloadPdf("CTC Applications", exportHeaders, toExportRows(filtered), "applications.pdf")
                 }
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wider transition-all"
               >
@@ -384,6 +397,27 @@ export default function ApplicationsPanel() {
                 </button>
               ))}
             </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-mono text-gray-500 uppercase tracking-widest mr-1">
+              Type:
+            </span>
+            {TYPE_FILTERS.map((t) => (
+              <button
+                key={t}
+                onClick={() => setTypeFilter(t)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
+                  typeFilter === t
+                    ? t === "role"
+                      ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
+                      : "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                    : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                {t === "all" ? "All" : t === "join" ? "Join" : "Role"}
+              </button>
+            ))}
           </div>
         </div>
       </PanelCard>
@@ -425,6 +459,11 @@ export default function ApplicationsPanel() {
                     <span className="rounded-full bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-300">
                       {a.role ? displayJoinRole(a.role) : "Member"}
                     </span>
+                    {a.type === "role" && (
+                      <span className="rounded-full bg-violet-500/10 border border-violet-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-violet-300">
+                        Role App
+                      </span>
+                    )}
                     <StatusBadge status={a.status ?? "pending"} />
                   </div>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gray-400">
@@ -439,6 +478,14 @@ export default function ApplicationsPanel() {
                       {a.reason}
                     </p>
                   )}
+                  {a.type === "role" && a.experience && (
+                    <p className="mt-2 text-xs text-gray-400 leading-relaxed line-clamp-2">
+                      <span className="uppercase tracking-widest text-violet-400/80">
+                        Experience:{" "}
+                      </span>
+                      {a.experience}
+                    </p>
+                  )}
                   {(a.status ?? "pending") === "rejected" && a.rejectionReason && (
                     <p className="mt-2 text-xs font-mono text-rose-300 leading-relaxed">
                       <span className="uppercase tracking-widest text-rose-400/80">Rejected: </span>
@@ -446,6 +493,15 @@ export default function ApplicationsPanel() {
                     </p>
                   )}
                   <div className="mt-2 flex flex-wrap gap-1.5">
+                    {a.type === "role" &&
+                      (a.memberRoles ?? []).slice(0, 6).map((r) => (
+                        <span
+                          key={r}
+                          className="rounded-full bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 text-[10px] font-mono text-violet-300"
+                        >
+                          {displayJoinRole(r)}
+                        </span>
+                      ))}
                     {a.interests.slice(0, 5).map((i) => (
                       <span
                         key={i}
@@ -712,7 +768,11 @@ export default function ApplicationsPanel() {
                   </div>
 
                   <div>
-                    <label className={labelCls}>Why do you want to join? (Reason)</label>
+                    <label className={labelCls}>
+                      {form.type === "role"
+                        ? "Why do they want this role? (Reason)"
+                        : "Why do you want to join? (Reason)"}
+                    </label>
                     <textarea
                       rows={3}
                       value={form.reason ?? ""}
@@ -720,6 +780,18 @@ export default function ApplicationsPanel() {
                       className={`${inputCls} resize-none`}
                     />
                   </div>
+
+                  {form.type === "role" && (
+                    <div>
+                      <label className={labelCls}>Relevant Experience</label>
+                      <textarea
+                        rows={3}
+                        value={form.experience ?? ""}
+                        onChange={(e) => setForm({ ...form, experience: e.target.value })}
+                        className={`${inputCls} resize-none`}
+                      />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -865,6 +937,16 @@ export default function ApplicationsPanel() {
                         {viewing.role ? displayJoinRole(viewing.role) : "Member"}
                       </span>
                     </Field>
+                    {viewing.type === "role" && (
+                      <Field label="Current Roles">
+                        <span className="inline-flex items-center gap-1.5">
+                          <BadgeCheck className="w-3.5 h-3.5 text-violet-400" />
+                          {(viewing.memberRoles ?? []).length
+                            ? viewing.memberRoles!.map((r) => displayJoinRole(r)).join(", ")
+                            : "—"}
+                        </span>
+                      </Field>
+                    )}
                     <Field label="Degree">
                       <span className="inline-flex items-center gap-1.5">
                         <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
@@ -928,10 +1010,26 @@ export default function ApplicationsPanel() {
 
                   {viewing.reason && (
                     <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                      <p className={`${labelCls} text-[10px] uppercase`}>Why they want to join</p>
+                      <p className={`${labelCls} text-[10px] uppercase`}>
+                        {viewing.type === "role"
+                          ? "Why they want this role"
+                          : "Why they want to join"}
+                      </p>
                       <p className="mt-2 text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
                         <MessageSquare className="w-3.5 h-3.5 inline mr-1.5 text-emerald-400" />
                         {viewing.reason}
+                      </p>
+                    </div>
+                  )}
+
+                  {viewing.type === "role" && viewing.experience && (
+                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                      <p className={`${labelCls} text-[10px] uppercase`}>
+                        Relevant experience
+                      </p>
+                      <p className="mt-2 text-sm text-white/80 leading-relaxed whitespace-pre-wrap">
+                        <BadgeCheck className="w-3.5 h-3.5 inline mr-1.5 text-violet-400" />
+                        {viewing.experience}
                       </p>
                     </div>
                   )}

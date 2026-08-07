@@ -167,15 +167,23 @@ export default function HomeFooter() {
       </div>
 
       {/* ══════════════════════════════════════════ */}
-      {/* CREDIT BAR — 40 px                        */}
+      {/* CREDIT BAR — barcode                       */}
       {/* ══════════════════════════════════════════ */}
-      <div className="relative z-10 h-10 shrink-0 flex items-center justify-between px-5 sm:px-10 border-t border-[#0f1f14]"
+      <div className="relative z-10 shrink-0 flex items-center justify-between gap-4 px-5 sm:px-10 py-3 border-t border-white/10"
         style={{ background: "linear-gradient(90deg,#040610,#030812,#040610)" }}>
-        <span className="text-[10px] text-[#1e293b] tracking-wider truncate">
-          © {new Date().getFullYear()} Crescent Technocrats Club
-        </span>
-        <span className="text-[10px] text-[#1e293b] tracking-wider truncate text-right ml-4 shrink-0">
-          Designed by <span className="text-[#8b5cf6]/50">Hameed Afsar KM</span>
+        <div className="flex items-center gap-3 min-w-0">
+          <span className="flex items-end gap-[2px] h-5 shrink-0">
+            {[3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 3, 1, 2, 4, 1, 3].map((w, i) => (
+              <span key={i} className="bg-neutral-500" style={{ width: `${w}px`, height: "100%" }} />
+            ))}
+          </span>
+          <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap truncate">
+            © {new Date().getFullYear()}{" "}
+            <span className="text-shine-violet font-bold">Crescent Technocrats Club</span>
+          </span>
+        </div>
+        <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap ml-4 shrink-0">
+          Designed by <span className="text-shine-violet font-bold">Hameed Afsar KM</span>
         </span>
       </div>
 

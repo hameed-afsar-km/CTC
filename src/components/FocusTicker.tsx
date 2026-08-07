@@ -38,7 +38,10 @@ export default function FocusTicker({
 
   if (!active) return null;
 
-  const text = config!.text.trim();
+  const items = config!.text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 
   return (
     <div
@@ -55,16 +58,17 @@ export default function FocusTicker({
         <div className="animate-marquee items-center">
           {[0, 1].map((dup) => (
             <div key={dup} className="flex items-center" aria-hidden={dup === 1}>
-              {Array.from({ length: REPEATS }).map((_, i) => (
-                <span
-                  key={i}
-                  className="flex items-center whitespace-nowrap px-5 text-[11px] sm:text-xs font-syne font-bold uppercase tracking-[0.2em] text-emerald-300"
-                >
-                  <span className="text-emerald-400 mr-3">✦</span>
-                  {text}
-                  <span className="text-emerald-400 ml-3">✦</span>
-                </span>
-              ))}
+              {Array.from({ length: REPEATS }).map((_, i) =>
+                items.map((item, j) => (
+                  <span
+                    key={`${i}-${j}`}
+                    className="flex items-center whitespace-nowrap px-5 text-[11px] sm:text-xs font-syne font-bold uppercase tracking-[0.2em] text-emerald-300"
+                  >
+                    <span className="text-emerald-400 mr-3">✦</span>
+                    {item}
+                  </span>
+                ))
+              )}
             </div>
           ))}
         </div>
