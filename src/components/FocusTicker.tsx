@@ -45,15 +45,22 @@ export default function FocusTicker({
 
   return (
     <div
-      className={`fixed top-0 left-0 right-0 z-[90] h-9 overflow-hidden border-b border-emerald-500/20 bg-[#040706]/95 backdrop-blur-md select-none transition-opacity duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-[90] h-9 overflow-hidden border-b border-emerald-500/15 bg-[#040706]/95 backdrop-blur-md select-none transition-opacity duration-300 ${
         hidden ? "opacity-0 pointer-events-none" : "opacity-100"
       }`}
       style={{
         backgroundImage:
           "linear-gradient(to right, rgba(52,211,153,0.04) 1px, transparent 1px), linear-gradient(to bottom, rgba(52,211,153,0.04) 1px, transparent 1px)",
         backgroundSize: "28px 28px",
+        boxShadow:
+          "0 0 24px rgba(16,185,129,0.12), 0 10px 30px rgba(0,0,0,0.4)",
       }}
     >
+      {/* Neon accent line along the top edge */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent" />
+      {/* Soft glow bleeding from the bottom edge */}
+      <div className="absolute -bottom-6 left-0 right-0 h-6 bg-gradient-to-b from-emerald-400/10 to-transparent" />
+
       <div className="flex h-full items-center overflow-hidden">
         <div className="animate-marquee items-center">
           {[0, 1].map((dup) => (
@@ -62,10 +69,15 @@ export default function FocusTicker({
                 items.map((item, j) => (
                   <span
                     key={`${i}-${j}`}
-                    className="flex items-center whitespace-nowrap px-5 text-[11px] sm:text-xs font-syne font-bold uppercase tracking-[0.2em] text-emerald-300"
+                    className="flex items-center whitespace-nowrap px-5 text-[11px] sm:text-xs font-syne font-bold uppercase tracking-[0.2em]"
                   >
-                    <span className="text-emerald-400 mr-3">✦</span>
-                    {item}
+                    <span className="neon-separator text-cyan-300 mr-3">✦</span>
+                    <span className="relative inline-block">
+                      <span className="neon-gradient-text">{item}</span>
+                      <span className="neon-shine absolute inset-0" aria-hidden="true">
+                        {item}
+                      </span>
+                    </span>
                   </span>
                 ))
               )}

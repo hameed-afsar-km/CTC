@@ -207,10 +207,15 @@ export default function FocusPanel() {
                         .map((line, j) => (
                           <span
                             key={`${i}-${j}`}
-                            className="flex items-center whitespace-nowrap px-4 text-sm font-syne font-bold uppercase tracking-wider text-emerald-300"
+                            className="flex items-center whitespace-nowrap px-4 text-sm font-syne font-bold uppercase tracking-wider"
                           >
-                            <span className="text-emerald-400 mr-3">✦</span>
-                            {line}
+                            <span className="neon-separator text-cyan-300 mr-3">✦</span>
+                            <span className="relative inline-block">
+                              <span className="neon-gradient-text">{line}</span>
+                              <span className="neon-shine absolute inset-0" aria-hidden="true">
+                                {line}
+                              </span>
+                            </span>
                           </span>
                         ))
                     )}

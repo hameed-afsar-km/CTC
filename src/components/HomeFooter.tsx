@@ -167,23 +167,17 @@ export default function HomeFooter() {
       </div>
 
       {/* ══════════════════════════════════════════ */}
-      {/* CREDIT BAR — barcode                       */}
+      {/* CREDIT BAR — 3D extruded shimmer           */}
       {/* ══════════════════════════════════════════ */}
-      <div className="relative z-10 shrink-0 flex items-center justify-between gap-4 px-5 sm:px-10 py-3 border-t border-white/10"
+      <div className="relative z-10 shrink-0 flex items-center justify-center gap-4 sm:gap-6 px-5 sm:px-10 py-3 border-t border-white/10"
         style={{ background: "linear-gradient(90deg,#040610,#030812,#040610)" }}>
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="flex items-end gap-[2px] h-5 shrink-0">
-            {[3, 1, 2, 4, 1, 3, 2, 1, 4, 2, 3, 1, 2, 4, 1, 3].map((w, i) => (
-              <span key={i} className="bg-neutral-500" style={{ width: `${w}px`, height: "100%" }} />
-            ))}
-          </span>
-          <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap truncate">
-            © {new Date().getFullYear()}{" "}
-            <span className="text-shine-violet font-bold">Crescent Technocrats Club</span>
-          </span>
-        </div>
-        <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap ml-4 shrink-0">
-          Designed by <span className="text-shine-violet font-bold">Hameed Afsar KM</span>
+        <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
+          © {new Date().getFullYear()}{" "}
+          <span className="text-shine-violet-3d font-bold">Crescent Technocrats Club</span>
+        </span>
+        <span className="text-[#8b5cf6]/60 text-[10px]">✦</span>
+        <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
+          Designed by <span className="text-shine-violet-3d font-bold">Hameed Afsar KM</span>
         </span>
       </div>
 
