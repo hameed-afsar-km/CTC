@@ -654,14 +654,14 @@ html {
   animation: text-gradient-shift 2.5s linear infinite;
 }
 
-/* Periodic shine sweep for the Applications Open label — a bright band
-   crosses the mint text, then rests before sweeping again */
+/* Periodic shine sweep — the bright band rests fully off-screen (text is
+   solid mint and readable), then crosses left-to-right when the wave comes */
 @keyframes text-shine-sweep {
   0%, 40% {
-    background-position: 0% 0;
+    background-position: 100% 0;
   }
-  75%, 100% {
-    background-position: 200% 0;
+  70%, 100% {
+    background-position: 0% 0;
   }
 }
 .text-shine {
@@ -669,14 +669,14 @@ html {
   background: linear-gradient(
     90deg,
     #34d399 0%,
-    #8ef5d2 35%,
+    #34d399 38%,
     #eafff6 45%,
     #ffffff 50%,
     #eafff6 55%,
-    #8ef5d2 65%,
+    #34d399 62%,
     #34d399 100%
   );
-  background-size: 200% 100%;
+  background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -690,14 +690,14 @@ html {
   background: linear-gradient(
     90deg,
     #8b5cf6 0%,
-    #c4b5fd 35%,
+    #8b5cf6 38%,
     #f3eeff 45%,
     #ffffff 50%,
     #f3eeff 55%,
-    #c4b5fd 65%,
+    #8b5cf6 62%,
     #8b5cf6 100%
   );
-  background-size: 200% 100%;
+  background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -730,14 +730,14 @@ html {
   background: linear-gradient(
     90deg,
     #8b5cf6 0%,
-    #c4b5fd 35%,
+    #8b5cf6 38%,
     #f3eeff 45%,
     #ffffff 50%,
     #f3eeff 55%,
-    #c4b5fd 65%,
+    #8b5cf6 62%,
     #8b5cf6 100%
   );
-  background-size: 200% 100%;
+  background-size: 300% 100%;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

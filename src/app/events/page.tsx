@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Calendar,
@@ -40,11 +41,32 @@ function formatTime(dateStr: string) {
 }
 
 export default function EventsPage() {
+  return (
+    <Suspense fallback={null}>
+      <EventsPageContent />
+    </Suspense>
+  );
+}
+
+function EventsPageContent() {
   const [events, setEvents] = useState<ClubEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedEvent, setSelectedEvent] = useState<ClubEvent | null>(null);
+
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const requestedEventId = searchParams.get("event");
+
+  // Event requested via the `?event=<id>` query param (e.g. "View Details"
+  // from the home page) opens the same details modal as a normal card click.
+  const requestedEvent = useMemo(() => {
+    if (!requestedEventId || events.length === 0) return null;
+    return events.find((ev) => ev.id === requestedEventId) ?? null;
+  }, [requestedEventId, events]);
+
+  const modalEvent = selectedEvent ?? requestedEvent;
 
   const [mousePos, setMousePos] = useState({ x: 50, y: 50 });
   const containerRef = useRef<HTMLDivElement>(null);
@@ -56,7 +78,7 @@ export default function EventsPage() {
   const [cursorVisible, setCursorVisible] = useState(false);
 
   useEffect(() => {
-    if (selectedEvent) {
+    if (modalEvent) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
@@ -64,7 +86,7 @@ export default function EventsPage() {
     return () => {
       document.body.style.overflow = "";
     };
-  }, [selectedEvent]);
+  }, [modalEvent]);
 
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
@@ -104,6 +126,11 @@ export default function EventsPage() {
       })
       .catch(() => setLoading(false));
   }, []);
+
+  const closeModal = () => {
+    setSelectedEvent(null);
+    if (requestedEventId) router.replace("/events", { scroll: false });
+  };
 
   useEffect(() => {
     if (!loading && events.length > 0) {
@@ -453,8 +480,8 @@ export default function EventsPage() {
       </div>
 
       {/* Expanded Modal Overlay */}
-      {selectedEvent && (
-        <EventDetailsModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
+      {modalEvent && (
+        <EventDetailsModal event={modalEvent} onClose={closeModal} />
       )}
 
       {/* Custom Mouse Cursor */}

@@ -24,16 +24,16 @@ interface TeamMember {
 }
 
 const teamMembers: TeamMember[] = [
-  { id: 1, name: "Alex Vance", role: "Club President", designation: "HOD CSE Department", bio: "Pioneering community growth, strategic vision, and technical excellence across all club initiatives.", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=800", email: "alex.vance@ctc.club", github: "https://github.com", linkedin: "https://linkedin.com", twitter: "https://twitter.com" },
-  { id: 2, name: "Sarah Chen", role: "Vice President", designation: "Dean Student Affairs", bio: "Overseeing operations, inter-departmental synergy, and scaling technical workshop programs.", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=800", email: "sarah.chen@ctc.club", github: "https://github.com", linkedin: "https://linkedin.com" },
-  { id: 3, name: "Marcus Brody", role: "Head of Web Dev", bio: "Architecting web platforms, modern UI systems, and guiding members through frontend mastery.", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800", email: "marcus.brody@ctc.club", github: "https://github.com", twitter: "https://twitter.com" },
-  { id: 4, name: "Elena Rostova", role: "Head of AI & ML", bio: "Leading deep learning research, intelligent automation projects, and AI hackathon tracks.", image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&q=80&w=800", email: "elena.rostova@ctc.club", linkedin: "https://linkedin.com" },
-  { id: 5, name: "David Kim", role: "Head of UI/UX Design", bio: "Designing slick user experiences, modern visual identities, and interactive motion systems.", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=800", email: "david.kim@ctc.club", twitter: "https://twitter.com" },
-  { id: 6, name: "Priya Sharma", role: "Secretary General", bio: "Managing club logistics, official communications, and external partnerships with industry leaders.", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=800", email: "priya.sharma@ctc.club", linkedin: "https://linkedin.com" },
-  { id: 7, name: "Lucas Thorne", role: "Competitive Prog Lead", bio: "Mentoring students in algorithmic problem solving, data structures, and ICPC competitions.", image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&q=80&w=800", email: "lucas.thorne@ctc.club", github: "https://github.com" },
-  { id: 8, name: "Aria Sterling", role: "Events Director", bio: "Orchestrating flagship hackathons, tech symposiums, and seamless event experiences.", image: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=800", email: "aria.sterling@ctc.club", linkedin: "https://linkedin.com" },
-  { id: 9, name: "Julian Rivera", role: "Public Relations Head", bio: "Building brand awareness, media outreach, and connecting members with global tech ecosystems.", image: "https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?auto=format&fit=crop&q=80&w=800", email: "julian.rivera@ctc.club", twitter: "https://twitter.com" },
-  { id: 10, name: "Nadia Patel", role: "Head of Logistics", bio: "Sourcing resources, venue management, and ensuring flawless execution for every club event.", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=800", email: "nadia.patel@ctc.club", linkedin: "https://linkedin.com" },
+  { id: 1, name: "Dr. Karthikeyan Ramalingam", role: "Dean of Student Affairs", designation: "DEAN", bio: "Guiding CTC with academic leadership and a student-first vision — mentoring the core team and championing innovation across campus.", image: "/assets/Dr. Karthikeyan Ramalingam DEAN - Student Affairs.png" },
+  { id: 2, name: "Dr. Aisha Banu", role: "Head of Department, CSE", designation: "HOD", bio: "Driving excellence in Computer Science education and steering the club's technical initiatives with passion, rigour, and precision.", image: "/assets/Dr. Aisha Banu HOD - CSE.png" },
+  { id: 3, name: "Hameed Afsar KM", role: "Chief Executive Officer", designation: "CEO", bio: "Leading CTC's vision and strategy — connecting members with opportunities and steering every initiative toward real impact.", image: "/assets/Hameed Afsar KM CEO.png" },
+  { id: 4, name: "Mehar Basha N", role: "Chief Operating Officer", designation: "COO", bio: "Keeping the club's engine running — operations, planning, and execution that make every event and program seamless.", image: "/assets/Mehar Basha N COO.png" },
+  { id: 5, name: "Merfin Hanson", role: "Chief Technology Officer", designation: "CTO", bio: "Architecting the club's technical backbone, mentoring developers, and turning ambitious ideas into shipped products.", image: "/assets/Merfin Hanson CTO.png" },
+  { id: 6, name: "Your Name Could Be Here", role: "Chief Marketing Officer", designation: "CMO", bio: "This seat is open — a visionary marketer could shape how CTC is seen, heard, and remembered.", image: "" },
+  { id: 7, name: "Your Name Could Be Here", role: "Chief Financial Officer", designation: "CFO", bio: "This seat is open — a strategic mind could steward the resources that fuel every CTC ambition.", image: "" },
+  { id: 8, name: "Your Name Could Be Here", role: "Chief Creative Officer", designation: "CCO", bio: "This seat is open — a bold creative could design the experiences the whole club is known for.", image: "" },
+  { id: 9, name: "Your Name Could Be Here", role: "Chief Human Resources Officer", designation: "CHRO", bio: "This seat is open — a people-first leader could grow the community that makes CTC thrive.", image: "" },
+  { id: 10, name: "Your Name Could Be Here", role: "Chief Strategy Officer", designation: "CSO", bio: "This seat is open — a long-term thinker could chart the roadmap for everything CTC does next.", image: "" },
 ];
 
 const teaserWords = ["MEET THE", "MINDS", "BEHIND", "CTC"];
@@ -138,7 +138,125 @@ function ProgressDots({ activeIndex, totalSlides }: { activeIndex: number; total
   );
 }
 
+// Card rendered for open roles (CMO, CFO, CCO, CHRO, CSO) where there is no
+// member yet. Shows the role and a shimmering "Your Name Could Be Here" text
+// with a CTA to the join page.
+function PlaceholderMemberCard({ member }: { member: TeamMember }) {
+  return (
+    <article className="group relative mx-auto h-full w-[calc(100%-10px)] overflow-hidden rounded-[2rem] sm:rounded-[2.5rem] bg-[#f2f7f4] p-2.5 sm:p-5 shadow-[0_20px_60px_rgba(15,45,30,0.06)] border border-emerald-900/5 sm:w-full">
+      {/* --------------------------------------------------------------- */}
+      {/* MOBILE VIEW (< md)                                              */}
+      {/* --------------------------------------------------------------- */}
+      <div className="flex h-full flex-col items-center justify-between gap-2 overflow-y-auto md:hidden">
+        {/* Top: Placeholder "image" block */}
+        <div className="relative flex-shrink-0 w-[94%] min-[400px]:w-[86%] sm:w-[270px]">
+          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.5rem] sm:rounded-[1.75rem] bg-emerald-950 shadow-[0_10px_25px_rgba(15,45,30,0.15)] border-2 border-white/80">
+            <div className="absolute inset-0 animate-aurora-blob" style={{ background: "radial-gradient(circle at 30% 25%, rgba(52,211,153,0.35), transparent 55%)" }} />
+            <div className="absolute inset-0 animate-aurora-blob animation-delay-4000" style={{ background: "radial-gradient(circle at 75% 70%, rgba(45,212,191,0.3), transparent 55%)" }} />
+            <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.12)_1px,transparent_1px)] [background-size:28px_28px]" />
+            <div className="relative flex h-full w-full flex-col items-center justify-center gap-3 px-4 text-center">
+              <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300/90">{member.role}</span>
+              <span className="text-shine font-syne text-6xl min-[400px]:text-7xl font-black leading-none tracking-tight">{member.designation}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/40 bg-emerald-300/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-200">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+                Open Role
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Middle: Shimmer name */}
+        <div className="flex flex-col items-center text-center gap-1 px-2">
+          <h3 className="text-shine font-syne text-2xl min-[400px]:text-3xl font-black leading-tight tracking-tight">
+            {member.name}
+          </h3>
+          <span className="font-mono text-[10px] min-[400px]:text-[11px] font-black uppercase tracking-[0.2em] text-emerald-900/60">
+            {member.designation} · Open for applications
+          </span>
+        </div>
+
+        {/* Bottom: Bio & CTA */}
+        <div className="flex w-full flex-col items-center gap-3 rounded-[1.25rem] bg-white/90 p-3 shadow-sm border border-slate-200/60 backdrop-blur-sm">
+          <p className="text-center text-[11px] min-[400px]:text-xs font-medium leading-relaxed text-emerald-950/80">
+            {member.bio}
+          </p>
+          <a href="/join" data-mac-ui className="inline-flex items-center gap-2 rounded-full bg-emerald-900 px-4 py-2 font-mono text-[10px] font-black uppercase tracking-[0.18em] text-emerald-50 transition active:scale-95 hover:bg-emerald-800">
+            Claim this seat
+            <Sparkles className="h-3 w-3" />
+          </a>
+        </div>
+      </div>
+
+      {/* --------------------------------------------------------------- */}
+      {/* DESKTOP BENTO VIEW (md+)                                        */}
+      {/* --------------------------------------------------------------- */}
+      <div className="hidden md:grid h-full md:grid-cols-12 md:grid-rows-2 md:gap-4">
+        {/* BENTO BLOCK 1: Placeholder "image" */}
+        <div className="relative md:col-span-5 md:row-span-2 overflow-hidden rounded-[2rem] bg-emerald-950 flex items-center justify-center">
+          <div className="absolute inset-0 animate-aurora-blob" style={{ background: "radial-gradient(circle at 30% 25%, rgba(52,211,153,0.35), transparent 55%)" }} />
+          <div className="absolute inset-0 animate-aurora-blob animation-delay-4000" style={{ background: "radial-gradient(circle at 75% 70%, rgba(45,212,191,0.3), transparent 55%)" }} />
+          <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.12)_1px,transparent_1px)] [background-size:28px_28px]" />
+          <div className="relative flex flex-col items-center gap-3 px-8 text-center">
+            <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-emerald-300/90">{member.role}</span>
+            <span className="text-shine font-syne text-7xl lg:text-8xl font-black leading-none tracking-tight">{member.designation}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/40 bg-emerald-300/10 px-3 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse" />
+              Open Role
+            </span>
+          </div>
+        </div>
+
+        {/* BENTO BLOCK 2: Shimmer name */}
+        <div className="relative flex flex-col justify-center rounded-[2rem] bg-white p-6 sm:p-8 md:col-span-7 md:row-span-1 shadow-sm border border-slate-100">
+          <div className="flex flex-col gap-4">
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-700/30 bg-transparent px-4 py-2 font-mono text-[10px] font-black uppercase tracking-[0.2em] text-emerald-800">
+                <Sparkles className="h-3 w-3 text-emerald-500" />
+                {member.role}
+              </span>
+            </div>
+
+            <div>
+              <h3 className="text-shine font-syne text-4xl font-black leading-none tracking-tight sm:text-5xl">
+                {member.name}
+              </h3>
+              <span className="mt-4 inline-block font-mono text-sm font-black uppercase tracking-[0.25em] text-emerald-900/60">
+                {member.designation} · Open for applications
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* BENTO BLOCK 3: Description & CTA */}
+        <div className="relative flex flex-col justify-between rounded-[2rem] bg-emerald-900/5 p-6 sm:p-8 md:col-span-7 md:row-span-1 border border-emerald-900/5">
+          <div className="max-w-xl">
+            <p className="text-sm font-medium leading-relaxed text-emerald-950/80 sm:text-base lg:text-lg">
+              {member.bio}
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <a href="/join" data-mac-ui className="inline-flex items-center gap-2 rounded-full bg-emerald-900 px-5 py-3 font-mono text-xs font-black uppercase tracking-[0.18em] text-emerald-50 transition hover:-translate-y-1 hover:bg-emerald-800 hover:shadow-md">
+              Claim this seat
+              <Sparkles className="h-4 w-4" />
+            </a>
+          </div>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function MemberCard({ member }: { member: TeamMember }) {
+  if (!member.image) {
+    return <PlaceholderMemberCard member={member} />;
+  }
+
+  const isLongName = member.name.length > 22;
+  const nameSize = isLongName
+    ? "text-3xl sm:text-4xl lg:text-5xl"
+    : "text-4xl sm:text-5xl lg:text-6xl";
+
   const socialLinks = [
     member.github && { label: "GitHub", href: member.github },
     member.linkedin && { label: "LinkedIn", href: member.linkedin },
@@ -174,7 +292,7 @@ function MemberCard({ member }: { member: TeamMember }) {
             {member.role}
           </span>
 
-          <h3 className="font-syne text-xl min-[400px]:text-2xl font-black leading-tight tracking-tight text-slate-900">
+          <h3 className={`font-syne ${isLongName ? "text-lg min-[400px]:text-xl" : "text-xl min-[400px]:text-2xl"} font-black leading-tight tracking-tight text-slate-900`}>
             {member.name}
           </h3>
 
@@ -255,7 +373,7 @@ function MemberCard({ member }: { member: TeamMember }) {
             </div>
 
             <div>
-              <h3 className="font-syne text-4xl font-black leading-none tracking-tight text-slate-900 sm:text-5xl lg:text-6xl">
+              <h3 className={`font-syne ${nameSize} font-black leading-none tracking-tight text-slate-900`}>
                 {member.name}
               </h3>
 
