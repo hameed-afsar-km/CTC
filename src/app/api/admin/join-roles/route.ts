@@ -5,6 +5,7 @@ import {
   JOIN_ROLES_DOC_ID,
   ALL_JOIN_ROLES,
   normalizeCustomRole,
+  sanitizeRoleDetails,
   type JoinRolesConfig,
 } from "@/lib/join-roles";
 import { logAction } from "@/lib/logs-store";
@@ -52,10 +53,12 @@ export async function PUT(request: Request) {
     const roles = Array.from(
       new Set(body.roles.filter((r) => allowed.has(r)))
     );
+    const roleDetails = sanitizeRoleDetails(body.roleDetails);
     const config: JoinRolesConfig = {
       id: JOIN_ROLES_DOC_ID,
       roles,
       customRoles,
+      roleDetails,
     };
     await saveJoinRolesConfig(config, token);
     await logAction(

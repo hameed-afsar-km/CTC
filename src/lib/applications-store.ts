@@ -1,5 +1,11 @@
 import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
-import { syncAppliedRole } from "./users-store";
+import {
+  getUser,
+  nextMemberCodeVersion,
+  saveMemberCode,
+  syncAppliedRole,
+} from "./users-store";
+import { buildMemberCode, hashMemberCode } from "./member-codes";
 import type { Application } from "./applications";
 
 const COLLECTION = "applications";
@@ -69,6 +75,19 @@ export async function saveApplication(application: Application): Promise<void> {
   await saveDocument(COLLECTION, application.id, record as unknown as Record<string, unknown>);
 }
 
+// Issue (or keep) a member's QR code. Called only when an application is
+// approved so a code exists by the time the member tries to open their card.
+export async function ensureMemberCode(email: string): Promise<void> {
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanEmail) return;
+  const user = await getUser(cleanEmail);
+  if (!user) return;
+  if (user.memberCodeHash && user.memberCodeVersion) return;
+  const version = nextMemberCodeVersion(user);
+  const code = buildMemberCode(cleanEmail, version);
+  await saveMemberCode(cleanEmail, hashMemberCode(code), version);
+}
+
 export async function updateApplicationStatus(
   id: string,
   status: string,
@@ -90,6 +109,9 @@ export async function updateApplicationStatus(
       updated.role || "member",
       status === "approved"
     );
+    if (status === "approved") {
+      await ensureMemberCode(updated.collegeMail);
+    }
   }
   return updated;
 }
@@ -112,6 +134,9 @@ export async function updateApplication(
       updated.role || "member",
       rest.status === "approved"
     );
+    if (rest.status === "approved") {
+      await ensureMemberCode(updated.collegeMail);
+    }
   }
   return updated;
 }

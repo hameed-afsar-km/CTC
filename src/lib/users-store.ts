@@ -8,6 +8,9 @@ export interface SiteUser {
   createdAt: string;
   updatedAt: string;
   joinResetAt?: string;
+  memberCodeHash?: string;
+  memberCodeVersion?: number;
+  memberCodeIssuedAt?: string;
 }
 
 const COLLECTION = "users";
@@ -159,4 +162,30 @@ export async function syncAppliedRole(
   } else if (!shouldHaveRole && hasRole) {
     await setUserRoles(cleanEmail, roles.filter((r) => r !== cleanRole));
   }
+}
+
+// Records the hash + version of a member's QR code. Only the hash is stored —
+// the raw code is reconstructed server-side via the shared secret.
+export async function saveMemberCode(
+  email: string,
+  codeHash: string,
+  version: number
+): Promise<SiteUser | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  const existing = await getUser(cleanEmail);
+  if (!existing) return null;
+  const now = new Date().toISOString();
+  await saveDocument(COLLECTION, cleanEmail, {
+    memberCodeHash: codeHash,
+    memberCodeVersion: version,
+    memberCodeIssuedAt: now,
+    updatedAt: now,
+  });
+  return { ...existing, memberCodeHash: codeHash, memberCodeVersion: version, memberCodeIssuedAt: now, updatedAt: now };
+}
+
+// Issued (bumped) version for a fresh code: 1 if none was issued before,
+// otherwise the next version — which revokes every older code.
+export function nextMemberCodeVersion(user: Pick<SiteUser, "memberCodeVersion"> | null): number {
+  return (user?.memberCodeVersion ?? 0) + 1;
 }

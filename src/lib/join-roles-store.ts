@@ -1,5 +1,10 @@
 import { fetchCollectionDocs, saveDocument } from "./firebase-db";
-import { JOIN_ROLES_DOC_ID, normalizeCustomRole, type JoinRolesConfig } from "./join-roles";
+import {
+  JOIN_ROLES_DOC_ID,
+  normalizeCustomRole,
+  sanitizeRoleDetails,
+  type JoinRolesConfig,
+} from "./join-roles";
 
 const COLLECTION = "settings";
 
@@ -7,6 +12,7 @@ export const DEFAULT_JOIN_ROLES: JoinRolesConfig = {
   id: JOIN_ROLES_DOC_ID,
   roles: ["member"],
   customRoles: [],
+  roleDetails: undefined,
 };
 
 export async function getJoinRolesConfig(): Promise<JoinRolesConfig> {
@@ -25,6 +31,7 @@ export async function getJoinRolesConfig(): Promise<JoinRolesConfig> {
             .map(normalizeCustomRole)
             .filter(Boolean)
         : [],
+      roleDetails: sanitizeRoleDetails(doc.roleDetails),
       updatedAt: typeof doc.updatedAt === "string" ? doc.updatedAt : undefined,
     };
   } catch (err) {
@@ -44,6 +51,7 @@ export async function saveJoinRolesConfig(
         .filter(Boolean)
     )
   );
+  const roleDetails = sanitizeRoleDetails(config.roleDetails);
   await saveDocument(
     COLLECTION,
     JOIN_ROLES_DOC_ID,
@@ -51,6 +59,7 @@ export async function saveJoinRolesConfig(
       id: JOIN_ROLES_DOC_ID,
       roles: config.roles,
       customRoles,
+      roleDetails: roleDetails ?? {},
       updatedAt: new Date().toISOString(),
     },
     token

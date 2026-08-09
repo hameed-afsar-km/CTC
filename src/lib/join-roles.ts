@@ -21,11 +21,51 @@ export const JOIN_ROLE_DESCRIPTIONS: Record<string, string> = {
 export const CUSTOM_ROLE_DESCRIPTION =
   "Custom role defined by the admin. Applicants who choose it receive it as a plain role when approved.";
 
+export interface RoleRules {
+  description: string;
+  rules: string[];
+}
+
 export interface JoinRolesConfig {
   id: string;
   roles: string[];
   customRoles: string[];
+  roleDetails?: Record<string, RoleRules>;
   updatedAt?: string;
+}
+
+// Returns the description and rules the admin configured for a role, falling
+// back to the built-in description and no rules when nothing is saved yet.
+export function roleDetailFor(config: JoinRolesConfig, role: string): RoleRules {
+  const detail = config.roleDetails?.[role];
+  return {
+    description:
+      typeof detail?.description === "string" && detail.description.trim()
+        ? detail.description.trim()
+        : JOIN_ROLE_DESCRIPTIONS[role] ?? "",
+    rules: Array.isArray(detail?.rules)
+      ? detail.rules.filter((r): r is string => typeof r === "string" && r.trim().length > 0)
+      : [],
+  };
+}
+
+export function sanitizeRoleDetails(raw: unknown): Record<string, RoleRules> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<string, RoleRules> = {};
+  for (const [role, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!role || typeof value !== "object" || value === null || Array.isArray(value)) continue;
+    const v = value as Record<string, unknown>;
+    const description = typeof v.description === "string" ? v.description.trim().slice(0, 2000) : "";
+    const rules = Array.isArray(v.rules)
+      ? v.rules
+          .filter((r): r is string => typeof r === "string")
+          .map((r) => r.trim())
+          .filter(Boolean)
+          .slice(0, 50)
+      : [];
+    out[role] = { description, rules };
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
 }
 
 export function normalizeCustomRole(raw: string): string {

@@ -19,6 +19,7 @@ export interface Application {
   socialMediaUrl: string;
   portfolioUrl: string;
   consented: boolean;
+  acceptedRoleRules?: boolean;
   submittedAt: string;
   authUid?: string;
   status?: "pending" | "approved" | "rejected";

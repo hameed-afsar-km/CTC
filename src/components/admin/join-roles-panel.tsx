@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import {
   BadgeCheck,
   CheckCircle,
+  FileText,
+  ListChecks,
   Loader2,
   Plus,
   Save,
@@ -18,8 +20,11 @@ import {
   allRolesFor,
   displayJoinRole,
   normalizeCustomRole,
+  roleDetailFor,
   type JoinRolesConfig,
+  type RoleRules,
 } from "@/lib/join-roles";
+import { DEFAULT_JOIN_ROLES } from "@/lib/join-roles-store";
 import { useAdmin } from "./admin-context";
 import { PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
 
@@ -30,6 +35,10 @@ export default function JoinRolesPanel() {
   const [selected, setSelected] = useState<Set<string>>(new Set(["member"]));
   const [customInput, setCustomInput] = useState("");
   const [customError, setCustomError] = useState<string | null>(null);
+  const [details, setDetails] = useState<Record<string, RoleRules>>({});
+  const [editingRole, setEditingRole] = useState<string | null>(null);
+  const [ruleInput, setRuleInput] = useState("");
+  const [ruleError, setRuleError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -50,9 +59,15 @@ export default function JoinRolesPanel() {
           customRoles: Array.isArray(data.config.customRoles) ? data.config.customRoles : [],
           updatedAt: data.config.updatedAt,
         };
+        const detailMap: Record<string, RoleRules> = {};
+        for (const r of allRolesFor(cfg)) {
+          detailMap[r] = roleDetailFor(cfg, r);
+        }
         setConfig(cfg);
         setCustomRoles(cfg.customRoles);
         setSelected(new Set(cfg.roles));
+        setDetails(detailMap);
+        setEditingRole((prev) => prev ?? (cfg.roles[0] ?? null));
       }
     } catch {
       setMessage({ text: "Failed to load join roles", type: "error" });
@@ -106,6 +121,42 @@ export default function JoinRolesPanel() {
     setMessage(null);
   };
 
+  const setDetail = (role: string, patch: Partial<RoleRules>) => {
+    setDetails((prev) => ({
+      ...prev,
+      [role]: { ...(prev[role] ?? { description: "", rules: [] }), ...patch },
+    }));
+  };
+
+  const updateRule = (role: string, index: number, value: string) => {
+    setDetails((prev) => {
+      const rules = (prev[role]?.rules ?? []).map((r, i) => (i === index ? value : r));
+      return { ...prev, [role]: { ...(prev[role] ?? { description: "" }), rules } };
+    });
+  };
+
+  const removeRule = (role: string, index: number) => {
+    setDetails((prev) => {
+      const rules = (prev[role]?.rules ?? []).filter((_, i) => i !== index);
+      return { ...prev, [role]: { ...(prev[role] ?? { description: "" }), rules } };
+    });
+  };
+
+  const addRule = () => {
+    if (!editingRole) return;
+    const value = ruleInput.trim();
+    if (!value) {
+      setRuleError("Enter a rule first");
+      return;
+    }
+    setDetails((prev) => {
+      const rules = [...(prev[editingRole]?.rules ?? []), value];
+      return { ...prev, [editingRole]: { ...(prev[editingRole] ?? { description: "" }), rules } };
+    });
+    setRuleInput("");
+    setRuleError(null);
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (selected.size === 0 && !window.confirm("Close all roles? The join form will default back to Member.")) {
@@ -124,6 +175,7 @@ export default function JoinRolesPanel() {
         body: JSON.stringify({
           roles: Array.from(selected),
           customRoles,
+          roleDetails: details,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -133,6 +185,17 @@ export default function JoinRolesPanel() {
       const cfg = data?.config;
       const openRoles = Array.isArray(cfg?.roles) ? cfg.roles : [];
       const cfgCustom = Array.isArray(cfg?.customRoles) ? cfg.customRoles : [];
+      const cfgDetails =
+        cfg?.roleDetails && typeof cfg.roleDetails === "object"
+          ? (cfg.roleDetails as Record<string, RoleRules>)
+          : {};
+      const detailMap: Record<string, RoleRules> = {};
+      for (const r of allRolesFor({ id: JOIN_ROLES_DOC_ID, roles: openRoles, customRoles: cfgCustom })) {
+        detailMap[r] = cfgDetails[r] ?? roleDetailFor(
+          { id: JOIN_ROLES_DOC_ID, roles: openRoles, customRoles: cfgCustom, roleDetails: cfgDetails },
+          r
+        );
+      }
       setConfig({
         id: JOIN_ROLES_DOC_ID,
         roles: openRoles,
@@ -141,6 +204,8 @@ export default function JoinRolesPanel() {
       });
       setCustomRoles(cfgCustom);
       setSelected(new Set(openRoles));
+      setDetails(detailMap);
+      setEditingRole((prev) => prev && openRoles.includes(prev) ? prev : (openRoles[0] ?? null));
       setMessage({
         text: openRoles.length
           ? `Roles open for joining: ${openRoles.map(displayJoinRole).join(", ")}.`
@@ -316,6 +381,120 @@ export default function JoinRolesPanel() {
                 </p>
               </div>
 
+              <div className="rounded-2xl border border-white/10 bg-black/30 p-4 sm:p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="w-4 h-4 text-emerald-400" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Role description &amp; rules
+                  </span>
+                </div>
+                <p className="text-[11px] font-mono text-gray-500 mb-4">
+                  Applicants must read the description and accept every rule before applying for the
+                  selected role.
+                </p>
+
+                <label htmlFor="editRole" className={labelCls}>
+                  Role to edit
+                </label>
+                <select
+                  id="editRole"
+                  value={editingRole ?? ""}
+                  onChange={(e) => setEditingRole(e.target.value || null)}
+                  className={`${inputCls} appearance-none`}
+                >
+                  <option value="" disabled>
+                    Select a role
+                  </option>
+                  {roleList.map((r) => (
+                    <option key={r} value={r}>
+                      {displayJoinRole(r)}
+                    </option>
+                  ))}
+                </select>
+
+                {editingRole && (
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <label htmlFor="roleDescription" className={labelCls}>
+                        Description
+                      </label>
+                      <textarea
+                        id="roleDescription"
+                        rows={3}
+                        value={details[editingRole]?.description ?? ""}
+                        onChange={(e) => setDetail(editingRole, { description: e.target.value })}
+                        placeholder={
+                          JOIN_ROLE_DESCRIPTIONS[editingRole] ?? "Describe what this role involves…"
+                        }
+                        className={`${inputCls} resize-none`}
+                      />
+                      <p className="mt-1 text-[10px] font-mono text-gray-500">
+                        Leave blank to keep the default description.
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className={labelCls}>
+                        Rules — applicants must accept each rule
+                      </span>
+                      <div className="space-y-2">
+                        {(details[editingRole]?.rules ?? []).map((rule, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              value={rule}
+                              onChange={(e) => updateRule(editingRole, i, e.target.value)}
+                              aria-label={`Rule ${i + 1}`}
+                              className={inputCls}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => removeRule(editingRole, i)}
+                              aria-label={`Remove rule ${i + 1}`}
+                              className="shrink-0 w-8 h-8 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 flex items-center justify-center transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <input
+                          type="text"
+                          value={ruleInput}
+                          onChange={(e) => {
+                            setRuleInput(e.target.value);
+                            setRuleError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              addRule();
+                            }
+                          }}
+                          placeholder="e.g. Attend at least 70% of weekly meetings…"
+                          className={inputCls}
+                        />
+                        <button
+                          type="button"
+                          onClick={addRule}
+                          className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Add
+                        </button>
+                      </div>
+                      {ruleError && <p className="mt-1.5 text-xs font-mono text-red-400">{ruleError}</p>}
+                      <p className="mt-1.5 text-[10px] font-mono text-gray-500">
+                        {(details[editingRole]?.rules ?? []).length} rule
+                        {(details[editingRole]?.rules ?? []).length === 1 ? "" : "s"} — no rules
+                        means applicants are not asked to accept any.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={saving}
@@ -336,26 +515,55 @@ export default function JoinRolesPanel() {
             subtitle="What applicants see in the Join form."
           />
           <div className="space-y-3">
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-2">
-                Role applying for
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {previewRoles.length > 0 ? (
-                  previewRoles.map((r) => (
-                    <span
-                      key={r}
-                      className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-mono text-emerald-300"
-                    >
-                      {displayJoinRole(r)}
-                    </span>
-                  ))
-                ) : (
-                  <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-gray-400">
-                    Member (fallback)
-                  </span>
+                <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                  <p className="text-[10px] font-mono uppercase tracking-widest text-gray-500 mb-2">
+                    Role applying for
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {previewRoles.length > 0 ? (
+                      previewRoles.map((r) => (
+                        <span
+                          key={r}
+                          className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-3 py-1 text-xs font-mono text-emerald-300"
+                        >
+                          {displayJoinRole(r)}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-xs font-mono text-gray-400">
+                        Member (fallback)
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {editingRole && (
+                  <div className="rounded-2xl border border-emerald-500/20 bg-emerald-950/40 p-4">
+                    <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 mb-2">
+                      Preview · {displayJoinRole(editingRole)}
+                    </p>
+                    <p className="text-xs text-gray-300 leading-relaxed">
+                      {details[editingRole]?.description?.trim() ||
+                        JOIN_ROLE_DESCRIPTIONS[editingRole] ||
+                        "No description set."}
+                    </p>
+                    {(details[editingRole]?.rules ?? []).length > 0 && (
+                      <ul className="mt-3 space-y-1.5">
+                        {(details[editingRole]?.rules ?? []).map((rule, i) => (
+                          <li key={i} className="flex items-start gap-2 text-xs text-gray-400 leading-relaxed">
+                            <ListChecks className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                            {rule || <span className="text-gray-600">Empty rule</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <p className="mt-3 text-[10px] font-mono text-emerald-500/80">
+                      Applicants must accept the{" "}
+                      {(details[editingRole]?.rules ?? []).length > 0 ? "description & rules" : "description"}{" "}
+                      to apply.
+                    </p>
+                  </div>
                 )}
-              </div>
             </div>
             <p className="text-xs text-gray-400 leading-relaxed">
               Applicants pick one of the open roles when submitting the join form. When an
@@ -376,7 +584,6 @@ export default function JoinRolesPanel() {
             <p className="text-xs text-gray-500 leading-relaxed font-mono">
               Last updated: {config?.updatedAt ? new Date(config.updatedAt).toLocaleString() : "—"}
             </p>
-          </div>
         </PanelCard>
       </div>
     </div>

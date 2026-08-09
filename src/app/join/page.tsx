@@ -49,7 +49,7 @@ import {
   YEARS,
   isValidUrl,
 } from "@/lib/applications";
-import { displayJoinRole } from "@/lib/join-roles";
+import { displayJoinRole, type RoleRules } from "@/lib/join-roles";
 import { useSmoothScroll } from "@/components/SmoothScroll";
 
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
@@ -270,6 +270,75 @@ const OPTIONAL_URL_FIELDS: {
   { key: "portfolioUrl", label: "Portfolio URL" },
 ];
 
+interface RoleInfoPanelProps {
+  role: string;
+  description: string;
+  rules: string[];
+  accepted: boolean;
+  onToggle: () => void;
+  error?: string;
+}
+
+// Shows the role description and rules the admin configured, with a checkbox
+// the applicant must accept before the application can be submitted.
+function RoleInfoPanel({ role, description, rules, accepted, onToggle, error }: RoleInfoPanelProps) {
+  const hasRules = rules.length > 0;
+  if (!description && !hasRules) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl border border-mint/20 bg-mint/5 p-4">
+        <p className="text-[10px] font-mono uppercase tracking-widest text-mint mb-2">
+          About the {displayJoinRole(role)} role
+        </p>
+        {description && <p className="text-xs text-gray-300 leading-relaxed">{description}</p>}
+        {hasRules && (
+          <>
+            <p className="text-[10px] font-mono uppercase tracking-widest text-mint mt-3 mb-2">
+              Rules
+            </p>
+            <ul className="space-y-1.5">
+              {rules.map((rule, i) => (
+                <li key={i} className="flex items-start gap-2 text-xs text-gray-400 leading-relaxed">
+                  <ShieldCheck className="w-3.5 h-3.5 text-mint shrink-0 mt-0.5" />
+                  {rule}
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onToggle}
+        className={`flex items-start gap-3 w-full text-left p-4 rounded-2xl border transition-colors ${
+          error ? "border-red-500/50 bg-red-500/5" : "border-white/10 bg-black/30 hover:border-mint/40"
+        }`}
+      >
+        <span
+          className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-all ${
+            accepted ? "bg-mint border-mint text-black" : "bg-black/40 border-white/20"
+          }`}
+        >
+          {accepted && <Check className="w-3.5 h-3.5" />}
+        </span>
+        <span>
+          <span className="block text-sm font-semibold text-white">
+            I have read and accept the role description{hasRules && " and rules"}
+          </span>
+          <span className="block text-xs text-gray-500 font-mono mt-0.5">
+            {hasRules
+              ? `You must accept all ${rules.length} rule${rules.length === 1 ? "" : "s"} before applying`
+              : "Confirm you understand the role before applying"}
+          </span>
+        </span>
+      </button>
+      {error && <p className="text-xs text-red-400 font-mono">{error}</p>}
+    </div>
+  );
+}
+
 export default function JoinPage() {
   const lenis = useSmoothScroll();
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -359,7 +428,9 @@ export default function JoinPage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [signingIn, setSigningIn] = useState(false);
   const [openRoles, setOpenRoles] = useState<string[]>([]);
+  const [roleDetails, setRoleDetails] = useState<Record<string, RoleRules>>({});
   const [rolesLoaded, setRolesLoaded] = useState(false);
+  const [acceptedRoleRules, setAcceptedRoleRules] = useState(false);
 
   // Load the roles the admins have opened for applications.
   useEffect(() => {
@@ -370,6 +441,9 @@ export default function JoinPage() {
         if (cancelled) return;
         const roles = Array.isArray(d?.roles) ? d.roles.filter((x: unknown): x is string => typeof x === "string") : [];
         setOpenRoles(roles.length > 0 ? roles : ["member"]);
+        if (d?.roleDetails && typeof d.roleDetails === "object") {
+          setRoleDetails(d.roleDetails as Record<string, RoleRules>);
+        }
       })
       .catch(() => {
         if (!cancelled) setOpenRoles(["member"]);
@@ -381,6 +455,23 @@ export default function JoinPage() {
       cancelled = true;
     };
   }, []);
+
+  const roleRulesFor = (role: string): string[] => {
+    const detail = roleDetails[role];
+    return Array.isArray(detail?.rules)
+      ? detail.rules.filter((r): r is string => typeof r === "string" && r.trim().length > 0)
+      : [];
+  };
+
+  const roleDescriptionFor = (role: string): string =>
+    typeof roleDetails[role]?.description === "string"
+      ? (roleDetails[role]?.description ?? "").trim()
+      : "";
+
+  const setRole = (value: string) => {
+    set("role", value);
+    setAcceptedRoleRules(false);
+  };
 
   const signInWithGoogle = async () => {
     setAuthError(null);
@@ -421,6 +512,7 @@ export default function JoinPage() {
       setMemberMode(false);
       setCurrentRoles([]);
       setHasPending(false);
+      setAcceptedRoleRules(false);
       if (!firebaseUser || !firebaseUser.email) {
         setAuthStatus("signed-out");
         setAuthUser(null);
@@ -501,6 +593,9 @@ export default function JoinPage() {
     else if (rolesLoaded && !openRoles.includes(form.role)) {
       e.role = "The selected role is no longer open for applications";
     }
+    if (rolesLoaded && form.role && roleRulesFor(form.role).length > 0 && !acceptedRoleRules) {
+      e.rules = "You must accept the role description and rules to apply";
+    }
     if (!authUser) {
       e.collegeMail = "Please sign in with your college Google account first";
     }
@@ -570,7 +665,7 @@ export default function JoinPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ ...form, consented }),
+        body: JSON.stringify({ ...form, consented, acceptedRoleRules }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -598,6 +693,9 @@ export default function JoinPage() {
     if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
     else if (rolesLoaded && !openRoles.includes(form.role)) {
       e.role = "The selected role is no longer open for applications";
+    }
+    if (rolesLoaded && form.role && roleRulesFor(form.role).length > 0 && !acceptedRoleRules) {
+      e.rules = "You must accept the role description and rules to apply";
     }
     if (!authUser) {
       e.collegeMail = "Please sign in with your college Google account first";
@@ -633,7 +731,7 @@ export default function JoinPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ ...form, consented: false }),
+        body: JSON.stringify({ ...form, consented: false, acceptedRoleRules }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -703,6 +801,7 @@ export default function JoinPage() {
                     setForm(INITIAL_FORM);
                     setSubmitted(false);
                     setConsented(false);
+                    setAcceptedRoleRules(false);
                     setErrors({});
                     setStep(1);
                     scrollToTop("auto");
@@ -801,6 +900,7 @@ export default function JoinPage() {
                     onClick={() => {
                       setForm(INITIAL_FORM);
                       setConsented(false);
+                      setAcceptedRoleRules(false);
                       setErrors({});
                       setStep(1);
                       firebaseSignOut(getClientAuth()).catch(() => {});
@@ -920,7 +1020,7 @@ export default function JoinPage() {
                           <select
                             id="role"
                             value={form.role}
-                            onChange={(e) => set("role", e.target.value)}
+                            onChange={(e) => setRole(e.target.value)}
                             disabled={!rolesLoaded}
                             className={`${selectClass} pl-10 ${errors.role ? "border-red-500/50" : ""}`}
                           >
@@ -942,6 +1042,27 @@ export default function JoinPage() {
                             Pick the team role you&apos;d like to take on. Roles listed here are
                             currently open.
                           </p>
+                        )}
+
+                        {form.role && (
+                          <div className="mt-4">
+                            <RoleInfoPanel
+                              role={form.role}
+                              description={roleDescriptionFor(form.role)}
+                              rules={roleRulesFor(form.role)}
+                              accepted={acceptedRoleRules}
+                              onToggle={() => {
+                                setAcceptedRoleRules((v) => !v);
+                                setErrors((prev) => {
+                                  if (!("rules" in prev)) return prev;
+                                  const next = { ...prev };
+                                  delete next.rules;
+                                  return next;
+                                });
+                              }}
+                              error={errors.rules}
+                            />
+                          </div>
                         )}
                       </div>
 
@@ -1075,7 +1196,7 @@ export default function JoinPage() {
                       <select
                         id="role"
                         value={form.role}
-                        onChange={(e) => set("role", e.target.value)}
+                        onChange={(e) => setRole(e.target.value)}
                         disabled={!rolesLoaded}
                         className={`${selectClass} pl-10 ${errors.role ? "border-red-500/50" : ""}`}
                       >
@@ -1096,6 +1217,27 @@ export default function JoinPage() {
                       <p className="mt-1.5 text-xs text-gray-500 font-mono">
                         Pick the team you&apos;d like to join. Roles listed here are currently open.
                       </p>
+                    )}
+
+                    {form.role && (
+                      <div className="mt-4">
+                        <RoleInfoPanel
+                          role={form.role}
+                          description={roleDescriptionFor(form.role)}
+                          rules={roleRulesFor(form.role)}
+                          accepted={acceptedRoleRules}
+                          onToggle={() => {
+                            setAcceptedRoleRules((v) => !v);
+                            setErrors((prev) => {
+                              if (!("rules" in prev)) return prev;
+                              const next = { ...prev };
+                              delete next.rules;
+                              return next;
+                            });
+                          }}
+                          error={errors.rules}
+                        />
+                      </div>
                     )}
                   </div>
 

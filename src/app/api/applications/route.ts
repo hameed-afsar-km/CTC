@@ -7,7 +7,7 @@ import {
 } from "@/lib/applications-store";
 import type { Application } from "@/lib/applications";
 import { getJoinRolesConfig } from "@/lib/join-roles-store";
-import { displayJoinRole } from "@/lib/join-roles";
+import { displayJoinRole, roleDetailFor } from "@/lib/join-roles";
 import { bearerToken } from "@/lib/auth";
 import { verifyCollegeIdToken } from "@/lib/firebase-admin";
 import { clearJoinReset, getUser, upsertUser } from "@/lib/users-store";
@@ -66,6 +66,16 @@ export async function POST(request: Request) {
       );
     }
 
+    // The admin-defined rules for the chosen role must be explicitly accepted
+    // before an application can be submitted.
+    const roleRules = roleDetailFor(config, role).rules;
+    if (roleRules.length > 0 && body.acceptedRoleRules !== true) {
+      return NextResponse.json(
+        { error: "You must accept the role description and rules to apply" },
+        { status: 400 }
+      );
+    }
+
     const user = await getUser(collegeMail);
     const isMember = Boolean(user);
 
@@ -116,6 +126,7 @@ export async function POST(request: Request) {
         socialMediaUrl: String(body.socialMediaUrl ?? "").trim(),
         portfolioUrl: String(body.portfolioUrl ?? "").trim(),
         consented: false,
+        acceptedRoleRules: Boolean(body.acceptedRoleRules),
         authUid: identity.uid,
         submittedAt: new Date().toISOString(),
       };
@@ -168,6 +179,7 @@ export async function POST(request: Request) {
       socialMediaUrl: String(body.socialMediaUrl ?? "").trim(),
       portfolioUrl: String(body.portfolioUrl ?? "").trim(),
       consented: Boolean(body.consented),
+      acceptedRoleRules: Boolean(body.acceptedRoleRules),
       authUid: identity.uid,
       submittedAt: new Date().toISOString(),
     };
