@@ -1,12 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save, RotateCcw } from "lucide-react";
+import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save, RotateCcw, QrCode } from "lucide-react";
 import type { SiteUser } from "@/lib/users-store";
 import { useAdmin } from "./admin-context";
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_BADGE } from "@/lib/roles";
 import type { AdminRole } from "@/lib/roles";
 import { EmptyState, LoadingState, PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
+import MemberCard from "@/components/MemberCard";
+
+interface MemberCodeInfo {
+  code: string;
+  name: string;
+  roles: string[];
+  version: number;
+  issuedAt: string | null;
+}
 
 const ROLE_SET = new Set<string>(ADMIN_ROLES);
 
@@ -35,6 +44,83 @@ export default function UsersPanel() {
   const [editing, setEditing] = useState<SiteUser | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", roles: "", sources: "" });
   const [saving, setSaving] = useState(false);
+
+  const [qrUser, setQrUser] = useState<SiteUser | null>(null);
+  const [qrInfo, setQrInfo] = useState<MemberCodeInfo | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [qrBusy, setQrBusy] = useState(false);
+
+  const openQr = async (user: SiteUser) => {
+    setQrUser(user);
+    setQrInfo(null);
+    setQrError(null);
+    setQrBusy(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(
+        `/api/admin/users/qr?email=${encodeURIComponent(user.email)}`,
+        { cache: "no-store", headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.code) {
+        setQrInfo({
+          code: data.code,
+          name: data.name || user.name,
+          roles: Array.isArray(data.roles) ? data.roles : user.roles,
+          version: data.version,
+          issuedAt: data.issuedAt ?? null,
+        });
+      } else if (res.status === 404) {
+        setQrError(
+          "This member has no QR code issued yet. Codes are generated automatically when an application is approved."
+        );
+      } else {
+        setQrError(data?.error ?? "Failed to load the member QR code.");
+      }
+    } catch {
+      setQrError("Failed to load the member QR code.");
+    } finally {
+      setQrBusy(false);
+    }
+  };
+
+  const regenerateQr = async () => {
+    if (!qrUser) return;
+    if (
+      !window.confirm(
+        `Regenerate the QR code for "${qrUser.name}" (${qrUser.email})?\n\nThe previous code will stop working immediately.`
+      )
+    ) {
+      return;
+    }
+    setQrBusy(true);
+    setQrError(null);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/admin/users/qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email: qrUser.email }),
+      });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.code) {
+        setQrInfo({
+          code: data.code,
+          name: data.name || qrUser.name,
+          roles: Array.isArray(data.roles) ? data.roles : qrUser.roles,
+          version: data.version,
+          issuedAt: data.issuedAt ?? null,
+        });
+        setMessage({ text: `QR code regenerated for "${qrUser.name}".`, type: "success" });
+      } else {
+        setQrError(data?.error ?? "Failed to regenerate the QR code.");
+      }
+    } catch {
+      setQrError("Failed to regenerate the QR code.");
+    } finally {
+      setQrBusy(false);
+    }
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -419,6 +505,15 @@ export default function UsersPanel() {
                           Revoke Join Limit
                         </button>
                         <button
+                          onClick={() => openQr(user)}
+                          disabled={busyEmail === user.email}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/30 text-violet-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                          title="View or regenerate this member's QR code"
+                        >
+                          <QrCode className="w-3.5 h-3.5" />
+                          QR
+                        </button>
+                        <button
                           onClick={() => openEdit(user)}
                           disabled={busyEmail === user.email}
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
@@ -527,6 +622,64 @@ export default function UsersPanel() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {qrUser && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0d1317] p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-lg font-bold text-white">Member QR Code</h3>
+                <p className="text-xs font-mono text-gray-400 mt-0.5">
+                  {qrUser.name} · {qrUser.email}
+                </p>
+              </div>
+              <button
+                onClick={() => setQrUser(null)}
+                disabled={qrBusy}
+                className="text-gray-400 hover:text-white transition-colors disabled:opacity-40"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center py-2">
+              {qrBusy && !qrInfo ? (
+                <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                  <Loader2 className="w-7 h-7 text-emerald-400 animate-spin" />
+                  <p className="text-xs font-mono text-gray-400">Loading code…</p>
+                </div>
+              ) : qrError ? (
+                <div className="w-full p-4 rounded-xl text-xs font-mono flex items-start gap-2 bg-amber-950/60 border border-amber-500/40 text-amber-300 text-left">
+                  <span>{qrError}</span>
+                </div>
+              ) : qrInfo ? (
+                <>
+                  <MemberCard
+                    name={qrInfo.name}
+                    roles={qrInfo.roles}
+                    code={qrInfo.code}
+                    issuedAt={qrInfo.issuedAt}
+                  />
+                  <p className="text-[10px] font-mono text-gray-600 mt-4">
+                    Card v{qrInfo.version} · {qrInfo.issuedAt ? `issued ${new Date(qrInfo.issuedAt).toLocaleDateString()}` : "issue date unknown"}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={regenerateQr}
+                    disabled={qrBusy}
+                    className="mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-violet-500/15 hover:bg-violet-500/25 border border-violet-500/30 text-violet-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                    title="Revoke the current code and issue a new one"
+                  >
+                    {qrBusy ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+                    {qrBusy ? "Regenerating..." : "Regenerate Code"}
+                  </button>
+                </>
+              ) : null}
+            </div>
           </div>
         </div>
       )}

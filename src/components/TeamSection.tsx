@@ -576,7 +576,7 @@ function FacultyShowcase({ members }: { members: TeamMember[] }) {
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.08)_1px,transparent_1px)] [background-size:36px_36px]" />
       <TeamHeader title="Core Leadership" activeIndex={activeIndex} totalSlides={totalSlides} onPrevious={() => navigateToMember(activeIndex - 1)} onNext={() => navigateToMember(activeIndex + 1)} />
       
-      <div ref={contentRef} className="relative z-20 mx-auto my-auto grid w-full max-w-6xl grid-cols-1 md:h-[560px] lg:h-[540px]">
+      <div ref={contentRef} className="relative z-20 mx-auto grid min-h-0 flex-1 w-full max-w-6xl grid-cols-1 md:h-[560px] md:flex-none md:my-auto lg:h-[540px]">
         {members.map((member, index) => (
           <div key={member.id} ref={(element) => { memberCardsRef.current[index] = element; }} className="col-start-1 row-start-1 h-full w-full overflow-hidden" style={{ zIndex: index + 1, clipPath: index === 0 ? "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)" : "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }}>
             <MemberCard member={member} />
@@ -734,7 +734,7 @@ function StudentShowcase({ members }: { members: TeamMember[] }) {
       <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.08)_1px,transparent_1px)] [background-size:36px_36px]" />
       <TeamHeader title="Student Presidents" activeIndex={activeIndex} totalSlides={totalSlides} onPrevious={() => navigateToMember(activeIndex - 1)} onNext={() => navigateToMember(activeIndex + 1)} />
       
-      <div className="relative z-20 mx-auto my-auto grid w-full max-w-6xl grid-cols-1 md:h-[560px] lg:h-[540px]">
+      <div className="relative z-20 mx-auto grid min-h-0 flex-1 w-full max-w-6xl grid-cols-1 md:h-[560px] md:flex-none md:my-auto lg:h-[540px]">
         {members.map((member, index) => (
           <div key={member.id} ref={(element) => { memberCardsRef.current[index] = element; }} className="col-start-1 row-start-1 h-full w-full overflow-hidden" style={{ zIndex: index + 1, clipPath: index === 0 ? "polygon(-40% -20%, 140% -20%, 140% 120%, -40% 120%)" : "polygon(140% -20%, 140% -20%, 140% 120%, 140% 120%)" }}>
             <MemberCard member={member} />

@@ -382,13 +382,22 @@ export default function EventsShowcase() {
         </div>
       </div>
 
-      {/* See More Events — outside the Mac UI card, centered at the bottom */}
+      {/* See More Events — elevated CTA pinned at the bottom of the section */}
       <Link
         href="/events"
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-1.5 px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white font-semibold text-xs sm:text-sm hover:border-white/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
+        className="group absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-3 pl-5 sm:pl-6 pr-1.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-emerald-950 shadow-[0_0_32px_rgba(52,211,153,0.45)] hover:shadow-[0_0_52px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
       >
-        See More Events
-        <ArrowRight className="w-4 h-4 transition-transform duration-300 hover:translate-x-1" />
+        <span className="flex flex-col items-start leading-none">
+          <span className="text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-[0.22em] text-emerald-950/60">
+            Full Calendar
+          </span>
+          <span className="mt-1 text-sm sm:text-base font-extrabold uppercase tracking-wide">
+            See More Events
+          </span>
+        </span>
+        <span className="inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-emerald-950 text-emerald-300 border border-white/20 transition-all duration-300 group-hover:bg-emerald-900 group-hover:text-white group-hover:scale-105">
+          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:translate-x-0.5" />
+        </span>
       </Link>
     </section>
   );

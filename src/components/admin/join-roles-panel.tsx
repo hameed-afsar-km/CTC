@@ -24,7 +24,6 @@ import {
   type JoinRolesConfig,
   type RoleRules,
 } from "@/lib/join-roles";
-import { DEFAULT_JOIN_ROLES } from "@/lib/join-roles-store";
 import { useAdmin } from "./admin-context";
 import { PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
 
