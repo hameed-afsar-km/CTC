@@ -56,6 +56,40 @@ export const ALL_SCOPES: AdminScope[] = [
   "join",
 ];
 
+export const SCOPE_LABELS: Record<AdminScope, string> = {
+  events: "Events",
+  applications: "Join Applications",
+  hostit: "Host'It",
+  users: "Users & Roles",
+  gallery: "Gallery",
+  logs: "Activity Logs",
+  focus: "Focus Ticker",
+  join: "Join Roles",
+};
+
+// Per-user overrides for dashboard scopes. `true` grants, `false` denies,
+// an absent key falls back to the role-based default.
+export type ScopePermissions = Partial<Record<AdminScope, boolean>>;
+
+export function scopeOverride(
+  permissions: ScopePermissions | null | undefined,
+  scope: AdminScope
+): boolean | null {
+  if (!permissions) return null;
+  const value = permissions[scope];
+  return typeof value === "boolean" ? value : null;
+}
+
+export function hasScopeWithPermissions(
+  role: AdminRole | null | undefined,
+  permissions: ScopePermissions | null | undefined,
+  scope: AdminScope
+): boolean {
+  const override = scopeOverride(permissions, scope);
+  if (override !== null) return override;
+  return hasScope(role, scope);
+}
+
 export function hasScope(role: AdminRole | null | undefined, scope: AdminScope): boolean {
   if (!role) return false;
   return SCOPE_ROLES[scope].includes(role);

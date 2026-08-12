@@ -7,8 +7,10 @@ import {
   deleteUser,
   updateUser,
   getUser,
+  setUserPermissions,
 } from "@/lib/users-store";
-import { ADMIN_ROLES, isAdminRole } from "@/lib/roles";
+import { ADMIN_ROLES, isAdminRole, ALL_SCOPES } from "@/lib/roles";
+import type { AdminScope, ScopePermissions } from "@/lib/roles";
 import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
@@ -75,11 +77,43 @@ export async function PATCH(request: Request) {
       email?: string;
       roles?: string[];
       adminRole?: string;
+      permissions?: ScopePermissions;
     };
     if (!body.email) {
       return NextResponse.json({ error: "email is required" }, { status: 400 });
     }
     const email = body.email.toLowerCase();
+
+    if (body.permissions !== undefined) {
+      if (!body.permissions || typeof body.permissions !== "object" || Array.isArray(body.permissions)) {
+        return NextResponse.json({ error: "invalid permissions" }, { status: 400 });
+      }
+      const cleaned: ScopePermissions = {};
+      for (const [scope, value] of Object.entries(body.permissions)) {
+        if (!(ALL_SCOPES as string[]).includes(scope)) continue;
+        if (value === true || value === false) {
+          cleaned[scope as AdminScope] = value;
+        }
+      }
+      const updated = await setUserPermissions(email, cleaned);
+      if (!updated) {
+        return NextResponse.json({ error: "user not found" }, { status: 404 });
+      }
+      await logAction(
+        request,
+        access.session,
+        "users",
+        "update permissions",
+        `Updated dashboard permissions for ${email}: ${
+          Object.keys(cleaned).length
+            ? Object.entries(cleaned)
+                .map(([scope, allow]) => `${scope}=${allow ? "allow" : "deny"}`)
+                .join(", ")
+            : "(all defaults)"
+        }`
+      );
+      return NextResponse.json({ user: updated });
+    }
 
     if (body.adminRole !== undefined) {
       const existing = await getUser(email);
@@ -149,6 +183,7 @@ export async function PUT(request: Request) {
       name?: string;
       roles?: string[];
       sources?: string[];
+      permissions?: ScopePermissions;
     };
     if (!body.email) {
       return NextResponse.json({ error: "email is required" }, { status: 400 });
@@ -163,11 +198,22 @@ export async function PUT(request: Request) {
     const sources = Array.isArray(body.sources)
       ? Array.from(new Set(body.sources.map((s) => String(s).trim()).filter(Boolean)))
       : undefined;
+    const permissions: ScopePermissions | undefined =
+      body.permissions && typeof body.permissions === "object" && !Array.isArray(body.permissions)
+        ? Object.fromEntries(
+            Object.entries(body.permissions).filter(
+              ([scope, value]) =>
+                (ALL_SCOPES as string[]).includes(scope) &&
+                (value === true || value === false)
+            )
+          )
+        : undefined;
     const updated = await updateUser(currentEmail, {
       email: body.email,
       name: body.name,
       roles,
       sources,
+      permissions,
     });
     if (!updated) {
       return NextResponse.json({ error: "user not found" }, { status: 404 });

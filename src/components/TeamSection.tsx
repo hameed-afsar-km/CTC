@@ -147,10 +147,10 @@ function PlaceholderMemberCard({ member }: { member: TeamMember }) {
       {/* --------------------------------------------------------------- */}
       {/* MOBILE VIEW (< md)                                              */}
       {/* --------------------------------------------------------------- */}
-      <div className="flex h-full flex-col items-center justify-between gap-2 overflow-y-auto md:hidden">
+      <div className="flex h-full min-h-0 flex-col items-center justify-between gap-2 overflow-hidden md:hidden">
         {/* Top: Placeholder "image" block */}
-        <div className="relative flex-shrink-0 w-[94%] min-[400px]:w-[86%] sm:w-[270px]">
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.5rem] sm:rounded-[1.75rem] bg-emerald-950 shadow-[0_10px_25px_rgba(15,45,30,0.15)] border-2 border-white/80">
+        <div className="relative flex-1 min-h-0 w-full">
+          <div className="relative mx-auto aspect-[3/4] h-full max-w-full overflow-hidden rounded-[1.5rem] sm:rounded-[1.75rem] bg-emerald-950 shadow-[0_10px_25px_rgba(15,45,30,0.15)] border-2 border-white/80">
             <div className="absolute inset-0 animate-aurora-blob" style={{ background: "radial-gradient(circle at 30% 25%, rgba(52,211,153,0.35), transparent 55%)" }} />
             <div className="absolute inset-0 animate-aurora-blob animation-delay-4000" style={{ background: "radial-gradient(circle at 75% 70%, rgba(45,212,191,0.3), transparent 55%)" }} />
             <div className="absolute inset-0 opacity-60 [background-image:linear-gradient(rgba(134,239,172,0.12)_1px,transparent_1px),linear-gradient(90deg,rgba(134,239,172,0.12)_1px,transparent_1px)] [background-size:28px_28px]" />
@@ -268,10 +268,10 @@ function MemberCard({ member }: { member: TeamMember }) {
       {/* --------------------------------------------------------------- */}
       {/* MOBILE / ANDROID EXCLUSIVE VIEW (< md)                          */}
       {/* --------------------------------------------------------------- */}
-      <div className="flex h-full flex-col items-center justify-between gap-2 overflow-y-auto md:hidden">
+      <div className="flex h-full min-h-0 flex-col items-center justify-between gap-2 overflow-hidden md:hidden">
         {/* Top: Hero 3:4 Image Card */}
-        <div className="relative flex-shrink-0 w-[94%] min-[400px]:w-[86%] sm:w-[270px]">
-          <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[1.5rem] sm:rounded-[1.75rem] bg-emerald-950 shadow-[0_10px_25px_rgba(15,45,30,0.15)] border-2 border-white/80">
+        <div className="relative flex-1 min-h-0 w-full">
+          <div className="relative mx-auto aspect-[3/4] h-full max-w-full overflow-hidden rounded-[1.5rem] sm:rounded-[1.75rem] bg-emerald-950 shadow-[0_10px_25px_rgba(15,45,30,0.15)] border-2 border-white/80">
             <img
               src={member.image}
               alt={member.name}

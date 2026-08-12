@@ -382,23 +382,37 @@ export default function EventsShowcase() {
         </div>
       </div>
 
-      {/* See More Events — elevated CTA pinned at the bottom of the section */}
-      <Link
-        href="/events"
-        className="group absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-20 inline-flex items-center gap-3 pl-5 sm:pl-6 pr-1.5 py-1.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-emerald-950 shadow-[0_0_32px_rgba(52,211,153,0.45)] hover:shadow-[0_0_52px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
-      >
-        <span className="flex flex-col items-start leading-none">
-          <span className="text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-[0.22em] text-emerald-950/60">
-            Full Calendar
+      {/* See More Events — glassmorphic glow pill pinned at the bottom of the section */}
+      <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-20">
+        {/* Pulsing mint halo behind the pill */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-3 rounded-full bg-[radial-gradient(60%_60%_at_50%_50%,rgba(52,211,153,0.4),transparent_75%)] blur-xl animate-pulse-glow"
+        />
+        <Link
+          href="/events"
+          className="group relative inline-flex items-center gap-3.5 pl-5 sm:pl-6 pr-2 py-2 rounded-full border border-emerald-300/30 bg-white/[0.06] backdrop-blur-xl text-emerald-50 shadow-[0_8px_32px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.12)] hover:border-emerald-300/60 hover:bg-white/[0.1] hover:shadow-[0_0_44px_rgba(52,211,153,0.4),inset_0_1px_0_rgba(255,255,255,0.18)] hover:scale-[1.03] active:scale-95 transition-all duration-300"
+        >
+          {/* Live status dot */}
+          <span className="relative flex h-2.5 w-2.5 shrink-0">
+            <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75 animate-ping" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
           </span>
-          <span className="mt-1 text-sm sm:text-base font-extrabold uppercase tracking-wide">
-            See More Events
+
+          <span className="flex flex-col items-start leading-none">
+            <span className="text-[9px] sm:text-[10px] font-mono font-black uppercase tracking-[0.24em] text-emerald-300/80 group-hover:text-emerald-200 transition-colors duration-300">
+              Full Calendar
+            </span>
+            <span className="mt-1.5 text-sm sm:text-base font-extrabold uppercase tracking-wide group-hover:text-white transition-colors duration-300">
+              See More Events
+            </span>
           </span>
-        </span>
-        <span className="inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-emerald-950 text-emerald-300 border border-white/20 transition-all duration-300 group-hover:bg-emerald-900 group-hover:text-white group-hover:scale-105">
-          <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:translate-x-0.5" />
-        </span>
-      </Link>
+
+          <span className="inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-gradient-to-br from-emerald-400/20 to-teal-400/10 border border-emerald-300/40 text-emerald-200 backdrop-blur-md transition-all duration-300 group-hover:from-emerald-400 group-hover:to-teal-300 group-hover:text-emerald-950 group-hover:border-transparent group-hover:scale-105 group-hover:shadow-[0_0_22px_rgba(52,211,153,0.6)]">
+            <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 transition-transform duration-300 group-hover:translate-x-0.5" />
+          </span>
+        </Link>
+      </div>
     </section>
   );
 }

@@ -9,13 +9,14 @@ import {
   signOut as firebaseSignOut,
 } from "firebase/auth";
 import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
-import type { AdminRole } from "@/lib/roles";
+import type { AdminRole, ScopePermissions } from "@/lib/roles";
 
 export interface AdminUser {
   email: string;
   name: string;
   picture: string | null;
   role: AdminRole;
+  permissions: ScopePermissions;
 }
 
 export type AdminStatus = "loading" | "signed-out" | "denied" | "ready";
@@ -65,6 +66,7 @@ export function AdminProvider({ children }: { children: React.ReactNode }) {
         name: data.session.name,
         picture: data.session.picture,
         role: data.session.role ?? "admin",
+        permissions: data.session.permissions ?? {},
       });
       setStatus("ready");
     } catch {

@@ -20,7 +20,7 @@ import {
   BadgeCheck,
 } from "lucide-react";
 import { AdminProvider, useAdmin } from "@/components/admin/admin-context";
-import { scopesForRole, ROLE_LABELS } from "@/lib/roles";
+import { hasScopeWithPermissions, ROLE_LABELS } from "@/lib/roles";
 import type { AdminScope } from "@/lib/roles";
 import EventsPanel from "@/components/admin/events-panel";
 import ApplicationsPanel from "@/components/admin/applications-panel";
@@ -130,8 +130,11 @@ function DashboardShell() {
   const [signInError, setSignInError] = useState<string | null>(null);
 
   const visibleTabs = useMemo(
-    () => TABS.filter((t) => scopesForRole(user?.role).includes(t.id)),
-    [user?.role]
+    () =>
+      TABS.filter((t) =>
+        hasScopeWithPermissions(user?.role, user?.permissions, t.id)
+      ),
+    [user?.role, user?.permissions]
   );
 
   // If the selected tab isn't visible to the current role, fall back to the

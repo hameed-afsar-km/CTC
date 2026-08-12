@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save, RotateCcw, QrCode } from "lucide-react";
+import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save, RotateCcw, QrCode, ShieldCheck } from "lucide-react";
 import type { SiteUser } from "@/lib/users-store";
 import { useAdmin } from "./admin-context";
-import { ADMIN_ROLES, ROLE_LABELS, ROLE_BADGE } from "@/lib/roles";
-import type { AdminRole } from "@/lib/roles";
+import { ADMIN_ROLES, ROLE_LABELS, ROLE_BADGE, ALL_SCOPES, SCOPE_LABELS, hasScope } from "@/lib/roles";
+import type { AdminRole, AdminScope, ScopePermissions } from "@/lib/roles";
 import { EmptyState, LoadingState, PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
 import MemberCard from "@/components/MemberCard";
 
@@ -49,6 +49,53 @@ export default function UsersPanel() {
   const [qrInfo, setQrInfo] = useState<MemberCodeInfo | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
   const [qrBusy, setQrBusy] = useState(false);
+
+  const [permUser, setPermUser] = useState<SiteUser | null>(null);
+  const [permDraft, setPermDraft] = useState<ScopePermissions | null>(null);
+  const [permSaving, setPermSaving] = useState(false);
+
+  const openPerm = (user: SiteUser) => {
+    setPermUser(user);
+    setPermDraft(user.permissions ? { ...user.permissions } : {});
+  };
+
+  const setPerm = (scope: AdminScope, value: boolean | undefined) => {
+    setPermDraft((prev) => {
+      const next = { ...(prev ?? {}) };
+      if (value === undefined) delete next[scope];
+      else next[scope] = value;
+      return next;
+    });
+  };
+
+  const savePerm = async () => {
+    if (!permUser || !permDraft) return;
+    setPermSaving(true);
+    setMessage(null);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email: permUser.email, permissions: permDraft }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "failed");
+      }
+      setPermUser(null);
+      setPermDraft(null);
+      setMessage({ text: `Permissions updated for "${permUser.name}".`, type: "success" });
+      await fetchAll();
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? `Failed to update permissions: ${err.message}` : "Failed to update permissions",
+        type: "error",
+      });
+    } finally {
+      setPermSaving(false);
+    }
+  };
 
   const openQr = async (user: SiteUser) => {
     setQrUser(user);
@@ -514,6 +561,15 @@ export default function UsersPanel() {
                           QR
                         </button>
                         <button
+                          onClick={() => openPerm(user)}
+                          disabled={busyEmail === user.email}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 border border-teal-500/30 text-teal-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                          title="Override dashboard access per section"
+                        >
+                          <ShieldCheck className="w-3.5 h-3.5" />
+                          Permissions
+                        </button>
+                        <button
                           onClick={() => openEdit(user)}
                           disabled={busyEmail === user.email}
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
@@ -622,6 +678,132 @@ export default function UsersPanel() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {permUser && permDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-white/10 bg-[#0d1317] p-6">
+            <div className="flex items-center justify-between mb-1">
+              <div>
+                <h3 className="text-lg font-bold text-white">Dashboard Permissions</h3>
+                <p className="text-xs font-mono text-gray-400 mt-0.5">
+                  {permUser.name} · {permUser.email}
+                </p>
+              </div>
+              <button
+                onClick={() => setPermUser(null)}
+                disabled={permSaving}
+                className="text-gray-400 hover:text-white transition-colors disabled:opacity-40"
+                title="Close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-500 leading-relaxed mb-4">
+              Overrides the access this user&apos;s dashboard role grants by default.{" "}
+              <span className="text-gray-400">Allow</span> /{" "}
+              <span className="text-gray-400">Deny</span> force a section on or off;{" "}
+              <span className="text-gray-400">Role default</span> falls back to the assigned role.
+            </p>
+
+            <div className="space-y-2.5">
+              {ALL_SCOPES.map((scope) => {
+                const value = permDraft[scope];
+                const roleDefault = hasScope(adminRoleOf(permUser), scope);
+                return (
+                  <div
+                    key={scope}
+                    className="rounded-xl border border-white/10 bg-black/40 px-3.5 py-3"
+                  >
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="text-sm font-bold text-white">{SCOPE_LABELS[scope]}</span>
+                      {value !== undefined ? (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                            value
+                              ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                              : "bg-rose-500/15 border-rose-500/30 text-rose-300"
+                          }`}
+                        >
+                          {value ? "Allowed" : "Denied"}
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider ${
+                            roleDefault
+                              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400/80"
+                              : "bg-white/5 border-white/10 text-gray-500"
+                          }`}
+                        >
+                          Role default: {roleDefault ? "allowed" : "denied"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {(
+                        [
+                          { label: "Allow", v: true },
+                          { label: "Deny", v: false },
+                        ] as { label: string; v: boolean }[]
+                      ).map((opt) => {
+                        const active = value === opt.v;
+                        return (
+                          <button
+                            key={opt.label}
+                            type="button"
+                            onClick={() => setPerm(scope, opt.v)}
+                            disabled={permSaving}
+                            className={`flex-1 px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider border transition-all disabled:opacity-50 ${
+                              active
+                                ? opt.v
+                                  ? "bg-emerald-500/25 border-emerald-500/50 text-emerald-300"
+                                  : "bg-rose-500/25 border-rose-500/50 text-rose-300"
+                                : "bg-white/5 border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/25"
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        onClick={() => setPerm(scope, undefined)}
+                        disabled={permSaving}
+                        className={`flex-[1.4] px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider border transition-all disabled:opacity-50 ${
+                          value === undefined
+                            ? "bg-white/15 border-white/30 text-white"
+                            : "bg-white/5 border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/25"
+                        }`}
+                      >
+                        Role default
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center gap-2 pt-5">
+              <button
+                type="button"
+                onClick={() => setPermUser(null)}
+                disabled={permSaving}
+                className="flex-1 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={savePerm}
+                disabled={permSaving}
+                className="flex-1 py-3 rounded-xl bg-emerald-400 hover:bg-emerald-300 text-black font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {permSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {permSaving ? "Saving..." : "Save Permissions"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
+import type { ScopePermissions } from "./roles";
 
 export interface SiteUser {
   email: string;
@@ -11,6 +12,7 @@ export interface SiteUser {
   memberCodeHash?: string;
   memberCodeVersion?: number;
   memberCodeIssuedAt?: string;
+  permissions?: ScopePermissions;
 }
 
 const COLLECTION = "users";
@@ -126,6 +128,10 @@ export async function updateUser(
     sources: Array.isArray(patch.sources)
       ? Array.from(new Set(patch.sources.map((s) => String(s).trim()).filter(Boolean)))
       : existing.sources,
+    permissions:
+      patch.permissions && typeof patch.permissions === "object"
+        ? { ...patch.permissions }
+        : existing.permissions,
     createdAt: existing.createdAt,
     updatedAt: now,
     joinResetAt: existing.joinResetAt,
@@ -136,6 +142,18 @@ export async function updateUser(
     await deleteDocument(COLLECTION, currentEmail);
   }
   return updated;
+}
+
+export async function setUserPermissions(
+  email: string,
+  permissions: ScopePermissions
+): Promise<SiteUser | null> {
+  const cleanEmail = email.trim().toLowerCase();
+  const existing = await getUser(cleanEmail);
+  if (!existing) return null;
+  const now = new Date().toISOString();
+  await saveDocument(COLLECTION, cleanEmail, { permissions, updatedAt: now });
+  return { ...existing, permissions, updatedAt: now };
 }
 
 export async function syncAppliedRole(

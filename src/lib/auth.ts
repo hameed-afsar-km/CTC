@@ -1,9 +1,10 @@
-import { getUser } from "./users-store";
+import { getUser, type SiteUser } from "./users-store";
 import {
-  hasScope,
+  hasScopeWithPermissions,
   resolveRole,
   type AdminRole,
   type AdminScope,
+  type ScopePermissions,
 } from "./roles";
 
 function unwrap(value: string | undefined): string | undefined {
@@ -55,6 +56,7 @@ export interface AdminSession {
   name: string;
   picture: string | null;
   role: AdminRole;
+  permissions: ScopePermissions;
 }
 
 export function isAllowedAdminEmail(email: string | undefined): boolean {
@@ -86,18 +88,14 @@ export function decodeTokenPayload(token: string): {
   }
 }
 
-async function resolveSessionRole(
+function roleForUser(
   email: string,
-  decodedRoles: string[]
-): Promise<AdminRole> {
+  decodedRoles: string[],
+  user: SiteUser | null
+): AdminRole {
   if (isSuperAdminEmail(email)) return "super-admin";
-  try {
-    const user = await getUser(email);
-    const roles = user?.roles ?? [];
-    return resolveRole(email, roles.length > 0 ? roles : decodedRoles);
-  } catch {
-    return resolveRole(email, decodedRoles);
-  }
+  const roles = user?.roles ?? [];
+  return resolveRole(email, roles.length > 0 ? roles : decodedRoles);
 }
 
 export async function verifyAdminToken(token: string): Promise<AdminSession | null> {
@@ -105,13 +103,19 @@ export async function verifyAdminToken(token: string): Promise<AdminSession | nu
   if (!decoded || !decoded.email || !isAllowedAdminEmail(decoded.email)) {
     return null;
   }
-  const role = await resolveSessionRole(decoded.email, []);
+  let user: SiteUser | null = null;
+  try {
+    user = await getUser(decoded.email);
+  } catch {
+    user = null;
+  }
   return {
     uid: decoded.uid || "admin",
     email: decoded.email,
     name: decoded.name || decoded.email,
     picture: decoded.picture || null,
-    role,
+    role: roleForUser(decoded.email, [], user),
+    permissions: user?.permissions ?? {},
   };
 }
 
@@ -132,6 +136,11 @@ export async function resolveAccess(
 ): Promise<AccessResult> {
   const session = await requireAdmin(request);
   if (!session) return { status: 401 };
-  if (!hasScope(session.role, scope)) return { status: 403 };
+  // Super-admins always keep full access; per-user overrides can only
+  // restrict other accounts.
+  const allowed = isSuperAdminEmail(session.email)
+    ? true
+    : hasScopeWithPermissions(session.role, session.permissions, scope);
+  if (!allowed) return { status: 403 };
   return { status: 200, session };
 }
