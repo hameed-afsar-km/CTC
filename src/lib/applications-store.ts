@@ -70,9 +70,17 @@ export async function hasActiveApplicationLimit(
   );
 }
 
-export async function saveApplication(application: Application): Promise<void> {
+export async function saveApplication(
+  application: Application,
+  token?: string | null
+): Promise<void> {
   const record = { ...application, status: application.status ?? "pending" };
-  await saveDocument(COLLECTION, application.id, record as unknown as Record<string, unknown>);
+  await saveDocument(
+    COLLECTION,
+    application.id,
+    record as unknown as Record<string, unknown>,
+    token
+  );
 }
 
 // Issue (or keep) a member's QR code. Called only when an application is

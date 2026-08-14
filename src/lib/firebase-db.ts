@@ -7,6 +7,7 @@ import {
   setDoc,
   deleteDoc,
 } from "firebase/firestore";
+import { getAdminDb } from "./firebase-admin";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -105,7 +106,20 @@ function encodeRestValue(val: unknown): FirestoreRestValue {
 export async function fetchCollectionDocs(
   collectionName: string
 ): Promise<Record<string, unknown>[]> {
-  // 1. Try Firebase Web SDK
+  // 1. Try Firebase Admin SDK (Server-side)
+  if (typeof window === "undefined") {
+    try {
+      const adminDb = getAdminDb();
+      if (adminDb) {
+        const snap = await adminDb.collection(collectionName).get();
+        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }
+    } catch (err) {
+      console.warn(`Admin Firestore fetch warning for '${collectionName}':`, err);
+    }
+  }
+
+  // 2. Try Firebase Client Web SDK
   try {
     const db = getDbInstance();
     if (db) {
@@ -118,7 +132,7 @@ export async function fetchCollectionDocs(
     console.warn(`Firestore Web SDK fetch warning for '${collectionName}':`, err);
   }
 
-  // 2. Fallback to direct Firestore REST API
+  // 3. Fallback to direct Firestore REST API
   try {
     const PROJECT_ID = firebaseConfig.projectId;
     const API_KEY = firebaseConfig.apiKey || "";
@@ -144,7 +158,20 @@ export async function saveDocument(
   data: Record<string, unknown>,
   token?: string | null
 ): Promise<void> {
-  // 1. Try Firebase Web SDK
+  // 1. Try Firebase Admin SDK (Server-side)
+  if (typeof window === "undefined") {
+    try {
+      const adminDb = getAdminDb();
+      if (adminDb) {
+        await adminDb.collection(collectionName).doc(docId).set(data, { merge: true });
+        return;
+      }
+    } catch (err) {
+      console.warn(`Admin Firestore save warning for '${collectionName}/${docId}':`, err);
+    }
+  }
+
+  // 2. Try Firebase Client Web SDK
   try {
     const db = getDbInstance();
     if (db) {
@@ -155,7 +182,7 @@ export async function saveDocument(
     console.warn(`Firestore Web SDK save warning for '${collectionName}/${docId}':`, err);
   }
 
-  // 2. REST API Fallback
+  // 3. REST API Fallback
   const PROJECT_ID = firebaseConfig.projectId;
   const API_KEY = firebaseConfig.apiKey || "";
   const keyParam = API_KEY ? `?key=${API_KEY}` : "";
@@ -190,7 +217,20 @@ export async function deleteDocument(
   docId: string,
   token?: string | null
 ): Promise<boolean> {
-  // 1. Try Firebase Web SDK
+  // 1. Try Firebase Admin SDK (Server-side)
+  if (typeof window === "undefined") {
+    try {
+      const adminDb = getAdminDb();
+      if (adminDb) {
+        await adminDb.collection(collectionName).doc(docId).delete();
+        return true;
+      }
+    } catch (err) {
+      console.warn(`Admin Firestore delete warning for '${collectionName}/${docId}':`, err);
+    }
+  }
+
+  // 2. Try Firebase Client Web SDK
   try {
     const db = getDbInstance();
     if (db) {
@@ -201,7 +241,7 @@ export async function deleteDocument(
     console.warn(`Firestore Web SDK delete warning for '${collectionName}/${docId}':`, err);
   }
 
-  // 2. REST API Fallback
+  // 3. REST API Fallback
   const PROJECT_ID = firebaseConfig.projectId;
   const API_KEY = firebaseConfig.apiKey || "";
   const keyParam = API_KEY ? `?key=${API_KEY}` : "";
@@ -215,3 +255,4 @@ export async function deleteDocument(
   const res = await fetch(url, { method: "DELETE", headers });
   return res.ok;
 }
+

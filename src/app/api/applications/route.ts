@@ -29,7 +29,8 @@ export async function POST(request: Request) {
     // The applicant must be signed in with their official college Google
     // account. The verified email from the ID token is the only trusted one —
     // anything typed into the form is ignored so no one can spoof an address.
-    const identity = await verifyCollegeIdToken(bearerToken(request) ?? "");
+    const token = bearerToken(request);
+    const identity = await verifyCollegeIdToken(token ?? "");
     if (!identity) {
       return NextResponse.json(
         { error: "Please sign in with your college Google account to apply." },
@@ -38,22 +39,6 @@ export async function POST(request: Request) {
     }
 
     const body = (await request.json()) as Partial<Application>;
-
-    for (const key of REQUIRED_FIELDS) {
-      if (!body[key]) {
-        return NextResponse.json({ error: `${key} is required` }, { status: 400 });
-      }
-    }
-    if (!Array.isArray(body.interests) || body.interests.length === 0) {
-      return NextResponse.json({ error: "interests are required" }, { status: 400 });
-    }
-    if (!Array.isArray(body.skills) || body.skills.length === 0) {
-      return NextResponse.json({ error: "skills are required" }, { status: 400 });
-    }
-    if (!body.consented) {
-      return NextResponse.json({ error: "contact consent is required" }, { status: 400 });
-    }
-
     const collegeMail = identity.email;
 
     const config = await getJoinRolesConfig();
@@ -131,8 +116,11 @@ export async function POST(request: Request) {
         submittedAt: new Date().toISOString(),
       };
 
-      await saveApplication(application);
-      await upsertUser({ email: collegeMail, name: fullName, source: "role-apply" });
+      await saveApplication(application, token);
+      await upsertUser(
+        { email: collegeMail, name: fullName, source: "role-apply" },
+        token
+      );
       return NextResponse.json({ application, type: "role" }, { status: 201 });
     }
 
@@ -184,8 +172,11 @@ export async function POST(request: Request) {
       submittedAt: new Date().toISOString(),
     };
 
-    await saveApplication(application);
-    await upsertUser({ email: collegeMail, name: application.fullName, source: "join" });
+    await saveApplication(application, token);
+    await upsertUser(
+      { email: collegeMail, name: application.fullName, source: "join" },
+      token
+    );
     if (resetAt) {
       await clearJoinReset(collegeMail);
     }

@@ -32,30 +32,43 @@ export async function getUser(email: string): Promise<SiteUser | null> {
   return users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null;
 }
 
-export async function upsertUser(input: {
-  email: string;
-  name: string;
-  source: string;
-}): Promise<void> {
+export async function upsertUser(
+  input: {
+    email: string;
+    name: string;
+    source: string;
+  },
+  token?: string | null
+): Promise<void> {
   const email = input.email.trim().toLowerCase();
   if (!email) return;
   const existing = await getUser(email);
   const now = new Date().toISOString();
   if (existing) {
-    await saveDocument(COLLECTION, email, {
-      name: existing.name || input.name,
-      sources: Array.from(new Set([...(existing.sources ?? []), input.source])),
-      updatedAt: now,
-    });
-  } else {
-    await saveDocument(COLLECTION, email, {
+    await saveDocument(
+      COLLECTION,
       email,
-      name: input.name,
-      roles: [],
-      sources: [input.source],
-      createdAt: now,
-      updatedAt: now,
-    });
+      {
+        name: existing.name || input.name,
+        sources: Array.from(new Set([...(existing.sources ?? []), input.source])),
+        updatedAt: now,
+      },
+      token
+    );
+  } else {
+    await saveDocument(
+      COLLECTION,
+      email,
+      {
+        email,
+        name: input.name,
+        roles: [],
+        sources: [input.source],
+        createdAt: now,
+        updatedAt: now,
+      },
+      token
+    );
   }
 }
 

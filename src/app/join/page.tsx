@@ -669,10 +669,11 @@ export default function JoinPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(
-          data?.error ||
-            "Your application could not be submitted. Please try again."
-        );
+        const errMsg =
+          typeof data?.error === "string" && data.error.trim()
+            ? data.error
+            : `Your application could not be submitted (${res.status}). Please try again.`;
+        throw new Error(errMsg);
       }
       setSubmitted(true);
       setSubmittedName(form.fullName);
@@ -735,9 +736,11 @@ export default function JoinPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(
-          data?.error || "Your application could not be submitted. Please try again."
-        );
+        const errMsg =
+          typeof data?.error === "string" && data.error.trim()
+            ? data.error
+            : `Your application could not be submitted (${res.status}). Please try again.`;
+        throw new Error(errMsg);
       }
       setSubmitted(true);
       setSubmittedName(form.fullName);
