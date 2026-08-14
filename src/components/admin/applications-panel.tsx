@@ -112,6 +112,51 @@ export default function ApplicationsPanel() {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectBusy, setRejectBusy] = useState(false);
 
+  const [deleteTarget, setDeleteTarget] = useState<Application | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+
+  const openDelete = (a: Application) => {
+    setDeleteTarget(a);
+    setDeleteReason("");
+    setDeleteBusy(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    if (!deleteReason.trim()) {
+      setMessage({ text: "Please enter a reason for deleting this application.", type: "error" });
+      return;
+    }
+    setDeleteBusy(true);
+    try {
+      const token = await getToken();
+      const res = await fetch("/api/admin/applications", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          id: deleteTarget.id,
+          reason: deleteReason.trim(),
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Failed to delete application");
+      }
+      setApps((prev) => prev.filter((x) => x.id !== deleteTarget.id));
+      if (viewing?.id === deleteTarget.id) setViewing(null);
+      setMessage({ text: "Application deleted successfully.", type: "success" });
+      setDeleteTarget(null);
+    } catch (err) {
+      setMessage({
+        text: err instanceof Error ? err.message : "Failed to delete application",
+        type: "error",
+      });
+    } finally {
+      setDeleteBusy(false);
+    }
+  };
+
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
@@ -1072,7 +1117,7 @@ export default function ApplicationsPanel() {
                   {viewing.id}
                 </div>
                 <button
-                  onClick={() => handleDelete(viewing)}
+                  onClick={() => openDelete(viewing)}
                   disabled={busyId === viewing.id}
                   className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-60"
                 >
@@ -1108,6 +1153,30 @@ export default function ApplicationsPanel() {
             value={rejectReason}
             onChange={(e) => setRejectReason(e.target.value)}
             placeholder="e.g. Missing mandatory details, not a current student, seats are full..."
+            className={`${inputCls} resize-none`}
+          />
+        </DecisionModal>
+      )}
+
+      {/* Delete application modal */}
+      {deleteTarget && (
+        <DecisionModal
+          title="Delete Application"
+          description={`Permanently delete the application submitted by ${deleteTarget.fullName}. Please provide a reason for deleting this application.`}
+          confirmLabel={deleteBusy ? "Deleting..." : "Delete Application"}
+          busy={deleteBusy}
+          onCancel={() => {
+            if (!deleteBusy) setDeleteTarget(null);
+          }}
+          onConfirm={confirmDelete}
+        >
+          <label className={labelCls}>Deletion Reason *</label>
+          <textarea
+            autoFocus
+            rows={4}
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            placeholder="e.g. Duplicate submission, invalid details, requested by applicant..."
             className={`${inputCls} resize-none`}
           />
         </DecisionModal>

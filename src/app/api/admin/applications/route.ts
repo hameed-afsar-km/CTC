@@ -105,11 +105,30 @@ export async function DELETE(request: Request) {
       { status: access.status }
     );
   }
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get("id");
+  let id: string | null = null;
+  let reason = "";
+  try {
+    const body = (await request.json().catch(() => null)) as { id?: string; reason?: string } | null;
+    if (body && typeof body === "object") {
+      id = typeof body.id === "string" ? body.id : null;
+      reason = typeof body.reason === "string" ? body.reason.trim() : "";
+    }
+  } catch {
+    // fallback
+  }
+  if (!id) {
+    const { searchParams } = new URL(request.url);
+    id = searchParams.get("id");
+    if (!reason) reason = (searchParams.get("reason") || "").trim();
+  }
+
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
+  if (!reason) {
+    return NextResponse.json({ error: "reason for deletion is required" }, { status: 400 });
+  }
+
   const ok = await deleteApplication(id);
   if (!ok) {
     return NextResponse.json({ error: "failed to delete application" }, { status: 500 });
@@ -119,7 +138,7 @@ export async function DELETE(request: Request) {
     access.session,
     "applications",
     "delete application",
-    `Deleted application ${id}`
+    `Deleted application ${id} — reason: ${reason}`
   );
   return NextResponse.json({ ok: true });
 }

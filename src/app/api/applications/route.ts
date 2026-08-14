@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import {
+  deleteApplication,
   getApplications,
   hasActiveApplicationLimit,
   hasPendingApplication,
@@ -186,6 +187,56 @@ export async function POST(request: Request) {
       err instanceof Error && err.message
         ? err.message
         : "failed to save application";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const token = bearerToken(request);
+    const identity = await verifyCollegeIdToken(token ?? "");
+    if (!identity) {
+      return NextResponse.json(
+        { error: "Please sign in with your college Google account to withdraw your application." },
+        { status: 401 }
+      );
+    }
+
+    const body = (await request.json().catch(() => null)) as { reason?: string } | null;
+    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+    if (!reason) {
+      return NextResponse.json(
+        { error: "Please provide a reason for deleting your application." },
+        { status: 400 }
+      );
+    }
+
+    const email = identity.email.toLowerCase();
+    const apps = await getApplications();
+    const userApp = apps.find(
+      (a) =>
+        (a.collegeMail || "").trim().toLowerCase() === email &&
+        (a.status ?? "pending") === "pending"
+    );
+
+    if (!userApp) {
+      return NextResponse.json(
+        { error: "No pending application found to delete." },
+        { status: 404 }
+      );
+    }
+
+    const ok = await deleteApplication(userApp.id, token);
+    if (!ok) {
+      return NextResponse.json({ error: "Failed to delete application" }, { status: 500 });
+    }
+
+    return NextResponse.json({ ok: true, message: "Application deleted successfully." });
+  } catch (err) {
+    const message =
+      err instanceof Error && err.message
+        ? err.message
+        : "failed to delete application";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

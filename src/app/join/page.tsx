@@ -36,6 +36,7 @@ import {
   Phone,
   Send,
   ShieldCheck,
+  Trash2,
   User,
   X,
 } from "lucide-react";
@@ -431,6 +432,52 @@ export default function JoinPage() {
   const [roleDetails, setRoleDetails] = useState<Record<string, RoleRules>>({});
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [acceptedRoleRules, setAcceptedRoleRules] = useState(false);
+
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawReason, setWithdrawReason] = useState("");
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [withdrawError, setWithdrawError] = useState<string | null>(null);
+  const [withdrawMsg, setWithdrawMsg] = useState<string | null>(null);
+
+  const handleWithdrawApplication = async () => {
+    if (!withdrawReason.trim()) {
+      setWithdrawError("Please enter a reason for deleting your application.");
+      return;
+    }
+    const token = await getCurrentIdToken();
+    if (!token) {
+      setWithdrawError("Session expired. Please sign in again.");
+      return;
+    }
+    setWithdrawBusy(true);
+    setWithdrawError(null);
+    try {
+      const res = await fetch("/api/applications", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: withdrawReason.trim() }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Failed to delete application");
+      }
+      setAlreadyApplied(false);
+      setHasPending(false);
+      setWithdrawOpen(false);
+      setWithdrawReason("");
+      setSubmitError(null);
+      setWithdrawMsg(
+        "Your application has been deleted successfully. You may now submit a fresh application if desired."
+      );
+    } catch (err) {
+      setWithdrawError(err instanceof Error ? err.message : "Failed to delete application");
+    } finally {
+      setWithdrawBusy(false);
+    }
+  };
 
   // Load the roles the admins have opened for applications.
   useEffect(() => {
@@ -931,13 +978,27 @@ export default function JoinPage() {
                           you can apply for another role.
                         </p>
                       </div>
-                      <Link
-                        href="/"
-                        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white text-xs font-mono uppercase tracking-wider transition-all"
-                      >
-                        <Home className="w-4 h-4" />
-                        Back to Home
-                      </Link>
+                      <div className="flex flex-wrap items-center justify-center gap-3">
+                        <Link
+                          href="/"
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white text-xs font-mono uppercase tracking-wider transition-all"
+                        >
+                          <Home className="w-4 h-4" />
+                          Back to Home
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setWithdrawOpen(true);
+                            setWithdrawReason("");
+                            setWithdrawError(null);
+                          }}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 text-xs font-mono uppercase tracking-wider transition-all"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Withdraw / Delete Application
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -1274,12 +1335,32 @@ export default function JoinPage() {
                         </p>
                       )}
                       {alreadyApplied && (
-                        <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-950/40 p-3 text-xs font-mono text-amber-300">
-                          <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                          <span>
-                            An application has already been submitted with this email. Please contact
-                            the team directly for any follow-ups or updates.
-                          </span>
+                        <div className="mt-3 flex flex-col gap-2.5 rounded-xl border border-amber-500/30 bg-amber-950/40 p-3.5 text-xs font-mono text-amber-300">
+                          <div className="flex items-start gap-2">
+                            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                            <span>
+                              An application has already been submitted with this email. Please contact
+                              the team directly for any follow-ups or updates.
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setWithdrawOpen(true);
+                              setWithdrawReason("");
+                              setWithdrawError(null);
+                            }}
+                            className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-bold uppercase tracking-wider transition-all"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Withdraw / Delete Application
+                          </button>
+                        </div>
+                      )}
+                      {withdrawMsg && (
+                        <div className="mt-3 flex items-start gap-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-3.5 text-xs font-mono text-emerald-300">
+                          <CheckCircle className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
+                          <span>{withdrawMsg}</span>
                         </div>
                       )}
                     </div>
@@ -1623,6 +1704,89 @@ export default function JoinPage() {
                 className="flex-1 px-5 py-3 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
               >
                 Not Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Applicant Withdrawal / Deletion modal */}
+      {withdrawOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div
+            className="absolute inset-0"
+            onClick={() => {
+              if (!withdrawBusy) setWithdrawOpen(false);
+            }}
+          />
+          <div className="relative w-full max-w-md rounded-3xl border border-white/15 bg-[#0d1317] p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between gap-4 border-b border-white/10 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Trash2 className="w-5 h-5 text-red-400" />
+                  Delete Application
+                </h3>
+                <p className="text-xs text-gray-400 mt-1">
+                  Permanently withdraw and delete your submitted application.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!withdrawBusy) setWithdrawOpen(false);
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {withdrawError && (
+              <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-400 text-xs font-mono">
+                {withdrawError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[11px] font-mono uppercase tracking-wider text-gray-400 mb-2">
+                Reason for Deleting *
+              </label>
+              <textarea
+                autoFocus
+                rows={3}
+                value={withdrawReason}
+                onChange={(e) => setWithdrawReason(e.target.value)}
+                placeholder="e.g. Applied by mistake, entered wrong details, no longer available..."
+                className="w-full px-4 py-3 rounded-xl bg-black/40 border border-white/10 text-white text-sm placeholder:text-gray-600 focus:outline-none focus:border-red-400 resize-none"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setWithdrawOpen(false)}
+                disabled={withdrawBusy}
+                className="px-4 py-2.5 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleWithdrawApplication}
+                disabled={withdrawBusy || !withdrawReason.trim()}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+              >
+                {withdrawBusy ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Confirm Delete
+                  </>
+                )}
               </button>
             </div>
           </div>

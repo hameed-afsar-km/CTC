@@ -149,6 +149,9 @@ export async function updateApplication(
   return updated;
 }
 
-export async function deleteApplication(id: string): Promise<boolean> {
-  return deleteDocument(COLLECTION, id);
+export async function deleteApplication(
+  id: string,
+  token?: string | null
+): Promise<boolean> {
+  return deleteDocument(COLLECTION, id, token);
 }
