@@ -1,10 +1,7 @@
-import { cert, getApp, getApps, initializeApp } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
-import { getFirestore as getAdminFirestore } from "firebase-admin/firestore";
-
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 
-let adminApp: ReturnType<typeof initializeApp> | null = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let adminApp: any = null;
 
 export function getAdminApp() {
   if (adminApp) return adminApp;
@@ -18,6 +15,9 @@ export function getAdminApp() {
     return null;
   }
   try {
+    // Lazy require firebase-admin to prevent top-level module evaluation failures in Serverless
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { cert, getApp, getApps, initializeApp } = require("firebase-admin/app");
     adminApp =
       getApps().length > 0
         ? getApp()
@@ -36,7 +36,9 @@ export function getAdminDb() {
   const app = getAdminApp();
   if (!app) return null;
   try {
-    return getAdminFirestore(app);
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getFirestore } = require("firebase-admin/firestore");
+    return getFirestore(app);
   } catch (err) {
     console.error("Failed to get Admin Firestore:", err);
     return null;
@@ -56,6 +58,8 @@ export async function verifyCollegeIdToken(
   const app = getAdminApp();
   if (!app || !token) return null;
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { getAuth } = require("firebase-admin/auth");
     const decoded = await getAuth(app).verifyIdToken(token);
     if (!decoded.email || decoded.email_verified === false) return null;
     const email = decoded.email.toLowerCase();

@@ -112,7 +112,8 @@ export async function fetchCollectionDocs(
       const adminDb = getAdminDb();
       if (adminDb) {
         const snap = await adminDb.collection(collectionName).get();
-        return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return snap.docs.map((d: any) => ({ id: d.id, ...(d.data() as Record<string, unknown>) }));
       }
     } catch (err) {
       console.warn(`Admin Firestore fetch warning for '${collectionName}':`, err);
