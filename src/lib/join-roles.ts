@@ -30,7 +30,9 @@ export interface JoinRolesConfig {
   id: string;
   roles: string[];
   customRoles: string[];
+  deletedRoles?: string[];
   roleDetails?: Record<string, RoleRules>;
+  roleLabels?: Record<string, string>;
   updatedAt?: string;
 }
 
@@ -47,6 +49,18 @@ export function roleDetailFor(config: JoinRolesConfig, role: string): RoleRules 
       ? detail.rules.filter((r): r is string => typeof r === "string" && r.trim().length > 0)
       : [],
   };
+}
+
+export function sanitizeDeletedRoles(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return Array.from(
+    new Set(
+      raw
+        .filter((r): r is string => typeof r === "string")
+        .map(normalizeCustomRole)
+        .filter(Boolean)
+    )
+  );
 }
 
 export function sanitizeRoleDetails(raw: unknown): Record<string, RoleRules> | undefined {
@@ -68,6 +82,16 @@ export function sanitizeRoleDetails(raw: unknown): Record<string, RoleRules> | u
   return Object.keys(out).length > 0 ? out : undefined;
 }
 
+export function sanitizeRoleLabels(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [role, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!role || typeof value !== "string" || !value.trim()) continue;
+    out[role] = value.trim().slice(0, 100);
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
 export function normalizeCustomRole(raw: string): string {
   return raw
     .trim()
@@ -79,8 +103,9 @@ export function normalizeCustomRole(raw: string): string {
     .slice(0, 30);
 }
 
-export function displayJoinRole(role: string): string {
+export function displayJoinRole(role: string, customLabels?: Record<string, string>): string {
   if (!role) return "";
+  if (customLabels && customLabels[role]) return customLabels[role];
   return (
     JOIN_ROLE_LABELS[role] ??
     role
@@ -91,7 +116,10 @@ export function displayJoinRole(role: string): string {
 }
 
 export function allRolesFor(config: JoinRolesConfig): string[] {
-  return Array.from(
+  const deleted = new Set((config.deletedRoles ?? []).map(normalizeCustomRole));
+  const combined = Array.from(
     new Set([...ALL_JOIN_ROLES, ...(config.customRoles ?? [])])
   );
+  return combined.filter((r) => !deleted.has(normalizeCustomRole(r)));
 }
+

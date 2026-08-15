@@ -3,6 +3,7 @@ import {
   JOIN_ROLES_DOC_ID,
   normalizeCustomRole,
   sanitizeRoleDetails,
+  sanitizeRoleLabels,
   type JoinRolesConfig,
 } from "./join-roles";
 
@@ -12,7 +13,9 @@ export const DEFAULT_JOIN_ROLES: JoinRolesConfig = {
   id: JOIN_ROLES_DOC_ID,
   roles: ["member"],
   customRoles: [],
+  deletedRoles: [],
   roleDetails: undefined,
+  roleLabels: undefined,
 };
 
 export async function getJoinRolesConfig(): Promise<JoinRolesConfig> {
@@ -31,7 +34,14 @@ export async function getJoinRolesConfig(): Promise<JoinRolesConfig> {
             .map(normalizeCustomRole)
             .filter(Boolean)
         : [],
+      deletedRoles: Array.isArray(doc.deletedRoles)
+        ? doc.deletedRoles
+            .filter((r): r is string => typeof r === "string")
+            .map(normalizeCustomRole)
+            .filter(Boolean)
+        : [],
       roleDetails: sanitizeRoleDetails(doc.roleDetails),
+      roleLabels: sanitizeRoleLabels(doc.roleLabels),
       updatedAt: typeof doc.updatedAt === "string" ? doc.updatedAt : undefined,
     };
   } catch (err) {
@@ -51,7 +61,15 @@ export async function saveJoinRolesConfig(
         .filter(Boolean)
     )
   );
+  const deletedRoles = Array.from(
+    new Set(
+      (config.deletedRoles ?? [])
+        .map(normalizeCustomRole)
+        .filter(Boolean)
+    )
+  );
   const roleDetails = sanitizeRoleDetails(config.roleDetails);
+  const roleLabels = sanitizeRoleLabels(config.roleLabels);
   await saveDocument(
     COLLECTION,
     JOIN_ROLES_DOC_ID,
@@ -59,7 +77,9 @@ export async function saveJoinRolesConfig(
       id: JOIN_ROLES_DOC_ID,
       roles: config.roles,
       customRoles,
+      deletedRoles,
       roleDetails: roleDetails ?? {},
+      roleLabels: roleLabels ?? {},
       updatedAt: new Date().toISOString(),
     },
     token

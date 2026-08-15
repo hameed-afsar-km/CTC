@@ -357,9 +357,10 @@ export default function UsersPanel() {
   };
 
   const filtered = useMemo(() => {
+    const approved = users.filter((u) => Array.isArray(u.roles) && u.roles.length > 0);
     const q = query.trim().toLowerCase();
-    if (!q) return users;
-    return users.filter(
+    if (!q) return approved;
+    return approved.filter(
       (u) =>
         u.name.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
@@ -452,14 +453,16 @@ export default function UsersPanel() {
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-emerald-400 transition-colors"
               />
             </div>
-            <span className="text-xs font-mono text-gray-400">{filtered.length} users</span>
+            <span className="text-xs font-mono text-gray-400">
+              {filtered.length} approved member{filtered.length === 1 ? "" : "s"}
+            </span>
           </div>
 
           {loading ? (
             <LoadingState />
           ) : filtered.length === 0 ? (
             <PanelCard>
-              <EmptyState message="No users found." />
+              <EmptyState message="No approved members found." />
             </PanelCard>
           ) : (
             <div className="space-y-3">

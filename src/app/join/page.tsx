@@ -276,14 +276,15 @@ interface RoleInfoPanelProps {
   role: string;
   description: string;
   rules: string[];
+  roleLabels?: Record<string, string>;
   accepted: boolean;
   onToggle: () => void;
   error?: string;
 }
 
-// Shows the role description and rules the admin configured, with a checkbox
+// The role info panel displays the description and any specific rules that
 // the applicant must accept before the application can be submitted.
-function RoleInfoPanel({ role, description, rules, accepted, onToggle, error }: RoleInfoPanelProps) {
+function RoleInfoPanel({ role, description, rules, roleLabels, accepted, onToggle, error }: RoleInfoPanelProps) {
   const hasRules = rules.length > 0;
   if (!description && !hasRules) return null;
 
@@ -291,7 +292,7 @@ function RoleInfoPanel({ role, description, rules, accepted, onToggle, error }: 
     <div className="space-y-3">
       <div className="rounded-2xl border border-mint/20 bg-mint/5 p-4">
         <p className="text-[10px] font-mono uppercase tracking-widest text-mint mb-2">
-          About the {displayJoinRole(role)} role
+          About the {displayJoinRole(role, roleLabels)} role
         </p>
         {description && <p className="text-xs text-gray-300 leading-relaxed">{description}</p>}
         {hasRules && (
@@ -431,6 +432,7 @@ export default function JoinPage() {
   const [signingIn, setSigningIn] = useState(false);
   const [openRoles, setOpenRoles] = useState<string[]>([]);
   const [roleDetails, setRoleDetails] = useState<Record<string, RoleRules>>({});
+  const [roleLabels, setRoleLabels] = useState<Record<string, string>>({});
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [acceptedRoleRules, setAcceptedRoleRules] = useState(false);
 
@@ -463,7 +465,7 @@ export default function JoinPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Failed to delete application");
+        throw new Error(data?.error ?? "Failed to delete application");
       }
       setAlreadyApplied(false);
       setHasPending(false);
@@ -491,6 +493,9 @@ export default function JoinPage() {
         setOpenRoles(roles.length > 0 ? roles : ["member"]);
         if (d?.roleDetails && typeof d.roleDetails === "object") {
           setRoleDetails(d.roleDetails as Record<string, RoleRules>);
+        }
+        if (d?.roleLabels && typeof d.roleLabels === "object") {
+          setRoleLabels(d.roleLabels as Record<string, string>);
         }
       })
       .catch(() => {
@@ -1017,7 +1022,7 @@ export default function JoinPage() {
                                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-mint/10 border border-mint/30 text-xs font-mono text-mint"
                               >
                                 <BadgeCheck className="w-3.5 h-3.5" />
-                                {displayJoinRole(r)}
+                                {displayJoinRole(r, roleLabels)}
                               </span>
                             ))}
                           </div>
@@ -1096,7 +1101,7 @@ export default function JoinPage() {
                             </option>
                             {openRoles.map((r) => (
                               <option key={r} value={r} className="bg-[#0d1317]">
-                                {displayJoinRole(r)}
+                                {displayJoinRole(r, roleLabels)}
                               </option>
                             ))}
                           </select>
@@ -1117,6 +1122,7 @@ export default function JoinPage() {
                               role={form.role}
                               description={roleDescriptionFor(form.role)}
                               rules={roleRulesFor(form.role)}
+                              roleLabels={roleLabels}
                               accepted={acceptedRoleRules}
                               onToggle={() => {
                                 setAcceptedRoleRules((v) => !v);
@@ -1272,7 +1278,7 @@ export default function JoinPage() {
                         </option>
                         {openRoles.map((r) => (
                           <option key={r} value={r} className="bg-[#0d1317]">
-                            {displayJoinRole(r)}
+                            {displayJoinRole(r, roleLabels)}
                           </option>
                         ))}
                       </select>

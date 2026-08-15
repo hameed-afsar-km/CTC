@@ -26,7 +26,11 @@ export async function GET(request: Request) {
     );
   }
   const users = await getUsers();
-  return NextResponse.json({ users });
+  // Only approved members (users who have at least one assigned role) are visible in Users & Roles
+  const approvedMembers = users.filter(
+    (u) => Array.isArray(u.roles) && u.roles.length > 0
+  );
+  return NextResponse.json({ users: approvedMembers });
 }
 
 export async function POST(request: Request) {

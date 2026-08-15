@@ -5,7 +5,9 @@ import {
   JOIN_ROLES_DOC_ID,
   ALL_JOIN_ROLES,
   normalizeCustomRole,
+  sanitizeDeletedRoles,
   sanitizeRoleDetails,
+  sanitizeRoleLabels,
   type JoinRolesConfig,
 } from "@/lib/join-roles";
 import { logAction } from "@/lib/logs-store";
@@ -49,16 +51,21 @@ export async function PUT(request: Request) {
     const customRoles = Array.from(
       new Set(body.customRoles.map(normalizeCustomRole).filter(Boolean))
     );
+    const deletedRoles = sanitizeDeletedRoles(body.deletedRoles);
+    const deletedSet = new Set(deletedRoles);
     const allowed = new Set([...ALL_JOIN_ROLES, ...customRoles]);
     const roles = Array.from(
-      new Set(body.roles.filter((r) => allowed.has(r)))
+      new Set(body.roles.filter((r) => allowed.has(r) && !deletedSet.has(normalizeCustomRole(r))))
     );
     const roleDetails = sanitizeRoleDetails(body.roleDetails);
+    const roleLabels = sanitizeRoleLabels(body.roleLabels);
     const config: JoinRolesConfig = {
       id: JOIN_ROLES_DOC_ID,
       roles,
-      customRoles,
+      customRoles: customRoles.filter((r) => !deletedSet.has(normalizeCustomRole(r))),
+      deletedRoles,
       roleDetails,
+      roleLabels,
     };
     await saveJoinRolesConfig(config, token);
     await logAction(

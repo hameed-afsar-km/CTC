@@ -24,6 +24,11 @@ import {
   MessageSquare,
   CheckCircle2,
   BadgeCheck,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import {
   type Application,
@@ -345,6 +350,23 @@ export default function ApplicationsPanel() {
     }
   };
 
+  const [openSections, setOpenSections] = useState<{
+    approved: boolean;
+    waiting: boolean;
+    rejected: boolean;
+  }>({
+    approved: false,
+    waiting: false,
+    rejected: false,
+  });
+
+  const toggleSection = (key: "approved" | "waiting" | "rejected") => {
+    setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const expandAll = () => setOpenSections({ approved: true, waiting: true, rejected: true });
+  const collapseAll = () => setOpenSections({ approved: false, waiting: false, rejected: false });
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return apps.filter((a) => {
@@ -357,6 +379,19 @@ export default function ApplicationsPanel() {
         .includes(q);
     });
   }, [apps, filter, typeFilter, query]);
+
+  const approvedApps = useMemo(
+    () => filtered.filter((a) => a.status === "approved"),
+    [filtered]
+  );
+  const waitingApps = useMemo(
+    () => filtered.filter((a) => (a.status ?? "pending") === "pending"),
+    [filtered]
+  );
+  const rejectedApps = useMemo(
+    () => filtered.filter((a) => a.status === "rejected"),
+    [filtered]
+  );
 
   const exportHeaders = [
     "Name",
@@ -381,6 +416,139 @@ export default function ApplicationsPanel() {
     "SubmittedAt",
   ];
 
+  const renderCard = (a: Application) => (
+    <div
+      key={a.id}
+      className="rounded-2xl border border-white/10 bg-[#0d1317] p-4 transition-all hover:border-white/20"
+    >
+      <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <h3 className="text-base font-bold text-white">{a.fullName}</h3>
+            <span className="rounded-full bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-300">
+              {a.role ? displayJoinRole(a.role) : "Member"}
+            </span>
+            {a.type === "role" && (
+              <span className="rounded-full bg-violet-500/10 border border-violet-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-violet-300">
+                Role App
+              </span>
+            )}
+            <StatusBadge status={a.status ?? "pending"} />
+          </div>
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gray-400">
+            <span className="text-emerald-400">{a.collegeMail}</span>
+            <span>{a.contactNumber}</span>
+            <span>
+              {a.degree} • {a.branch} • {a.section} • {a.year}
+            </span>
+          </div>
+          {a.reason && (
+            <p className="mt-2 text-sm text-gray-300 leading-relaxed line-clamp-2">
+              {a.reason}
+            </p>
+          )}
+          {a.type === "role" && a.experience && (
+            <p className="mt-2 text-xs text-gray-400 leading-relaxed line-clamp-2">
+              <span className="uppercase tracking-widest text-violet-400/80">
+                Experience:{" "}
+              </span>
+              {a.experience}
+            </p>
+          )}
+          {(a.status ?? "pending") === "rejected" && a.rejectionReason && (
+            <p className="mt-2 text-xs font-mono text-rose-300 leading-relaxed">
+              <span className="uppercase tracking-widest text-rose-400/80">Rejected: </span>
+              {a.rejectionReason}
+            </p>
+          )}
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {a.type === "role" &&
+              (a.memberRoles ?? []).slice(0, 6).map((r) => (
+                <span
+                  key={r}
+                  className="rounded-full bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 text-[10px] font-mono text-violet-300"
+                >
+                  {displayJoinRole(r)}
+                </span>
+              ))}
+            {a.interests.slice(0, 5).map((i) => (
+              <span
+                key={i}
+                className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-mono text-emerald-300"
+              >
+                {i}
+              </span>
+            ))}
+            {a.skills.slice(0, 5).map((s) => (
+              <span
+                key={s}
+                className="rounded-full bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 text-[10px] font-mono text-cyan-300"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+          <div className="mt-2 text-[10px] font-mono text-gray-500">
+            Submitted {new Date(a.submittedAt).toLocaleString()}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => openView(a)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider transition-all"
+            title="View application"
+          >
+            <Eye className="w-3.5 h-3.5" />
+            View
+          </button>
+          {(a.status ?? "pending") === "pending" && (
+            <>
+              <button
+                onClick={() => setStatus(a.id, "approved", a.fullName)}
+                disabled={busyId === a.id}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                title="Approve"
+              >
+                <Check className="w-3.5 h-3.5" />
+                Approve
+              </button>
+              <button
+                onClick={() => openReject(a)}
+                disabled={busyId === a.id}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+                title="Reject"
+              >
+                <X className="w-3.5 h-3.5" />
+                Reject
+              </button>
+            </>
+          )}
+          {(a.status ?? "pending") !== "pending" && (
+            <button
+              onClick={() => setStatus(a.id, "pending", a.fullName)}
+              disabled={busyId === a.id}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+              title="Reset to pending"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              Reset
+            </button>
+          )}
+          <button
+            onClick={() => openDelete(a)}
+            disabled={busyId === a.id}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/25 border border-rose-500/30 text-rose-400 hover:text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
+            title="Delete application"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-5">
       <PanelCard>
@@ -389,17 +557,32 @@ export default function ApplicationsPanel() {
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-400" />
-                Applications ({filtered.length})
+                Join Applications ({filtered.length})
               </h2>
               <p className="text-xs text-gray-400 mt-1">
-                Review membership and role applications. Approving a role application grants the role
-                to the member.
+                Review membership and role applications organized by status dropdowns.
               </p>
             </div>
             <div className="flex items-center gap-2">
               <button
+                onClick={expandAll}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white text-xs font-mono uppercase tracking-wider transition-all"
+                title="Expand all dropdown lists"
+              >
+                <ChevronDown className="w-3.5 h-3.5" />
+                Expand All
+              </button>
+              <button
+                onClick={collapseAll}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white text-xs font-mono uppercase tracking-wider transition-all"
+                title="Collapse all dropdown lists"
+              >
+                <ChevronUp className="w-3.5 h-3.5" />
+                Collapse All
+              </button>
+              <button
                 onClick={() => downloadCsv(toExportRows(filtered), "applications.csv")}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wider transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wider transition-all"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-400" />
                 CSV
@@ -408,7 +591,7 @@ export default function ApplicationsPanel() {
                 onClick={() =>
                   downloadPdf("CTC Applications", exportHeaders, toExportRows(filtered), "applications.pdf")
                 }
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wider transition-all"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold uppercase tracking-wider transition-all"
               >
                 <FileDown className="w-3.5 h-3.5 text-emerald-400" />
                 PDF
@@ -438,7 +621,7 @@ export default function ApplicationsPanel() {
                       : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
                   }`}
                 >
-                  {f}
+                  {f === "pending" ? "waiting" : f}
                 </button>
               ))}
             </div>
@@ -491,130 +674,162 @@ export default function ApplicationsPanel() {
           <EmptyState message="No applications match this filter." />
         </PanelCard>
       ) : (
-        <div className="space-y-3">
-          {filtered.map((a) => (
-            <div
-              key={a.id}
-              className="rounded-2xl border border-white/10 bg-[#0d1317] p-4 transition-all hover:border-white/20"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                    <h3 className="text-base font-bold text-white">{a.fullName}</h3>
-                    <span className="rounded-full bg-indigo-500/10 border border-indigo-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-indigo-300">
-                      {a.role ? displayJoinRole(a.role) : "Member"}
-                    </span>
-                    {a.type === "role" && (
-                      <span className="rounded-full bg-violet-500/10 border border-violet-500/30 px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase tracking-widest text-violet-300">
-                        Role App
-                      </span>
-                    )}
-                    <StatusBadge status={a.status ?? "pending"} />
+        <div className="space-y-4">
+          {/* 1. Approved (as a drop down list) */}
+          {(filter === "all" || filter === "approved") && (
+            <div className="rounded-2xl border border-emerald-500/25 bg-[#0a110e] overflow-hidden transition-all shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+              <button
+                type="button"
+                onClick={() => toggleSection("approved")}
+                className="w-full p-4 sm:p-5 flex items-center justify-between gap-4 text-left hover:bg-emerald-500/5 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                    <CheckCircle2 className="w-5 h-5" />
                   </div>
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gray-400">
-                    <span className="text-emerald-400">{a.collegeMail}</span>
-                    <span>{a.contactNumber}</span>
-                    <span>
-                      {a.degree} • {a.branch} • {a.section} • {a.year}
-                    </span>
-                  </div>
-                  {a.reason && (
-                    <p className="mt-2 text-sm text-gray-300 leading-relaxed line-clamp-2">
-                      {a.reason}
-                    </p>
-                  )}
-                  {a.type === "role" && a.experience && (
-                    <p className="mt-2 text-xs text-gray-400 leading-relaxed line-clamp-2">
-                      <span className="uppercase tracking-widest text-violet-400/80">
-                        Experience:{" "}
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-white">Approved</h3>
+                      <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 text-xs font-mono font-bold text-emerald-300">
+                        {approvedApps.length}
                       </span>
-                      {a.experience}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Approved applications with granted membership &amp; roles
                     </p>
-                  )}
-                  {(a.status ?? "pending") === "rejected" && a.rejectionReason && (
-                    <p className="mt-2 text-xs font-mono text-rose-300 leading-relaxed">
-                      <span className="uppercase tracking-widest text-rose-400/80">Rejected: </span>
-                      {a.rejectionReason}
-                    </p>
-                  )}
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {a.type === "role" &&
-                      (a.memberRoles ?? []).slice(0, 6).map((r) => (
-                        <span
-                          key={r}
-                          className="rounded-full bg-violet-500/10 border border-violet-500/20 px-2 py-0.5 text-[10px] font-mono text-violet-300"
-                        >
-                          {displayJoinRole(r)}
-                        </span>
-                      ))}
-                    {a.interests.slice(0, 5).map((i) => (
-                      <span
-                        key={i}
-                        className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-mono text-emerald-300"
-                      >
-                        {i}
-                      </span>
-                    ))}
-                    {a.skills.slice(0, 5).map((s) => (
-                      <span
-                        key={s}
-                        className="rounded-full bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 text-[10px] font-mono text-cyan-300"
-                      >
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-2 text-[10px] font-mono text-gray-500">
-                    Submitted {new Date(a.submittedAt).toLocaleString()}
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={() => openView(a)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider transition-all"
-                    title="View application"
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-gray-400 hidden sm:inline">
+                    {openSections.approved ? "Collapse" : "Expand"}
+                  </span>
+                  <div
+                    className={`p-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 transition-transform duration-200 ${
+                      openSections.approved ? "rotate-180" : ""
+                    }`}
                   >
-                    <Eye className="w-3.5 h-3.5" />
-                    View
-                  </button>
-                  {(a.status ?? "pending") === "pending" && (
-                    <>
-                      <button
-                        onClick={() => setStatus(a.id, "approved", a.fullName)}
-                        disabled={busyId === a.id}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                        title="Approve"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => openReject(a)}
-                        disabled={busyId === a.id}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                        title="Reject"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        Reject
-                      </button>
-                    </>
-                  )}
-                  {(a.status ?? "pending") !== "pending" && (
-                    <button
-                      onClick={() => setStatus(a.id, "pending", a.fullName)}
-                      disabled={busyId === a.id}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider transition-all disabled:opacity-50"
-                      title="Reset to pending"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      Reset
-                    </button>
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+              </button>
+
+              {openSections.approved && (
+                <div className="p-4 sm:p-5 pt-1 border-t border-emerald-500/15 space-y-3">
+                  {approvedApps.length === 0 ? (
+                    <div className="py-8 text-center text-xs font-mono text-gray-500">
+                      No approved applications found.
+                    </div>
+                  ) : (
+                    approvedApps.map(renderCard)
                   )}
                 </div>
-              </div>
+              )}
             </div>
-          ))}
+          )}
+
+          {/* 2. Waiting (as a drop down list) */}
+          {(filter === "all" || filter === "pending") && (
+            <div className="rounded-2xl border border-amber-500/25 bg-[#120f0a] overflow-hidden transition-all shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+              <button
+                type="button"
+                onClick={() => toggleSection("waiting")}
+                className="w-full p-4 sm:p-5 flex items-center justify-between gap-4 text-left hover:bg-amber-500/5 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-white">Waiting</h3>
+                      <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-xs font-mono font-bold text-amber-300">
+                        {waitingApps.length}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Pending submissions waiting for team review
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-gray-400 hidden sm:inline">
+                    {openSections.waiting ? "Collapse" : "Expand"}
+                  </span>
+                  <div
+                    className={`p-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 transition-transform duration-200 ${
+                      openSections.waiting ? "rotate-180" : ""
+                    }`}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+              </button>
+
+              {openSections.waiting && (
+                <div className="p-4 sm:p-5 pt-1 border-t border-amber-500/15 space-y-3">
+                  {waitingApps.length === 0 ? (
+                    <div className="py-8 text-center text-xs font-mono text-gray-500">
+                      No waiting applications at the moment.
+                    </div>
+                  ) : (
+                    waitingApps.map(renderCard)
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 3. Rejected (as a drop down list) */}
+          {(filter === "all" || filter === "rejected") && (
+            <div className="rounded-2xl border border-rose-500/25 bg-[#140a0c] overflow-hidden transition-all shadow-[0_4px_24px_rgba(0,0,0,0.4)]">
+              <button
+                type="button"
+                onClick={() => toggleSection("rejected")}
+                className="w-full p-4 sm:p-5 flex items-center justify-between gap-4 text-left hover:bg-rose-500/5 transition-colors"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                    <XCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold text-white">Rejected</h3>
+                      <span className="rounded-full bg-rose-500/20 border border-rose-500/40 px-2.5 py-0.5 text-xs font-mono font-bold text-rose-300">
+                        {rejectedApps.length}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      Rejected applications with review notes
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-gray-400 hidden sm:inline">
+                    {openSections.rejected ? "Collapse" : "Expand"}
+                  </span>
+                  <div
+                    className={`p-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 transition-transform duration-200 ${
+                      openSections.rejected ? "rotate-180" : ""
+                    }`}
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </div>
+              </button>
+
+              {openSections.rejected && (
+                <div className="p-4 sm:p-5 pt-1 border-t border-rose-500/15 space-y-3">
+                  {rejectedApps.length === 0 ? (
+                    <div className="py-8 text-center text-xs font-mono text-gray-500">
+                      No rejected applications found.
+                    </div>
+                  ) : (
+                    rejectedApps.map(renderCard)
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 

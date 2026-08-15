@@ -6,9 +6,15 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const config = await getJoinRolesConfig();
-    return NextResponse.json({ roles: config.roles, roleDetails: config.roleDetails ?? {} });
+    const deleted = new Set(config.deletedRoles ?? []);
+    const roles = (config.roles ?? []).filter((r) => !deleted.has(r));
+    return NextResponse.json({
+      roles,
+      roleDetails: config.roleDetails ?? {},
+      roleLabels: config.roleLabels ?? {},
+    });
   } catch (err) {
     console.error("GET /api/join-roles error:", err);
-    return NextResponse.json({ roles: [], roleDetails: {} });
+    return NextResponse.json({ roles: [], roleDetails: {}, roleLabels: {} });
   }
 }
