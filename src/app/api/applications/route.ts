@@ -63,7 +63,7 @@ export async function POST(request: Request) {
     }
 
     const user = await getUser(collegeMail);
-    const isMember = Boolean(user);
+    const isMember = Boolean(user && Array.isArray(user.roles) && user.roles.length > 0);
 
     // Existing club member → self-service role application. The `users` record
     // is the single source of truth for roles, so we only require the role and

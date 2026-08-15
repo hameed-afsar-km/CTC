@@ -27,9 +27,10 @@ export async function GET(request: Request) {
   const hasApplied = await hasActiveApplicationLimit(email, resetAt);
   const hasPending = await hasPendingApplication(email);
 
-  // Existing member → they are eligible for the self-service "apply for a role"
-  // path. New people → the regular join path.
-  const mode = user ? "role" : "join";
+  // Existing member with approved roles → eligible for self-service role application.
+  // New or unassigned users → regular join path.
+  const isMember = Boolean(user && Array.isArray(user.roles) && user.roles.length > 0);
+  const mode = isMember ? "role" : "join";
 
   return NextResponse.json({
     hasApplied,
