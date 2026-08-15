@@ -20,6 +20,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
+import { cleanStudentName } from "@/lib/applications";
 import MemberCard from "@/components/MemberCard";
 
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
@@ -136,7 +137,9 @@ export default function MemberPage() {
         return;
       }
       setAuthError(null);
-      setAuthUser({ email, name: firebaseUser.displayName || "" });
+      const rawName = firebaseUser.displayName || "";
+      const cleanedName = cleanStudentName(rawName);
+      setAuthUser({ email, name: cleanedName || rawName });
       setAuthStatus("ready");
       void loadCard(email);
     });

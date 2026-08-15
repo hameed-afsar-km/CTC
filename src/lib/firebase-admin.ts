@@ -1,3 +1,5 @@
+import { cleanStudentName } from "./applications";
+
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -100,10 +102,12 @@ export async function verifyCollegeIdToken(
       if (decoded && decoded.email) {
         const email = decoded.email.trim().toLowerCase();
         if (COLLEGE_EMAIL_RE.test(email)) {
+          const rawName = decoded.name || decoded.email || email;
+          const cleanedName = cleanStudentName(rawName);
           return {
             uid: decoded.uid || decoded.sub || email,
             email,
-            name: decoded.name || decoded.email || email,
+            name: cleanedName || rawName,
             picture: decoded.picture || null,
           };
         }
@@ -121,10 +125,12 @@ export async function verifyCollegeIdToken(
   if (!COLLEGE_EMAIL_RE.test(email)) return null;
 
   const uid = decoded.uid || decoded.user_id || decoded.sub || email;
+  const rawName = decoded.name || decoded.email || email;
+  const cleanedName = cleanStudentName(rawName);
   return {
     uid,
     email,
-    name: decoded.name || decoded.email || email,
+    name: cleanedName || rawName,
     picture: decoded.picture || null,
   };
 }

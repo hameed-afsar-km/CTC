@@ -6,7 +6,7 @@ import {
   hasPendingApplication,
   saveApplication,
 } from "@/lib/applications-store";
-import type { Application } from "@/lib/applications";
+import { cleanStudentName, type Application } from "@/lib/applications";
 import { getJoinRolesConfig } from "@/lib/join-roles-store";
 import { displayJoinRole, roleDetailFor } from "@/lib/join-roles";
 import { bearerToken } from "@/lib/auth";
@@ -90,7 +90,8 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "reason is required" }, { status: 400 });
       }
 
-      const fullName = String(body.fullName).trim() || user?.name || identity.name;
+      const rawName = String(body.fullName || user?.name || identity.name).trim();
+      const fullName = cleanStudentName(rawName) || rawName;
       const application: Application = {
         id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         type: "role",
@@ -149,10 +150,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: ALREADY_APPLIED_MESSAGE }, { status: 400 });
     }
 
+    const rawJoinName = String(body.fullName || identity.name).trim();
+    const cleanJoinName = cleanStudentName(rawJoinName) || rawJoinName;
     const application: Application = {
       id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       type: "join",
-      fullName: String(body.fullName).trim(),
+      fullName: cleanJoinName,
       collegeMail,
       contactNumber: String(body.contactNumber).trim(),
       role,

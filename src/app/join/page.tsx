@@ -48,6 +48,7 @@ import {
   SECTIONS,
   SKILL_SUGGESTIONS,
   YEARS,
+  cleanStudentName,
   isValidUrl,
 } from "@/lib/applications";
 import { displayJoinRole, type RoleRules } from "@/lib/join-roles";
@@ -574,15 +575,17 @@ export default function JoinPage() {
         return;
       }
       setAuthError(null);
+      const rawName = firebaseUser.displayName || "";
+      const cleanedName = cleanStudentName(rawName);
       setAuthUser({
         email,
-        name: firebaseUser.displayName || "",
+        name: cleanedName || rawName,
         picture: firebaseUser.photoURL || null,
       });
       setForm((prev) => ({
         ...prev,
         collegeMail: email,
-        fullName: prev.fullName.trim() ? prev.fullName : firebaseUser.displayName || "",
+        fullName: prev.fullName.trim() ? prev.fullName : cleanedName || rawName,
       }));
       setAuthStatus("ready");
     });
