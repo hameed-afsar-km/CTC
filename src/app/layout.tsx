@@ -47,6 +47,9 @@ const gameshow = localFont({
 export const metadata: Metadata = {
   title: "Crescent Technocrats Club",
   description: "Empowering student developers, designers, and innovators.",
+  verification: {
+    google: "-8LHZAo-7UhP9_vcNhDOpZnL1xJdKtRjDCenzhpVGgg",
+  },
 };
 
 export default function RootLayout({
