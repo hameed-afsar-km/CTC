@@ -297,8 +297,8 @@ export default function EventsShowcase() {
                     className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105"
                     draggable={false}
                   />
-                  <div className="absolute inset-0 bg-[#05080a]/80" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-[#05080a]/90 via-[#05080a]/75 to-[#0b0f14]/95" />
+                  <div className="absolute inset-0 bg-[#05080a]/10 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#05080a]/10 via-[#05080a]/80 to-[#05080a]/95 pointer-events-none" />
                   <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(70%_55%_at_50%_38%,rgba(52,211,153,0.14),transparent_72%)]" />
 
                   {/* Centered landing content */}

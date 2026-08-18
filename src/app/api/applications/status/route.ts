@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { hasActiveApplicationLimit, hasPendingApplication } from "@/lib/applications-store";
+import { hasActiveApplicationLimit, findApplicationByEmail } from "@/lib/applications-store";
 import { bearerToken } from "@/lib/auth";
 import { verifyCollegeIdToken } from "@/lib/firebase-admin";
 import { getUser } from "@/lib/users-store";
@@ -19,13 +19,15 @@ export async function GET(request: Request) {
       mode: "join",
       roles: [],
       hasPending: false,
+      branch: "",
     });
   }
 
   const user = await getUser(email);
   const resetAt = user?.joinResetAt ?? null;
   const hasApplied = await hasActiveApplicationLimit(email, resetAt);
-  const hasPending = await hasPendingApplication(email);
+  const app = await findApplicationByEmail(email);
+  const hasPending = Boolean(app && (app.status ?? "pending") === "pending");
 
   // Existing member with approved roles → eligible for self-service role application.
   // New or unassigned users → regular join path.
@@ -37,5 +39,6 @@ export async function GET(request: Request) {
     mode,
     roles: user?.roles ?? [],
     hasPending,
+    branch: app?.branch ?? "",
   });
 }

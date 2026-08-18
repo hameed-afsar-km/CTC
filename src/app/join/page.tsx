@@ -44,6 +44,7 @@ import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
 import {
   BRANCHES,
   DEGREES,
+  DEPARTMENTS,
   INTEREST_SUGGESTIONS,
   SECTIONS,
   SKILL_SUGGESTIONS,
@@ -79,6 +80,7 @@ interface FormState {
   collegeMail: string;
   contactNumber: string;
   degree: string;
+  department: string;
   branch: string;
   section: string;
   year: string;
@@ -98,6 +100,7 @@ const INITIAL_FORM: FormState = {
   collegeMail: "",
   contactNumber: "",
   degree: "",
+  department: "",
   branch: "",
   section: "",
   year: "",
@@ -424,6 +427,7 @@ export default function JoinPage() {
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [memberMode, setMemberMode] = useState(false);
   const [currentRoles, setCurrentRoles] = useState<string[]>([]);
+  const [memberBranch, setMemberBranch] = useState("");
   const [hasPending, setHasPending] = useState(false);
   const [authStatus, setAuthStatus] = useState<"loading" | "signed-out" | "ready">("loading");
   const [authUser, setAuthUser] = useState<{
@@ -533,7 +537,8 @@ export default function JoinPage() {
     setAcceptedRoleRules(false);
   };
 
-  const isCse = form.branch === CSE_BRANCH;
+  const effectiveBranch = form.branch || memberBranch;
+  const isCse = effectiveBranch === CSE_BRANCH;
 
   const visibleRoles = useMemo(() => {
     if (!isCse) return openRoles;
@@ -640,6 +645,7 @@ export default function JoinPage() {
             ? data.roles.filter((r: unknown): r is string => typeof r === "string")
             : []
         );
+        setMemberBranch(typeof data?.branch === "string" ? data.branch : "");
         setHasPending(!!data?.hasPending);
       } catch {
         if (!cancelled) setAlreadyApplied(false);
@@ -664,15 +670,10 @@ export default function JoinPage() {
   const validateStep1 = (): boolean => {
     const e: Record<string, string> = {};
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
-    if (!form.degree) e.degree = "Select your degree";
+    if (!form.department) e.department = "Select your department";
     if (!form.branch) e.branch = "Select your branch";
-    if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
-    else if (rolesLoaded && !visibleRoles.includes(form.role)) {
-      e.role = "The selected role is no longer open for applications";
-    }
-    if (rolesLoaded && form.role && roleRulesFor(form.role).length > 0 && !acceptedRoleRules) {
-      e.rules = "You must accept the role description and rules to apply";
-    }
+    if (!form.section) e.section = "Select your section";
+    if (!form.year) e.year = "Select your year";
     if (!authUser) {
       e.collegeMail = "Please sign in with your college Google account first";
     }
@@ -683,8 +684,13 @@ export default function JoinPage() {
 
   const validateStep2 = (): boolean => {
     const e: Record<string, string> = {};
-    if (!form.section) e.section = "Select your section";
-    if (!form.year) e.year = "Select your year";
+    if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
+    else if (rolesLoaded && !visibleRoles.includes(form.role)) {
+      e.role = "The selected role is no longer open for applications";
+    }
+    if (rolesLoaded && form.role && roleRulesFor(form.role).length > 0 && !acceptedRoleRules) {
+      e.rules = "You must accept the role description and rules to apply";
+    }
     if (form.interests.length === 0) e.interests = "Add at least one interest";
     if (form.skills.length === 0) e.skills = "Add at least one skill";
     if (!form.reason.trim()) e.reason = "Tell us why you want to join";
@@ -1302,23 +1308,23 @@ export default function JoinPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="degree" className={labelClass}>
-                        Degree *
+                      <label htmlFor="department" className={labelClass}>
+                        Department *
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                           <GraduationCap className="w-4 h-4" />
                         </span>
                         <select
-                          id="degree"
-                          value={form.degree}
-                          onChange={(e) => set("degree", e.target.value)}
-                          className={`${selectClass} pl-10 ${errors.degree ? "border-red-500/50" : ""}`}
+                          id="department"
+                          value={form.department}
+                          onChange={(e) => set("department", e.target.value)}
+                          className={`${selectClass} pl-10 ${errors.department ? "border-red-500/50" : ""}`}
                         >
                           <option value="" disabled>
-                            Select degree
+                            Select department
                           </option>
-                          {DEGREES.map((d) => (
+                          {DEPARTMENTS.map((d) => (
                             <option key={d} value={d} className="bg-[#0d1317]">
                               {d}
                             </option>
@@ -1326,8 +1332,8 @@ export default function JoinPage() {
                         </select>
                         <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                       </div>
-                      {errors.degree && (
-                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.degree}</p>
+                      {errors.department && (
+                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.department}</p>
                       )}
                     </div>
 
@@ -1362,60 +1368,66 @@ export default function JoinPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label htmlFor="role" className={labelClass}>
-                      Role Applying For *
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                        <BadgeCheck className="w-4 h-4" />
-                      </span>
-                      <select
-                        id="role"
-                        value={form.role}
-                        onChange={(e) => setRole(e.target.value)}
-                        disabled={!rolesLoaded}
-                        className={`${selectClass} pl-10 ${errors.role ? "border-red-500/50" : ""}`}
-                      >
-                        <option value="" disabled>
-                          {rolesLoaded ? "Select a role" : "Loading roles…"}
-                        </option>
-                        {visibleRoles.map((r) => (
-                          <option key={r} value={r} className="bg-[#0d1317]">
-                            {displayJoinRole(r, roleLabels)}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label htmlFor="section" className={labelClass}>
+                        Section *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                          <Layers className="w-4 h-4" />
+                        </span>
+                        <select
+                          id="section"
+                          value={form.section}
+                          onChange={(e) => set("section", e.target.value)}
+                          className={`${selectClass} pl-10 ${errors.section ? "border-red-500/50" : ""}`}
+                        >
+                          <option value="" disabled>
+                            Select section
                           </option>
-                        ))}
-                      </select>
-                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                    </div>
-                    {errors.role ? (
-                      <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.role}</p>
-                    ) : (
-                      <p className="mt-1.5 text-xs text-gray-500 font-mono">
-                        Pick the team you&apos;d like to join. Roles listed here are currently open.
-                      </p>
-                    )}
-
-                    {form.role && (
-                      <div className="mt-4">
-                        <RoleInfoPanel
-                          role={form.role}
-                          description={roleDescriptionFor(form.role)}
-                          rules={roleRulesFor(form.role)}
-                          accepted={acceptedRoleRules}
-                          onToggle={() => {
-                            setAcceptedRoleRules((v) => !v);
-                            setErrors((prev) => {
-                              if (!("rules" in prev)) return prev;
-                              const next = { ...prev };
-                              delete next.rules;
-                              return next;
-                            });
-                          }}
-                          error={errors.rules}
-                        />
+                          {SECTIONS.map((s) => (
+                            <option key={s} value={s} className="bg-[#0d1317]">
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                       </div>
-                    )}
+                      {errors.section && (
+                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.section}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="year" className={labelClass}>
+                        Year *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                          <Calendar className="w-4 h-4" />
+                        </span>
+                        <select
+                          id="year"
+                          value={form.year}
+                          onChange={(e) => set("year", e.target.value)}
+                          className={`${selectClass} pl-10 ${errors.year ? "border-red-500/50" : ""}`}
+                        >
+                          <option value="" disabled>
+                            Select year
+                          </option>
+                          {YEARS.map((y) => (
+                            <option key={y} value={y} className="bg-[#0d1317]">
+                              {y}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                      </div>
+                      {errors.year && (
+                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.year}</p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -1515,66 +1527,61 @@ export default function JoinPage() {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-2 gap-5">
-                    <div>
-                      <label htmlFor="section" className={labelClass}>
-                        Section *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                          <Layers className="w-4 h-4" />
-                        </span>
-                        <select
-                          id="section"
-                          value={form.section}
-                          onChange={(e) => set("section", e.target.value)}
-                          className={`${selectClass} pl-10 ${errors.section ? "border-red-500/50" : ""}`}
-                        >
-                          <option value="" disabled>
-                            Select
+                  <div>
+                    <label htmlFor="role" className={labelClass}>
+                      Role Applying For *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                        <BadgeCheck className="w-4 h-4" />
+                      </span>
+                      <select
+                        id="role"
+                        value={form.role}
+                        onChange={(e) => setRole(e.target.value)}
+                        disabled={!rolesLoaded}
+                        className={`${selectClass} pl-10 ${errors.role ? "border-red-500/50" : ""}`}
+                      >
+                        <option value="" disabled>
+                          {rolesLoaded ? "Select a role" : "Loading roles…"}
+                        </option>
+                        {visibleRoles.map((r) => (
+                          <option key={r} value={r} className="bg-[#0d1317]">
+                            {displayJoinRole(r, roleLabels)}
                           </option>
-                          {SECTIONS.map((s) => (
-                            <option key={s} value={s} className="bg-[#0d1317]">
-                              {s}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                      </div>
-                      {errors.section && (
-                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.section}</p>
-                      )}
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                     </div>
+                    {errors.role ? (
+                      <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.role}</p>
+                    ) : (
+                      <p className="mt-1.5 text-xs text-gray-500 font-mono">
+                        Pick the team you&apos;d like to join. Roles listed here are currently open.
+                      </p>
+                    )}
 
-                    <div>
-                      <label htmlFor="year" className={labelClass}>
-                        Year *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                          <Calendar className="w-4 h-4" />
-                        </span>
-                        <select
-                          id="year"
-                          value={form.year}
-                          onChange={(e) => set("year", e.target.value)}
-                          className={`${selectClass} pl-10 ${errors.year ? "border-red-500/50" : ""}`}
-                        >
-                          <option value="" disabled>
-                            Select
-                          </option>
-                          {YEARS.map((y) => (
-                            <option key={y} value={y} className="bg-[#0d1317]">
-                              {y}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    {form.role && (
+                      <div className="mt-4">
+                        <RoleInfoPanel
+                          role={form.role}
+                          description={roleDescriptionFor(form.role)}
+                          rules={roleRulesFor(form.role)}
+                          roleLabels={roleLabels}
+                          accepted={acceptedRoleRules}
+                          onToggle={() => {
+                            setAcceptedRoleRules((v) => !v);
+                            setErrors((prev) => {
+                              if (!("rules" in prev)) return prev;
+                              const next = { ...prev };
+                              delete next.rules;
+                              return next;
+                            });
+                          }}
+                          error={errors.rules}
+                        />
                       </div>
-                      {errors.year && (
-                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.year}</p>
-                      )}
-                    </div>
+                    )}
                   </div>
 
                   <TagInput

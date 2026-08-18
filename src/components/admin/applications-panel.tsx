@@ -33,6 +33,7 @@ import {
 import {
   type Application,
   DEGREES,
+  DEPARTMENTS,
   BRANCHES,
   SECTIONS,
   YEARS,
@@ -952,6 +953,19 @@ export default function ApplicationsPanel() {
                       >
                         <option value="">Select degree</option>
                         {DEGREES.map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className={labelCls}>Department</label>
+                      <select
+                        value={form.department ?? ""}
+                        onChange={(e) => setForm({ ...form, department: e.target.value })}
+                        className={inputCls}
+                      >
+                        <option value="">Select department</option>
+                        {DEPARTMENTS.map((d) => (
                           <option key={d} value={d}>{d}</option>
                         ))}
                       </select>

@@ -537,7 +537,7 @@ export default function HostItSection() {
                 className="text-transparent"
                 style={{ WebkitTextStroke: "1px rgba(255, 255, 255, 0.15)" }}
               >
-                Have One?
+                HAVE ONE?
               </div>
               {/* Fill Text */}
               <div
