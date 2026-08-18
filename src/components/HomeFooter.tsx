@@ -88,10 +88,8 @@ function FlipPanel({
 /* ─── Main component ───────────────────────────────────── */
 export default function HomeFooter() {
   const lenis = useSmoothScroll();
-  const [mouse, setMouse] = useState({ x: 50, y: 50 });
   const [showContactModal, setShowContactModal] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: 0, y: 0 });
 
   const toTop  = () => {
     if (lenis) lenis.scrollTo(0);
@@ -99,12 +97,57 @@ export default function HomeFooter() {
   };
   const mailto = () => { window.location.href = "mailto:contact@crescenttechnocrats.club"; };
 
-  /* ── Radar canvas animation ──────────────────── */
+  /* ── Floating geometric shapes + grid ──────── */
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
+
+    type ShapeType = "rect" | "triangle" | "circle" | "diamond" | "hexagon";
+
+    interface Shape {
+      x: number; y: number;
+      vx: number; vy: number;
+      size: number;
+      rotation: number;
+      rotSpeed: number;
+      type: ShapeType;
+      color: number[];
+      alpha: number;
+      strokeWidth: number;
+    }
+
+    const palette = [
+      [139, 92, 246],  // purple
+      [34, 211, 238],  // cyan
+      [52, 211, 153],  // green
+      [96, 165, 250],  // blue
+      [167, 139, 250], // light purple
+    ];
+
+    const types: ShapeType[] = ["rect", "triangle", "circle", "diamond", "hexagon"];
+
+    let shapes: Shape[] = [];
+    const GRID_SIZE = 36;
+
+    const init = () => {
+      const w = canvas.getBoundingClientRect().width;
+      const h = canvas.getBoundingClientRect().height;
+      shapes = Array.from({ length: 14 }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.35,
+        vy: (Math.random() - 0.5) * 0.25,
+        size: 16 + Math.random() * 28,
+        rotation: Math.random() * Math.PI * 2,
+        rotSpeed: (Math.random() - 0.5) * 0.008,
+        type: types[Math.floor(Math.random() * types.length)],
+        color: palette[Math.floor(Math.random() * palette.length)],
+        alpha: 0.15 + Math.random() * 0.2,
+        strokeWidth: 1 + Math.random() * 0.8,
+      }));
+    };
 
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
@@ -112,204 +155,95 @@ export default function HomeFooter() {
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (shapes.length === 0) init();
     };
     resize();
     window.addEventListener("resize", resize);
 
-    const rect = canvas.getBoundingClientRect();
-    const cx = () => canvas.getBoundingClientRect().width / 2;
-    const cy = () => canvas.getBoundingClientRect().height / 2;
-    const maxR = () => Math.max(canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height) * 0.7;
+    const drawShape = (s: Shape) => {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.rotation);
+      const [r, g, b] = s.color;
 
-    // Rings that expand outward
-    interface Ring { r: number; alpha: number; speed: number; color: number[] }
-    const rings: Ring[] = [];
-    const spawnRing = () => {
-      const colors = [
-        [139, 92, 246],   // purple
-        [34, 211, 238],   // cyan
-        [52, 211, 153],   // green
-      ];
-      const c = colors[Math.floor(Math.random() * colors.length)];
-      rings.push({ r: 0, alpha: 0.6, speed: 0.4 + Math.random() * 0.3, color: c });
+      ctx.strokeStyle = `rgba(${r},${g},${b},${s.alpha})`;
+      ctx.lineWidth = s.strokeWidth;
+
+      switch (s.type) {
+        case "rect":
+          ctx.strokeRect(-s.size / 2, -s.size / 2, s.size, s.size);
+          break;
+        case "diamond":
+          ctx.beginPath();
+          ctx.moveTo(0, -s.size / 2);
+          ctx.lineTo(s.size / 2, 0);
+          ctx.lineTo(0, s.size / 2);
+          ctx.lineTo(-s.size / 2, 0);
+          ctx.closePath();
+          ctx.stroke();
+          break;
+        case "triangle":
+          ctx.beginPath();
+          ctx.moveTo(0, -s.size / 2);
+          ctx.lineTo(s.size / 2, s.size / 2);
+          ctx.lineTo(-s.size / 2, s.size / 2);
+          ctx.closePath();
+          ctx.stroke();
+          break;
+        case "circle":
+          ctx.beginPath();
+          ctx.arc(0, 0, s.size / 2, 0, Math.PI * 2);
+          ctx.stroke();
+          break;
+        case "hexagon":
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i - Math.PI / 6;
+            const px = (s.size / 2) * Math.cos(angle);
+            const py = (s.size / 2) * Math.sin(angle);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.stroke();
+          break;
+      }
+
+      ctx.restore();
     };
-
-    // Blips — random dots that appear and fade
-    interface Blip { x: number; y: number; alpha: number; life: number; color: number[][]; ring: number }
-    const blips: Blip[] = [];
-    const spawnBlip = () => {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = Math.random() * maxR() * 0.9;
-      const colorSets = [
-        [[139, 92, 246], [96, 165, 250]],
-        [[34, 211, 238], [96, 165, 250]],
-        [[52, 211, 153], [34, 211, 238]],
-      ];
-      blips.push({
-        x: cx() + Math.cos(angle) * dist,
-        y: cy() + Math.sin(angle) * dist,
-        alpha: 1,
-        life: 120 + Math.random() * 180,
-        color: colorSets[Math.floor(Math.random() * colorSets.length)],
-        ring: Math.floor(dist / (maxR() * 0.9) * 4) + 1,
-      });
-    };
-
-    // Scan beam angle
-    let scanAngle = 0;
-    let frame = 0;
 
     let raf: number;
+    let frame = 0;
     const draw = () => {
       const w = canvas.getBoundingClientRect().width;
       const h = canvas.getBoundingClientRect().height;
-      const x = cx();
-      const y = cy();
-      const R = maxR();
-
       ctx.clearRect(0, 0, w, h);
 
-      // ── Grid lines ──
-      ctx.strokeStyle = "rgba(139,92,246,0.06)";
-      ctx.lineWidth = 1;
-      // Horizontal
-      for (let i = 0; i < 12; i++) {
-        const gy = (h / 12) * i;
-        ctx.beginPath();
-        ctx.moveTo(0, gy);
-        ctx.lineTo(w, gy);
-        ctx.stroke();
-      }
-      // Vertical
-      for (let i = 0; i < 16; i++) {
-        const gx = (w / 16) * i;
-        ctx.beginPath();
-        ctx.moveTo(gx, 0);
-        ctx.lineTo(gx, h);
-        ctx.stroke();
-      }
-
-      // ── Concentric rings (static) ──
-      for (let i = 1; i <= 5; i++) {
-        ctx.beginPath();
-        ctx.arc(x, y, (R / 5) * i, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(139,92,246,${0.08 + i * 0.02})`;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
-      }
-
-      // ── Cross hairs ──
-      ctx.strokeStyle = "rgba(139,92,246,0.07)";
-      ctx.lineWidth = 0.6;
-      ctx.beginPath();
-      ctx.moveTo(x - R, y);
-      ctx.lineTo(x + R, y);
-      ctx.moveTo(x, y - R);
-      ctx.lineTo(x, y + R);
-      ctx.stroke();
-
-      // ── Diagonal lines ──
-      ctx.strokeStyle = "rgba(139,92,246,0.04)";
-      ctx.beginPath();
-      ctx.moveTo(x - R * 0.707, y - R * 0.707);
-      ctx.lineTo(x + R * 0.707, y + R * 0.707);
-      ctx.moveTo(x + R * 0.707, y - R * 0.707);
-      ctx.lineTo(x - R * 0.707, y + R * 0.707);
-      ctx.stroke();
-
-      // ── Pulsing expanding rings ──
-      if (frame % 90 === 0) spawnRing();
-      for (let i = rings.length - 1; i >= 0; i--) {
-        const ring = rings[i];
-        ring.r += ring.speed;
-        ring.alpha -= 0.003;
-        if (ring.alpha <= 0 || ring.r > R) {
-          rings.splice(i, 1);
-          continue;
-        }
-        ctx.beginPath();
-        ctx.arc(x, y, ring.r, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(${ring.color[0]},${ring.color[1]},${ring.color[2]},${ring.alpha * 0.6})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-
-      // ── Scan beam ──
-      scanAngle += 0.012;
-      const beamLen = R;
-      const bx = x + Math.cos(scanAngle) * beamLen;
-      const by = y + Math.sin(scanAngle) * beamLen;
-
-      // Beam gradient (wedge)
-      const grad = ctx.createConicGradient(scanAngle - 0.4, x, y);
-      if (grad) {
-        grad.addColorStop(0, "rgba(52,211,153,0)");
-        grad.addColorStop(0.06, "rgba(52,211,153,0.08)");
-        grad.addColorStop(0.08, "rgba(52,211,153,0)");
-        grad.addColorStop(1, "rgba(52,211,153,0)");
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(x, y, beamLen, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Beam line
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.lineTo(bx, by);
-      ctx.strokeStyle = "rgba(52,211,153,0.45)";
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
-
-      // Beam glow at tip
-      ctx.beginPath();
-      ctx.arc(bx, by, 4, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(52,211,153,0.5)";
-      ctx.fill();
-
-      // ── Blips ──
-      if (frame % 40 === 0 && blips.length < 20) spawnBlip();
-      for (let i = blips.length - 1; i >= 0; i--) {
-        const b = blips[i];
-        b.life--;
-        if (b.life <= 0) {
-          blips.splice(i, 1);
-          continue;
-        }
-        const fade = b.life < 30 ? b.life / 30 : 1;
-        const pulse = 0.7 + 0.3 * Math.sin(frame * 0.08 + i);
-        const a = b.alpha * fade * pulse;
-
-        // Blip glow
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${b.color[0][0]},${b.color[0][1]},${b.color[0][2]},${a * 0.2})`;
-        ctx.fill();
-
-        // Blip core
-        ctx.beginPath();
-        ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${b.color[1][0]},${b.color[1][1]},${b.color[1][2]},${a})`;
-        ctx.fill();
-
-        // Ring label near blip
-        if (fade > 0.5) {
-          ctx.font = "8px monospace";
-          ctx.fillStyle = `rgba(${b.color[0][0]},${b.color[0][1]},${b.color[0][2]},${a * 0.4})`;
-          ctx.fillText(`R${b.ring}`, b.x + 8, b.y - 6);
+      // ── Subtle dot grid ──
+      ctx.fillStyle = "rgba(139,92,246,0.06)";
+      for (let x = GRID_SIZE; x < w; x += GRID_SIZE) {
+        for (let y = GRID_SIZE; y < h; y += GRID_SIZE) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1, 0, Math.PI * 2);
+          ctx.fill();
         }
       }
 
-      // ── Center dot ──
-      ctx.beginPath();
-      ctx.arc(x, y, 3, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(52,211,153,0.7)";
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(52,211,153,0.2)";
-      ctx.lineWidth = 0.8;
-      ctx.stroke();
+      // ── Floating shapes ──
+      for (const s of shapes) {
+        s.x += s.vx;
+        s.y += s.vy;
+        s.rotation += s.rotSpeed;
+
+        // Wrap around
+        const margin = s.size;
+        if (s.x < -margin) s.x = w + margin;
+        if (s.x > w + margin) s.x = -margin;
+        if (s.y < -margin) s.y = h + margin;
+        if (s.y > h + margin) s.y = -margin;
+
+        drawShape(s);
+      }
 
       frame++;
       raf = requestAnimationFrame(draw);
@@ -324,31 +258,13 @@ export default function HomeFooter() {
 
   return (
     <footer
-      onMouseMove={(e) => {
-        const r = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - r.left;
-        const y = e.clientY - r.top;
-        setMouse({ x: (x / r.width) * 100, y: (y / r.height) * 100 });
-        mouseRef.current = { x, y };
-      }}
       className="h-screen w-full overflow-hidden relative flex flex-col bg-[#030907] text-[#ecfdf5] select-none border-t border-[#0f1f14]"
       data-section-theme="dark"
     >
       {/* ── Background ──────────────────────────── */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        {/* Radar canvas */}
+        {/* Floating shapes + grid canvas */}
         <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
-
-        {/* Dot grid — boosted */}
-        <div className="absolute inset-0 opacity-[0.08]"
-          style={{ backgroundImage: "radial-gradient(rgba(139,92,246,0.9) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
-
-        {/* Mouse spotlight — boosted */}
-        <div className="absolute inset-0"
-          style={{ background: `radial-gradient(500px circle at ${mouse.x}% ${mouse.y}%, rgba(139,92,246,0.18), transparent 60%)` }} />
-
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#030907_100%)]" />
       </div>
 
       {/* ══════════════════════════════════════════ */}
@@ -399,12 +315,12 @@ export default function HomeFooter() {
         </button>
         <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-6 px-5 sm:px-10 py-3"
           style={{ background: "linear-gradient(90deg,#040610,#030812,#040610)" }}>
-          <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
+          <span className="text-[10px] sm:text-sm tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
             &copy; {new Date().getFullYear()}{" "}
             <span className="text-shine-violet-3d font-bold">Crescent Technocrats Club</span>
           </span>
-          <span className="hidden sm:inline text-[#8b5cf6]/60 text-[10px]">✦</span>
-          <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
+          <span className="hidden sm:inline text-[#8b5cf6]/60 text-xs">✦</span>
+          <span className="text-[10px] sm:text-sm tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
             Designed by <span className="text-shine-violet-3d font-bold">Hameed Afsar KM</span>
           </span>
         </div>
@@ -544,7 +460,7 @@ export default function HomeFooter() {
         }
 
         @media (prefers-reduced-motion: reduce) {
-          /* Canvas animation still runs — radar is non-distracting enough */
+          /* Canvas animation still runs — bokeh is non-distracting */
         }
       `}} />
     </footer>
