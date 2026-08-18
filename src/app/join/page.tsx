@@ -51,11 +51,13 @@ import {
   cleanStudentName,
   isValidUrl,
 } from "@/lib/applications";
-import { displayJoinRole, type RoleRules } from "@/lib/join-roles";
+import { displayJoinRole, normalizeCustomRole, type RoleRules } from "@/lib/join-roles";
 import { useSmoothScroll } from "@/components/SmoothScroll";
 
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 const PHONE_RE = /^[+]?[\d\s()-]{10,15}$/;
+const CSE_BRANCH = "Computer Science & Engineering";
+const CSE_ALLOWED_ROLES = new Set(["member", "event-volunteer"]);
 
 function authErrorCode(err: unknown): string {
   if (typeof err === "object" && err !== null && "code" in err) {
@@ -531,6 +533,19 @@ export default function JoinPage() {
     setAcceptedRoleRules(false);
   };
 
+  const isCse = form.branch === CSE_BRANCH;
+
+  const visibleRoles = useMemo(() => {
+    if (!isCse) return openRoles;
+    return openRoles.filter((r) => CSE_ALLOWED_ROLES.has(normalizeCustomRole(r)));
+  }, [openRoles, isCse]);
+
+  useEffect(() => {
+    if (form.role && rolesLoaded && visibleRoles.length > 0 && !visibleRoles.includes(form.role)) {
+      setRole("");
+    }
+  }, [visibleRoles, form.role, rolesLoaded]);
+
   const signInWithGoogle = async () => {
     setAuthError(null);
     setSigningIn(true);
@@ -652,7 +667,7 @@ export default function JoinPage() {
     if (!form.degree) e.degree = "Select your degree";
     if (!form.branch) e.branch = "Select your branch";
     if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
-    else if (rolesLoaded && !openRoles.includes(form.role)) {
+    else if (rolesLoaded && !visibleRoles.includes(form.role)) {
       e.role = "The selected role is no longer open for applications";
     }
     if (rolesLoaded && form.role && roleRulesFor(form.role).length > 0 && !acceptedRoleRules) {
@@ -753,7 +768,7 @@ export default function JoinPage() {
     const e: Record<string, string> = {};
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
     if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
-    else if (rolesLoaded && !openRoles.includes(form.role)) {
+    else if (rolesLoaded && !visibleRoles.includes(form.role)) {
       e.role = "The selected role is no longer open for applications";
     }
     if (rolesLoaded && form.role && roleRulesFor(form.role).length > 0 && !acceptedRoleRules) {
@@ -1126,7 +1141,7 @@ export default function JoinPage() {
                             <option value="" disabled>
                               {rolesLoaded ? "Select a role" : "Loading roles…"}
                             </option>
-                            {openRoles.map((r) => (
+                            {visibleRoles.map((r) => (
                               <option key={r} value={r} className="bg-[#0d1317]">
                                 {displayJoinRole(r, roleLabels)}
                               </option>
@@ -1207,7 +1222,7 @@ export default function JoinPage() {
 
                       <div className="flex items-center justify-between pt-2">
                         <p className="text-xs text-gray-600 font-mono">
-                          {openRoles.length} role{openRoles.length === 1 ? "" : "s"} open
+                          {visibleRoles.length} role{visibleRoles.length === 1 ? "" : "s"} open
                         </p>
                         <button
                           type="button"
@@ -1365,7 +1380,7 @@ export default function JoinPage() {
                         <option value="" disabled>
                           {rolesLoaded ? "Select a role" : "Loading roles…"}
                         </option>
-                        {openRoles.map((r) => (
+                        {visibleRoles.map((r) => (
                           <option key={r} value={r} className="bg-[#0d1317]">
                             {displayJoinRole(r, roleLabels)}
                           </option>
