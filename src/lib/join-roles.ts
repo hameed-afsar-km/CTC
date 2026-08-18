@@ -1,8 +1,8 @@
-import { ADMIN_ROLES, ROLE_LABELS } from "./roles";
+import { ROLE_LABELS } from "./roles";
 
 export const JOIN_ROLES_DOC_ID = "join-roles";
 
-export const ALL_JOIN_ROLES: string[] = [...ADMIN_ROLES, "member"];
+export const ALL_JOIN_ROLES: string[] = ["member"];
 
 export const JOIN_ROLE_LABELS: Record<string, string> = {
   ...ROLE_LABELS,

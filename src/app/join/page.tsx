@@ -44,7 +44,6 @@ import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
 import {
   BRANCHES,
   DEGREES,
-  DEPARTMENTS,
   INTEREST_SUGGESTIONS,
   SECTIONS,
   SKILL_SUGGESTIONS,
@@ -80,7 +79,6 @@ interface FormState {
   collegeMail: string;
   contactNumber: string;
   degree: string;
-  department: string;
   branch: string;
   section: string;
   year: string;
@@ -100,7 +98,6 @@ const INITIAL_FORM: FormState = {
   collegeMail: "",
   contactNumber: "",
   degree: "",
-  department: "",
   branch: "",
   section: "",
   year: "",
@@ -541,9 +538,16 @@ export default function JoinPage() {
   const isCse = effectiveBranch === CSE_BRANCH;
 
   const visibleRoles = useMemo(() => {
-    if (!isCse) return openRoles;
-    return openRoles.filter((r) => CSE_ALLOWED_ROLES.has(normalizeCustomRole(r)));
-  }, [openRoles, isCse]);
+    let roles = openRoles;
+    if (isCse) {
+      roles = roles.filter((r) => CSE_ALLOWED_ROLES.has(normalizeCustomRole(r)));
+    }
+    if (memberMode && currentRoles.length > 0) {
+      const owned = new Set(currentRoles.map(normalizeCustomRole));
+      roles = roles.filter((r) => !owned.has(normalizeCustomRole(r)));
+    }
+    return roles;
+  }, [openRoles, isCse, memberMode, currentRoles]);
 
   useEffect(() => {
     if (form.role && rolesLoaded && visibleRoles.length > 0 && !visibleRoles.includes(form.role)) {
@@ -670,7 +674,7 @@ export default function JoinPage() {
   const validateStep1 = (): boolean => {
     const e: Record<string, string> = {};
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
-    if (!form.department) e.department = "Select your department";
+    if (!form.degree) e.degree = "Select your degree";
     if (!form.branch) e.branch = "Select your branch";
     if (!form.section) e.section = "Select your section";
     if (!form.year) e.year = "Select your year";
@@ -1308,23 +1312,23 @@ export default function JoinPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                     <div>
-                      <label htmlFor="department" className={labelClass}>
-                        Department *
+                      <label htmlFor="degree" className={labelClass}>
+                        Degree *
                       </label>
                       <div className="relative">
                         <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
                           <GraduationCap className="w-4 h-4" />
                         </span>
                         <select
-                          id="department"
-                          value={form.department}
-                          onChange={(e) => set("department", e.target.value)}
-                          className={`${selectClass} pl-10 ${errors.department ? "border-red-500/50" : ""}`}
+                          id="degree"
+                          value={form.degree}
+                          onChange={(e) => set("degree", e.target.value)}
+                          className={`${selectClass} pl-10 ${errors.degree ? "border-red-500/50" : ""}`}
                         >
                           <option value="" disabled>
-                            Select department
+                            Select degree
                           </option>
-                          {DEPARTMENTS.map((d) => (
+                          {DEGREES.map((d) => (
                             <option key={d} value={d} className="bg-[#0d1317]">
                               {d}
                             </option>
@@ -1332,8 +1336,8 @@ export default function JoinPage() {
                         </select>
                         <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
                       </div>
-                      {errors.department && (
-                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.department}</p>
+                      {errors.degree && (
+                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.degree}</p>
                       )}
                     </div>
 

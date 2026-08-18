@@ -15,7 +15,7 @@ import { clearJoinReset, getUser, upsertUser } from "@/lib/users-store";
 
 export const dynamic = "force-dynamic";
 
-const REQUIRED_FIELDS = ["fullName", "role", "contactNumber", "department", "branch", "section", "year", "reason"] as const;
+const REQUIRED_FIELDS = ["fullName", "role", "contactNumber", "degree", "branch", "section", "year", "reason"] as const;
 
 const ALREADY_APPLIED_MESSAGE =
   "An application has already been submitted with this email. Please contact the team directly for any follow-ups or updates.";
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
       contactNumber: String(body.contactNumber).trim(),
       role,
       degree: String(body.degree ?? "").trim(),
-      department: String(body.department ?? "").trim(),
+      department: "",
       branch: String(body.branch).trim(),
       section: String(body.section).trim(),
       year: String(body.year).trim(),

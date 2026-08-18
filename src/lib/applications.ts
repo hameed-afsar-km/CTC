@@ -40,19 +40,16 @@ export const DEGREES = [
   "M.Sc.",
   "BBA",
   "MBA",
+  "B.Com",
+  "M.Com",
+  "B.Arch",
+  "LL.B",
+  "B.A.LL.B",
+  "Pharm.D",
+  "B.Des",
+  "M.Des",
+  "Ph.D",
   "Diploma",
-  "Other",
-];
-
-export const DEPARTMENTS = [
-  "Engineering & Technology",
-  "Computer Applications",
-  "Pharmacy",
-  "Architecture & Planning",
-  "Management & Business",
-  "Law",
-  "Science",
-  "Arts & Humanities",
   "Other",
 ];
 
