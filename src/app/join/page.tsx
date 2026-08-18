@@ -34,6 +34,7 @@ import {
   LogOut,
   Mail,
   Phone,
+  Plus,
   Send,
   ShieldCheck,
   Trash2,
@@ -140,6 +141,11 @@ function TagInput({ id, label, placeholder, values, onChange, suggestions, error
       .slice(0, 8);
   }, [suggestions, values, trimmed]);
 
+  const showCustomOption =
+    trimmed.length > 0 &&
+    !values.some((v) => v.toLowerCase() === trimmed.toLowerCase()) &&
+    !suggestions.some((s) => s.toLowerCase() === trimmed.toLowerCase());
+
   const add = (raw: string) => {
     const value = raw.trim();
     if (!value) return;
@@ -206,8 +212,24 @@ function TagInput({ id, label, placeholder, values, onChange, suggestions, error
           }}
           className="flex-1 min-w-[140px] bg-transparent text-white text-sm placeholder:text-gray-600 focus:outline-none py-1"
         />
-        {open && filtered.length > 0 && (
+        {open && (filtered.length > 0 || showCustomOption) && (
           <div className="absolute z-20 left-0 right-0 top-full mt-2 rounded-xl bg-[#101820] border border-white/10 shadow-2xl overflow-hidden max-h-64 overflow-y-auto">
+            {showCustomOption && (
+              <>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => add(trimmed)}
+                  className="w-full text-left px-4 py-2.5 text-sm text-mint hover:bg-mint/10 hover:text-white font-mono transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add &ldquo;{trimmed}&rdquo;</span>
+                </button>
+                {filtered.length > 0 && (
+                  <div className="h-px bg-white/10" />
+                )}
+              </>
+            )}
             {filtered.map((s) => (
               <button
                 key={s}
