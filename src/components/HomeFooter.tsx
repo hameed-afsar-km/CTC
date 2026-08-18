@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { ArrowUpRight, ChevronRight } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { ArrowUpRight } from "lucide-react";
 import { ShinyButton } from "@/components/ui/shiny-button";
 import { useSmoothScroll } from "@/components/SmoothScroll";
 
@@ -90,6 +90,8 @@ export default function HomeFooter() {
   const lenis = useSmoothScroll();
   const [mouse, setMouse] = useState({ x: 50, y: 50 });
   const [showContactModal, setShowContactModal] = useState(false);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mouseRef = useRef({ x: 0, y: 0 });
 
   const toTop  = () => {
     if (lenis) lenis.scrollTo(0);
@@ -97,25 +99,256 @@ export default function HomeFooter() {
   };
   const mailto = () => { window.location.href = "mailto:contact@crescenttechnocrats.club"; };
 
+  /* ── Radar canvas animation ──────────────────── */
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const rect = canvas.getBoundingClientRect();
+    const cx = () => canvas.getBoundingClientRect().width / 2;
+    const cy = () => canvas.getBoundingClientRect().height / 2;
+    const maxR = () => Math.max(canvas.getBoundingClientRect().width, canvas.getBoundingClientRect().height) * 0.7;
+
+    // Rings that expand outward
+    interface Ring { r: number; alpha: number; speed: number; color: number[] }
+    const rings: Ring[] = [];
+    const spawnRing = () => {
+      const colors = [
+        [139, 92, 246],   // purple
+        [34, 211, 238],   // cyan
+        [52, 211, 153],   // green
+      ];
+      const c = colors[Math.floor(Math.random() * colors.length)];
+      rings.push({ r: 0, alpha: 0.6, speed: 0.4 + Math.random() * 0.3, color: c });
+    };
+
+    // Blips — random dots that appear and fade
+    interface Blip { x: number; y: number; alpha: number; life: number; color: number[][]; ring: number }
+    const blips: Blip[] = [];
+    const spawnBlip = () => {
+      const angle = Math.random() * Math.PI * 2;
+      const dist = Math.random() * maxR() * 0.9;
+      const colorSets = [
+        [[139, 92, 246], [96, 165, 250]],
+        [[34, 211, 238], [96, 165, 250]],
+        [[52, 211, 153], [34, 211, 238]],
+      ];
+      blips.push({
+        x: cx() + Math.cos(angle) * dist,
+        y: cy() + Math.sin(angle) * dist,
+        alpha: 1,
+        life: 120 + Math.random() * 180,
+        color: colorSets[Math.floor(Math.random() * colorSets.length)],
+        ring: Math.floor(dist / (maxR() * 0.9) * 4) + 1,
+      });
+    };
+
+    // Scan beam angle
+    let scanAngle = 0;
+    let frame = 0;
+
+    let raf: number;
+    const draw = () => {
+      const w = canvas.getBoundingClientRect().width;
+      const h = canvas.getBoundingClientRect().height;
+      const x = cx();
+      const y = cy();
+      const R = maxR();
+
+      ctx.clearRect(0, 0, w, h);
+
+      // ── Grid lines ──
+      ctx.strokeStyle = "rgba(139,92,246,0.06)";
+      ctx.lineWidth = 1;
+      // Horizontal
+      for (let i = 0; i < 12; i++) {
+        const gy = (h / 12) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(w, gy);
+        ctx.stroke();
+      }
+      // Vertical
+      for (let i = 0; i < 16; i++) {
+        const gx = (w / 16) * i;
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, h);
+        ctx.stroke();
+      }
+
+      // ── Concentric rings (static) ──
+      for (let i = 1; i <= 5; i++) {
+        ctx.beginPath();
+        ctx.arc(x, y, (R / 5) * i, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(139,92,246,${0.08 + i * 0.02})`;
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+      }
+
+      // ── Cross hairs ──
+      ctx.strokeStyle = "rgba(139,92,246,0.07)";
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(x - R, y);
+      ctx.lineTo(x + R, y);
+      ctx.moveTo(x, y - R);
+      ctx.lineTo(x, y + R);
+      ctx.stroke();
+
+      // ── Diagonal lines ──
+      ctx.strokeStyle = "rgba(139,92,246,0.04)";
+      ctx.beginPath();
+      ctx.moveTo(x - R * 0.707, y - R * 0.707);
+      ctx.lineTo(x + R * 0.707, y + R * 0.707);
+      ctx.moveTo(x + R * 0.707, y - R * 0.707);
+      ctx.lineTo(x - R * 0.707, y + R * 0.707);
+      ctx.stroke();
+
+      // ── Pulsing expanding rings ──
+      if (frame % 90 === 0) spawnRing();
+      for (let i = rings.length - 1; i >= 0; i--) {
+        const ring = rings[i];
+        ring.r += ring.speed;
+        ring.alpha -= 0.003;
+        if (ring.alpha <= 0 || ring.r > R) {
+          rings.splice(i, 1);
+          continue;
+        }
+        ctx.beginPath();
+        ctx.arc(x, y, ring.r, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${ring.color[0]},${ring.color[1]},${ring.color[2]},${ring.alpha * 0.6})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // ── Scan beam ──
+      scanAngle += 0.012;
+      const beamLen = R;
+      const bx = x + Math.cos(scanAngle) * beamLen;
+      const by = y + Math.sin(scanAngle) * beamLen;
+
+      // Beam gradient (wedge)
+      const grad = ctx.createConicGradient(scanAngle - 0.4, x, y);
+      if (grad) {
+        grad.addColorStop(0, "rgba(52,211,153,0)");
+        grad.addColorStop(0.06, "rgba(52,211,153,0.08)");
+        grad.addColorStop(0.08, "rgba(52,211,153,0)");
+        grad.addColorStop(1, "rgba(52,211,153,0)");
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x, y, beamLen, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Beam line
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(bx, by);
+      ctx.strokeStyle = "rgba(52,211,153,0.45)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Beam glow at tip
+      ctx.beginPath();
+      ctx.arc(bx, by, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(52,211,153,0.5)";
+      ctx.fill();
+
+      // ── Blips ──
+      if (frame % 40 === 0 && blips.length < 20) spawnBlip();
+      for (let i = blips.length - 1; i >= 0; i--) {
+        const b = blips[i];
+        b.life--;
+        if (b.life <= 0) {
+          blips.splice(i, 1);
+          continue;
+        }
+        const fade = b.life < 30 ? b.life / 30 : 1;
+        const pulse = 0.7 + 0.3 * Math.sin(frame * 0.08 + i);
+        const a = b.alpha * fade * pulse;
+
+        // Blip glow
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${b.color[0][0]},${b.color[0][1]},${b.color[0][2]},${a * 0.2})`;
+        ctx.fill();
+
+        // Blip core
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(${b.color[1][0]},${b.color[1][1]},${b.color[1][2]},${a})`;
+        ctx.fill();
+
+        // Ring label near blip
+        if (fade > 0.5) {
+          ctx.font = "8px monospace";
+          ctx.fillStyle = `rgba(${b.color[0][0]},${b.color[0][1]},${b.color[0][2]},${a * 0.4})`;
+          ctx.fillText(`R${b.ring}`, b.x + 8, b.y - 6);
+        }
+      }
+
+      // ── Center dot ──
+      ctx.beginPath();
+      ctx.arc(x, y, 3, 0, Math.PI * 2);
+      ctx.fillStyle = "rgba(52,211,153,0.7)";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(x, y, 8, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(52,211,153,0.2)";
+      ctx.lineWidth = 0.8;
+      ctx.stroke();
+
+      frame++;
+      raf = requestAnimationFrame(draw);
+    };
+    raf = requestAnimationFrame(draw);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
   return (
     <footer
       onMouseMove={(e) => {
         const r = e.currentTarget.getBoundingClientRect();
-        setMouse({ x: ((e.clientX - r.left) / r.width) * 100, y: ((e.clientY - r.top) / r.height) * 100 });
+        const x = e.clientX - r.left;
+        const y = e.clientY - r.top;
+        setMouse({ x: (x / r.width) * 100, y: (y / r.height) * 100 });
+        mouseRef.current = { x, y };
       }}
       className="h-screen w-full overflow-hidden relative flex flex-col bg-[#030907] text-[#ecfdf5] select-none border-t border-[#0f1f14]"
       data-section-theme="dark"
     >
       {/* ── Background ──────────────────────────── */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-1/3 -left-1/4 w-3/5 h-3/5 rounded-full bg-[#8b5cf6]/12 blur-[140px] orb" />
-        <div className="absolute -bottom-1/3 -right-1/4 w-3/5 h-3/5 rounded-full bg-[#22d3ee]/9  blur-[130px] orb" style={{ animationDelay: "-9s" }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2/5 h-2/5 rounded-full bg-[#34d399]/7 blur-[90px]  orb" style={{ animationDelay: "-17s" }} />
-        <div className="absolute inset-0 opacity-[0.04]"
+        {/* Radar canvas */}
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" />
+
+        {/* Dot grid — boosted */}
+        <div className="absolute inset-0 opacity-[0.08]"
           style={{ backgroundImage: "radial-gradient(rgba(139,92,246,0.9) 1px,transparent 1px)", backgroundSize: "40px 40px" }} />
+
+        {/* Mouse spotlight — boosted */}
         <div className="absolute inset-0"
-          style={{ background: `radial-gradient(430px circle at ${mouse.x}% ${mouse.y}%, rgba(139,92,246,0.1), transparent 68%)` }} />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_52%,#030907_100%)]" />
+          style={{ background: `radial-gradient(500px circle at ${mouse.x}% ${mouse.y}%, rgba(139,92,246,0.18), transparent 60%)` }} />
+
+        {/* Vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,#030907_100%)]" />
       </div>
 
       {/* ══════════════════════════════════════════ */}
@@ -157,28 +390,24 @@ export default function HomeFooter() {
       </div>
 
       {/* ══════════════════════════════════════════ */}
-      {/* EMAIL ROW — shrink-0                      */}
+      {/* BOTTOM BAR — email + credits              */}
       {/* ══════════════════════════════════════════ */}
-      <div className="relative z-10 shrink-0 flex items-center justify-center py-2.5 border-t border-[#0f1f14]">
+      <div className="relative z-10 shrink-0 flex flex-col items-center border-t border-white/10">
         <button onClick={mailto}
-          className="px-4 py-1 text-[10px] sm:text-[11px] text-[#1e3a2f] hover:text-[#a78bfa] transition-colors tracking-wider font-mono">
+          className="w-full text-center px-4 py-2.5 text-[10px] sm:text-[11px] text-[#1e3a2f] hover:text-[#a78bfa] transition-colors tracking-wider font-mono border-b border-white/10">
           contact@crescenttechnocrats.club
         </button>
-      </div>
-
-      {/* ══════════════════════════════════════════ */}
-      {/* CREDIT BAR — 3D extruded shimmer           */}
-      {/* ══════════════════════════════════════════ */}
-      <div className="relative z-10 shrink-0 flex items-center justify-center gap-4 sm:gap-6 px-5 sm:px-10 py-3 border-t border-white/10"
-        style={{ background: "linear-gradient(90deg,#040610,#030812,#040610)" }}>
-        <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
-          © {new Date().getFullYear()}{" "}
-          <span className="text-shine-violet-3d font-bold">Crescent Technocrats Club</span>
-        </span>
-        <span className="text-[#8b5cf6]/60 text-[10px]">✦</span>
-        <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
-          Designed by <span className="text-shine-violet-3d font-bold">Hameed Afsar KM</span>
-        </span>
+        <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-6 px-5 sm:px-10 py-3"
+          style={{ background: "linear-gradient(90deg,#040610,#030812,#040610)" }}>
+          <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
+            &copy; {new Date().getFullYear()}{" "}
+            <span className="text-shine-violet-3d font-bold">Crescent Technocrats Club</span>
+          </span>
+          <span className="hidden sm:inline text-[#8b5cf6]/60 text-[10px]">✦</span>
+          <span className="text-[9px] tracking-[0.3em] uppercase text-neutral-500 whitespace-nowrap">
+            Designed by <span className="text-shine-violet-3d font-bold">Hameed Afsar KM</span>
+          </span>
+        </div>
       </div>
 
       {/* ══════════════════════════════════════════ */}
@@ -314,16 +543,8 @@ export default function HomeFooter() {
           animation: rgb-glow-cycle 3s linear infinite;
         }
 
-        /* Ambient orbs */
-        @keyframes orb {
-          0%,100% { transform: translate(0,0) scale(1); }
-          40%     { transform: translate(55px,-65px) scale(1.1); }
-          70%     { transform: translate(-40px,42px)  scale(0.93); }
-        }
-        .orb { animation: orb 22s ease-in-out infinite; will-change: transform; }
-
         @media (prefers-reduced-motion: reduce) {
-          .orb { animation: none !important; }
+          /* Canvas animation still runs — radar is non-distracting enough */
         }
       `}} />
     </footer>

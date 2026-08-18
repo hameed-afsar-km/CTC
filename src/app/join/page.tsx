@@ -418,6 +418,7 @@ export default function JoinPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
+  const [submittedRole, setSubmittedRole] = useState("");
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [memberMode, setMemberMode] = useState(false);
   const [currentRoles, setCurrentRoles] = useState<string[]>([]);
@@ -433,6 +434,7 @@ export default function JoinPage() {
   const [openRoles, setOpenRoles] = useState<string[]>([]);
   const [roleDetails, setRoleDetails] = useState<Record<string, RoleRules>>({});
   const [roleLabels, setRoleLabels] = useState<Record<string, string>>({});
+  const [roleLinks, setRoleLinks] = useState<Record<string, string>>({});
   const [rolesLoaded, setRolesLoaded] = useState(false);
   const [acceptedRoleRules, setAcceptedRoleRules] = useState(false);
 
@@ -496,6 +498,9 @@ export default function JoinPage() {
         }
         if (d?.roleLabels && typeof d.roleLabels === "object") {
           setRoleLabels(d.roleLabels as Record<string, string>);
+        }
+        if (d?.roleLinks && typeof d.roleLinks === "object") {
+          setRoleLinks(d.roleLinks as Record<string, string>);
         }
       })
       .catch(() => {
@@ -644,6 +649,8 @@ export default function JoinPage() {
   const validateStep1 = (): boolean => {
     const e: Record<string, string> = {};
     if (form.fullName.trim().length < 2) e.fullName = "Enter your full name";
+    if (!form.degree) e.degree = "Select your degree";
+    if (!form.branch) e.branch = "Select your branch";
     if (rolesLoaded && !form.role) e.role = "Select the role you're applying for";
     else if (rolesLoaded && !openRoles.includes(form.role)) {
       e.role = "The selected role is no longer open for applications";
@@ -661,8 +668,6 @@ export default function JoinPage() {
 
   const validateStep2 = (): boolean => {
     const e: Record<string, string> = {};
-    if (!form.degree) e.degree = "Select your degree";
-    if (!form.branch) e.branch = "Select your branch";
     if (!form.section) e.section = "Select your section";
     if (!form.year) e.year = "Select your year";
     if (form.interests.length === 0) e.interests = "Add at least one interest";
@@ -732,6 +737,7 @@ export default function JoinPage() {
       }
       setSubmitted(true);
       setSubmittedName(form.fullName);
+      setSubmittedRole(form.role);
     } catch (err) {
       setSubmitError(
         err instanceof Error && err.message
@@ -799,6 +805,7 @@ export default function JoinPage() {
       }
       setSubmitted(true);
       setSubmittedName(form.fullName);
+      setSubmittedRole(form.role);
       setHasPending(true);
     } catch (err) {
       setSubmitError(
@@ -842,10 +849,29 @@ export default function JoinPage() {
               <h1 className="text-3xl font-extrabold tracking-tight text-white">
                 Application Received!
               </h1>
-              <p className="text-sm text-gray-400 mt-4 max-w-sm leading-relaxed">
-                Thanks {submittedName || "for applying"}! Your application is with the team — we&apos;ll
-                reach out at your college email or phone number with the next steps.
-              </p>
+              {submittedRole && !submittedRole.toLowerCase().includes("volunteer") ? (
+                <>
+                  <p className="text-sm text-gray-400 mt-4 max-w-sm leading-relaxed">
+                    Thanks {submittedName || "for applying"}! You will be interviewed soon.
+                  </p>
+                  {roleLinks[submittedRole] && (
+                    <a
+                      href={roleLinks[submittedRole]}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-mint/15 hover:bg-mint/25 border border-mint/30 text-mint text-xs font-mono uppercase tracking-wider transition-all"
+                    >
+                      Join the Group
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-gray-400 mt-4 max-w-sm leading-relaxed">
+                  Thanks {submittedName || "for applying"}! Your application is with the team — we&apos;ll
+                  reach out at your college email or phone number with the next steps.
+                </p>
+              )}
               <div className="mt-10 flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <Link
                   href="/"
@@ -858,6 +884,7 @@ export default function JoinPage() {
                   onClick={() => {
                     setForm(INITIAL_FORM);
                     setSubmitted(false);
+                    setSubmittedRole("");
                     setConsented(false);
                     setAcceptedRoleRules(false);
                     setErrors({});
@@ -1258,6 +1285,68 @@ export default function JoinPage() {
                     )}
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div>
+                      <label htmlFor="degree" className={labelClass}>
+                        Degree *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                          <GraduationCap className="w-4 h-4" />
+                        </span>
+                        <select
+                          id="degree"
+                          value={form.degree}
+                          onChange={(e) => set("degree", e.target.value)}
+                          className={`${selectClass} pl-10 ${errors.degree ? "border-red-500/50" : ""}`}
+                        >
+                          <option value="" disabled>
+                            Select degree
+                          </option>
+                          {DEGREES.map((d) => (
+                            <option key={d} value={d} className="bg-[#0d1317]">
+                              {d}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                      </div>
+                      {errors.degree && (
+                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.degree}</p>
+                      )}
+                    </div>
+
+                    <div>
+                      <label htmlFor="branch" className={labelClass}>
+                        Branch *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                          <Building2 className="w-4 h-4" />
+                        </span>
+                        <select
+                          id="branch"
+                          value={form.branch}
+                          onChange={(e) => set("branch", e.target.value)}
+                          className={`${selectClass} pl-10 ${errors.branch ? "border-red-500/50" : ""}`}
+                        >
+                          <option value="" disabled>
+                            Select branch
+                          </option>
+                          {BRANCHES.map((b) => (
+                            <option key={b} value={b} className="bg-[#0d1317]">
+                              {b}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                      </div>
+                      {errors.branch && (
+                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.branch}</p>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
                     <label htmlFor="role" className={labelClass}>
                       Role Applying For *
@@ -1411,68 +1500,6 @@ export default function JoinPage() {
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div>
-                      <label htmlFor="degree" className={labelClass}>
-                        Degree *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                          <GraduationCap className="w-4 h-4" />
-                        </span>
-                        <select
-                          id="degree"
-                          value={form.degree}
-                          onChange={(e) => set("degree", e.target.value)}
-                          className={`${selectClass} pl-10 ${errors.degree ? "border-red-500/50" : ""}`}
-                        >
-                          <option value="" disabled>
-                            Select degree
-                          </option>
-                          {DEGREES.map((d) => (
-                            <option key={d} value={d} className="bg-[#0d1317]">
-                              {d}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                      </div>
-                      {errors.degree && (
-                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.degree}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label htmlFor="branch" className={labelClass}>
-                        Branch *
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                          <Building2 className="w-4 h-4" />
-                        </span>
-                        <select
-                          id="branch"
-                          value={form.branch}
-                          onChange={(e) => set("branch", e.target.value)}
-                          className={`${selectClass} pl-10 ${errors.branch ? "border-red-500/50" : ""}`}
-                        >
-                          <option value="" disabled>
-                            Select branch
-                          </option>
-                          {BRANCHES.map((b) => (
-                            <option key={b} value={b} className="bg-[#0d1317]">
-                              {b}
-                            </option>
-                          ))}
-                        </select>
-                        <ChevronDown className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
-                      </div>
-                      {errors.branch && (
-                        <p className="mt-1.5 text-xs text-red-400 font-mono">{errors.branch}</p>
-                      )}
-                    </div>
-                  </div>
-
                   <div className="grid grid-cols-2 gap-5">
                     <div>
                       <label htmlFor="section" className={labelClass}>

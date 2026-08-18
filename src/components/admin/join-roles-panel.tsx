@@ -37,6 +37,7 @@ interface EditModalState {
   name: string;
   description: string;
   rules: string[];
+  link: string;
   isOpen: boolean;
 }
 
@@ -48,6 +49,7 @@ export default function JoinRolesPanel() {
   const [selected, setSelected] = useState<Set<string>>(new Set(["member"]));
   const [details, setDetails] = useState<Record<string, RoleRules>>({});
   const [labels, setLabels] = useState<Record<string, string>>({});
+  const [links, setLinks] = useState<Record<string, string>>({});
   const [editingRole, setEditingRole] = useState<string | null>(null);
 
   // Add role form state
@@ -85,6 +87,7 @@ export default function JoinRolesPanel() {
           deletedRoles: cfgDeleted,
           roleDetails: data.config.roleDetails,
           roleLabels: data.config.roleLabels,
+          roleLinks: data.config.roleLinks,
           updatedAt: data.config.updatedAt,
         };
         const detailMap: Record<string, RoleRules> = {};
@@ -97,6 +100,7 @@ export default function JoinRolesPanel() {
         setSelected(new Set(cfg.roles));
         setDetails(detailMap);
         setLabels(cfg.roleLabels ?? {});
+        setLinks(cfg.roleLinks ?? {});
         const available = allRolesFor(cfg);
         setEditingRole((prev) => (prev && available.includes(prev) ? prev : available[0] ?? null));
       }
@@ -117,7 +121,8 @@ export default function JoinRolesPanel() {
     nextCustom: string[],
     nextDeleted: string[],
     nextDetails: Record<string, RoleRules>,
-    nextLabels: Record<string, string>
+    nextLabels: Record<string, string>,
+    nextLinks: Record<string, string>
   ) => {
     setSaving(true);
     setMessage(null);
@@ -135,6 +140,7 @@ export default function JoinRolesPanel() {
           deletedRoles: nextDeleted,
           roleDetails: nextDetails,
           roleLabels: nextLabels,
+          roleLinks: nextLinks,
         }),
       });
       const data = await res.json().catch(() => null);
@@ -147,6 +153,7 @@ export default function JoinRolesPanel() {
       const cfgDeleted = Array.isArray(cfg?.deletedRoles) ? cfg.deletedRoles : [];
       const cfgDetails = (cfg?.roleDetails as Record<string, RoleRules>) ?? {};
       const cfgLabels = (cfg?.roleLabels as Record<string, string>) ?? {};
+      const cfgLinks = (cfg?.roleLinks as Record<string, string>) ?? {};
 
       const fullCfg: JoinRolesConfig = {
         id: JOIN_ROLES_DOC_ID,
@@ -155,6 +162,7 @@ export default function JoinRolesPanel() {
         deletedRoles: cfgDeleted,
         roleDetails: cfgDetails,
         roleLabels: cfgLabels,
+        roleLinks: cfgLinks,
         updatedAt: cfg?.updatedAt,
       };
 
@@ -169,6 +177,7 @@ export default function JoinRolesPanel() {
       setSelected(new Set(openRoles));
       setDetails(detailMap);
       setLabels(cfgLabels);
+      setLinks(cfgLinks);
       setMessage({
         text: "Join roles configuration saved successfully.",
         type: "success",
@@ -227,7 +236,7 @@ export default function JoinRolesPanel() {
     setCustomError(null);
     setEditingRole(normalized);
 
-    await saveConfigPayload(nextRoles, nextCustom, nextDeleted, nextDetails, nextLabels);
+    await saveConfigPayload(nextRoles, nextCustom, nextDeleted, nextDetails, nextLabels, links);
   };
 
   // Open Edit Modal for any role
@@ -243,6 +252,7 @@ export default function JoinRolesPanel() {
       name: roleName,
       description: roleDesc,
       rules: [...roleRules],
+      link: links[role] ?? "",
       isOpen: selected.has(role),
     });
     setModalRuleInput("");
@@ -252,7 +262,7 @@ export default function JoinRolesPanel() {
   // Save changes from Edit Modal
   const saveModalEdit = async () => {
     if (!editModal) return;
-    const { roleId, name, description, rules, isOpen } = editModal;
+    const { roleId, name, description, rules, link, isOpen } = editModal;
     const trimmedName = name.trim();
 
     if (!trimmedName) {
@@ -273,6 +283,13 @@ export default function JoinRolesPanel() {
       },
     };
 
+    const nextLinks = { ...links };
+    if (link.trim()) {
+      nextLinks[roleId] = link.trim();
+    } else {
+      delete nextLinks[roleId];
+    }
+
     const nextSelected = new Set(selected);
     if (isOpen) {
       nextSelected.add(roleId);
@@ -284,9 +301,10 @@ export default function JoinRolesPanel() {
 
     setLabels(nextLabels);
     setDetails(nextDetails);
+    setLinks(nextLinks);
     setSelected(nextSelected);
 
-    const ok = await saveConfigPayload(nextRoles, customRoles, deletedRoles, nextDetails, nextLabels);
+    const ok = await saveConfigPayload(nextRoles, customRoles, deletedRoles, nextDetails, nextLabels, nextLinks);
     if (ok) {
       setEditModal(null);
     }
@@ -323,7 +341,7 @@ export default function JoinRolesPanel() {
     }
     setDeleteConfirmRole(null);
 
-    await saveConfigPayload(nextRoles, nextCustom, nextDeleted, nextDetails, nextLabels);
+    await saveConfigPayload(nextRoles, nextCustom, nextDeleted, nextDetails, nextLabels, links);
   };
 
   // Restore Default Roles
@@ -333,7 +351,7 @@ export default function JoinRolesPanel() {
     const nextRoles = Array.from(new Set([...selected, "member"]));
     setDeletedRoles(nextDeleted);
     setSelected(new Set(nextRoles));
-    await saveConfigPayload(nextRoles, customRoles, nextDeleted, details, labels);
+    await saveConfigPayload(nextRoles, customRoles, nextDeleted, details, labels, links);
   };
 
   const handleSaveAll = async (e: React.FormEvent) => {
@@ -341,7 +359,7 @@ export default function JoinRolesPanel() {
     if (selected.size === 0 && !window.confirm("Close all roles? The join form will default back to Member.")) {
       return;
     }
-    await saveConfigPayload(Array.from(selected), customRoles, deletedRoles, details, labels);
+    await saveConfigPayload(Array.from(selected), customRoles, deletedRoles, details, labels, links);
   };
 
   const roleList = allRolesFor({
@@ -739,6 +757,20 @@ export default function JoinRolesPanel() {
                   placeholder="Describe what this role involves for applicants..."
                   className={`${inputCls} resize-none`}
                 />
+              </div>
+
+              <div>
+                <label className={labelCls}>Join Group Link</label>
+                <input
+                  type="url"
+                  value={editModal.link}
+                  onChange={(e) => setEditModal({ ...editModal, link: e.target.value })}
+                  placeholder="https://chat.whatsapp.com/... or https://t.me/..."
+                  className={inputCls}
+                />
+                <p className="mt-1 text-[10px] font-mono text-gray-500">
+                  Group link shown to applicants after they submit for this role (not shown for volunteer roles)
+                </p>
               </div>
 
               <div>

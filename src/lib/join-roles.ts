@@ -33,6 +33,7 @@ export interface JoinRolesConfig {
   deletedRoles?: string[];
   roleDetails?: Record<string, RoleRules>;
   roleLabels?: Record<string, string>;
+  roleLinks?: Record<string, string>;
   updatedAt?: string;
 }
 
@@ -88,6 +89,16 @@ export function sanitizeRoleLabels(raw: unknown): Record<string, string> | undef
   for (const [role, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!role || typeof value !== "string" || !value.trim()) continue;
     out[role] = value.trim().slice(0, 100);
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+export function sanitizeRoleLinks(raw: unknown): Record<string, string> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Record<string, string> = {};
+  for (const [role, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!role || typeof value !== "string" || !value.trim()) continue;
+    out[role] = value.trim().slice(0, 500);
   }
   return Object.keys(out).length > 0 ? out : undefined;
 }

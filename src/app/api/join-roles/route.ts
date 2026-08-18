@@ -12,9 +12,10 @@ export async function GET() {
       roles,
       roleDetails: config.roleDetails ?? {},
       roleLabels: config.roleLabels ?? {},
+      roleLinks: config.roleLinks ?? {},
     });
   } catch (err) {
     console.error("GET /api/join-roles error:", err);
-    return NextResponse.json({ roles: [], roleDetails: {}, roleLabels: {} });
+    return NextResponse.json({ roles: [], roleDetails: {}, roleLabels: {}, roleLinks: {} });
   }
 }

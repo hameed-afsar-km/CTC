@@ -8,6 +8,7 @@ import {
   sanitizeDeletedRoles,
   sanitizeRoleDetails,
   sanitizeRoleLabels,
+  sanitizeRoleLinks,
   type JoinRolesConfig,
 } from "@/lib/join-roles";
 import { logAction } from "@/lib/logs-store";
@@ -59,6 +60,7 @@ export async function PUT(request: Request) {
     );
     const roleDetails = sanitizeRoleDetails(body.roleDetails);
     const roleLabels = sanitizeRoleLabels(body.roleLabels);
+    const roleLinks = sanitizeRoleLinks(body.roleLinks);
     const config: JoinRolesConfig = {
       id: JOIN_ROLES_DOC_ID,
       roles,
@@ -66,6 +68,7 @@ export async function PUT(request: Request) {
       deletedRoles,
       roleDetails,
       roleLabels,
+      roleLinks,
     };
     await saveJoinRolesConfig(config, token);
     await logAction(

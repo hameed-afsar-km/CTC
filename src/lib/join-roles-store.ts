@@ -4,6 +4,7 @@ import {
   normalizeCustomRole,
   sanitizeRoleDetails,
   sanitizeRoleLabels,
+  sanitizeRoleLinks,
   type JoinRolesConfig,
 } from "./join-roles";
 
@@ -42,6 +43,7 @@ export async function getJoinRolesConfig(): Promise<JoinRolesConfig> {
         : [],
       roleDetails: sanitizeRoleDetails(doc.roleDetails),
       roleLabels: sanitizeRoleLabels(doc.roleLabels),
+      roleLinks: sanitizeRoleLinks(doc.roleLinks),
       updatedAt: typeof doc.updatedAt === "string" ? doc.updatedAt : undefined,
     };
   } catch (err) {
@@ -70,6 +72,7 @@ export async function saveJoinRolesConfig(
   );
   const roleDetails = sanitizeRoleDetails(config.roleDetails);
   const roleLabels = sanitizeRoleLabels(config.roleLabels);
+  const roleLinks = sanitizeRoleLinks(config.roleLinks);
   await saveDocument(
     COLLECTION,
     JOIN_ROLES_DOC_ID,
@@ -80,6 +83,7 @@ export async function saveJoinRolesConfig(
       deletedRoles,
       roleDetails: roleDetails ?? {},
       roleLabels: roleLabels ?? {},
+      roleLinks: roleLinks ?? {},
       updatedAt: new Date().toISOString(),
     },
     token
