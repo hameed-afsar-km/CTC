@@ -95,7 +95,7 @@ export default function HomeFooter() {
     if (lenis) lenis.scrollTo(0);
     else window.scrollTo({ top: 0, behavior: "smooth" });
   };
-  const mailto = () => { window.location.href = "mailto:contact@crescenttechnocrats.club"; };
+  const mailto = () => { window.location.href = "mailto:technocratsclub@crescent.education"; };
 
   /* ── Floating geometric shapes + grid ──────── */
   useEffect(() => {
@@ -311,7 +311,7 @@ export default function HomeFooter() {
       <div className="relative z-10 shrink-0 flex flex-col items-center border-t border-white/10">
         <button onClick={mailto}
           className="w-full text-center px-4 py-2.5 text-[10px] sm:text-[11px] text-[#1e3a2f] hover:text-[#a78bfa] transition-colors tracking-wider font-mono border-b border-white/10">
-          contact@crescenttechnocrats.club
+          technocratsclub@crescent.education
         </button>
         <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-6 px-5 sm:px-10 py-3"
           style={{ background: "linear-gradient(90deg,#040610,#030812,#040610)" }}>
@@ -356,7 +356,7 @@ export default function HomeFooter() {
             <div className="flex flex-col gap-3">
               {/* Mail Link */}
               <a 
-                href="mailto:contact@crescenttechnocrats.club"
+                href="mailto:technocratsclub@crescent.education"
                 className="flex items-center gap-4 p-3 rounded-2xl bg-[#07130d] border border-emerald-500/10 hover:border-emerald-500/30 transition-all group"
               >
                 <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-400 group-hover:scale-110 transition-transform">
@@ -366,13 +366,13 @@ export default function HomeFooter() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500">Email Address</span>
-                  <span className="text-xs text-emerald-100 font-mono truncate">contact@crescenttechnocrats.club</span>
+                  <span className="text-xs text-emerald-100 font-mono truncate">technocratsclub@crescent.education</span>
                 </div>
               </a>
 
               {/* Instagram Link */}
               <a 
-                href="https://instagram.com" 
+                href="https://www.instagram.com/crescent_technocrats/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 p-3 rounded-2xl bg-[#07130d] border border-emerald-500/10 hover:border-emerald-500/30 transition-all group"
@@ -386,13 +386,13 @@ export default function HomeFooter() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500">Instagram</span>
-                  <span className="text-xs text-emerald-100 font-mono">@crescenttechnocrats</span>
+                  <span className="text-xs text-emerald-100 font-mono">@crescent_technocrats</span>
                 </div>
               </a>
 
               {/* LinkedIn Link */}
               <a 
-                href="https://linkedin.com" 
+                href="https://www.linkedin.com/company/crescent-technocrats-club/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="flex items-center gap-4 p-3 rounded-2xl bg-[#07130d] border border-emerald-500/10 hover:border-emerald-500/30 transition-all group"
@@ -404,7 +404,7 @@ export default function HomeFooter() {
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500">LinkedIn</span>
-                  <span className="text-xs text-emerald-100 font-mono">Crescent Technocrats</span>
+                  <span className="text-xs text-emerald-100 font-mono">Crescent Technocrats Club</span>
                 </div>
               </a>
             </div>

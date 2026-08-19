@@ -21,14 +21,16 @@ interface TeamMember {
   github?: string;
   linkedin?: string;
   twitter?: string;
+  instagram?: string;
+  phone?: string;
 }
 
 const teamMembers: TeamMember[] = [
   { id: 1, name: "Dr. Karthikeyan Ramalingam", role: "Dean of Student Affairs", designation: "DEAN", bio: "Guiding CTC with academic leadership and a student-first vision — mentoring the core team and championing innovation across campus.", image: "/assets/Dr. Karthikeyan Ramalingam DEAN - Student Affairs.png" },
   { id: 2, name: "Dr. Aisha Banu", role: "Head of Department, CSE", designation: "HOD", bio: "Driving excellence in Computer Science education and steering the club's technical initiatives with passion, rigour, and precision.", image: "/assets/Dr. Aisha Banu HOD - CSE.png" },
-  { id: 3, name: "Hameed Afsar KM", role: "Chief Executive Officer", designation: "CEO", bio: "Leading CTC's vision and strategy — connecting members with opportunities and steering every initiative toward real impact.", image: "/assets/Hameed Afsar KM CEO.png" },
-  { id: 4, name: "Mehar Basha N", role: "Chief Operating Officer", designation: "COO", bio: "Keeping the club's engine running — operations, planning, and execution that make every event and program seamless.", image: "/assets/Mehar Basha N COO.png" },
-  { id: 5, name: "Merfin Hanson", role: "Chief Technology Officer", designation: "CTO", bio: "Architecting the club's technical backbone, mentoring developers, and turning ambitious ideas into shipped products.", image: "/assets/Merfin Hanson CTO.png" },
+  { id: 3, name: "Hameed Afsar KM", role: "Chief Executive Officer", designation: "CEO", bio: "Leading CTC's vision and strategy — connecting members with opportunities and steering every initiative toward real impact.", image: "/assets/Hameed Afsar KM CEO.png", linkedin: "https://www.linkedin.com/in/hameedafsar-km/", github: "https://github.com/hameed-afsar-km", instagram: "https://www.instagram.com/_.afssr._/", phone: "+91 94894 75038" },
+  { id: 4, name: "Mehar Basha N", role: "Chief Operating Officer", designation: "COO", bio: "Keeping the club's engine running — operations, planning, and execution that make every event and program seamless.", image: "/assets/Mehar Basha N COO.png", linkedin: "https://www.linkedin.com/in/mehar-basha-518883386/", instagram: "https://www.instagram.com/meh.arbasha/", phone: "+91 63791 55839" },
+  { id: 5, name: "Merfin Hanson", role: "Chief Technology Officer", designation: "CTO", bio: "Architecting the club's technical backbone, mentoring developers, and turning ambitious ideas into shipped products.", image: "/assets/Merfin Hanson CTO.png", linkedin: "https://www.linkedin.com/in/a-f-merfin-hanson-b028bb30b/", instagram: "https://www.instagram.com/merfinhanson/", phone: "+91 70104 16207" },
   { id: 6, name: "Your Name Could Be Here", role: "Chief Marketing Officer", designation: "CMO", bio: "This seat is open — a visionary marketer could shape how CTC is seen, heard, and remembered.", image: "" },
   { id: 7, name: "Your Name Could Be Here", role: "Chief Financial Officer", designation: "CFO", bio: "This seat is open — a strategic mind could steward the resources that fuel every CTC ambition.", image: "" },
   { id: 8, name: "Your Name Could Be Here", role: "Chief Creative Officer", designation: "CCO", bio: "This seat is open — a bold creative could design the experiences the whole club is known for.", image: "" },
@@ -261,6 +263,8 @@ function MemberCard({ member }: { member: TeamMember }) {
     member.github && { label: "GitHub", href: member.github },
     member.linkedin && { label: "LinkedIn", href: member.linkedin },
     member.twitter && { label: "X", href: member.twitter },
+    member.instagram && { label: "Instagram", href: member.instagram },
+    member.phone && { label: "Phone", href: `tel:${member.phone.replace(/\s/g, "")}` },
   ].filter((link): link is { label: string; href: string } => Boolean(link));
 
   return (
@@ -334,6 +338,16 @@ function MemberCard({ member }: { member: TeamMember }) {
                 {link.label === "GitHub" && (
                   <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                  </svg>
+                )}
+                {link.label === "Instagram" && (
+                  <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                  </svg>
+                )}
+                {link.label === "Phone" && (
+                  <svg className="h-3.5 w-3.5 fill-current" viewBox="0 0 24 24">
+                    <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
                   </svg>
                 )}
               </a>
@@ -418,6 +432,16 @@ function MemberCard({ member }: { member: TeamMember }) {
                 {link.label === "GitHub" && (
                   <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
                     <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                  </svg>
+                )}
+                {link.label === "Instagram" && (
+                  <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                  </svg>
+                )}
+                {link.label === "Phone" && (
+                  <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                    <path d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56-.35-.12-.74-.03-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z" />
                   </svg>
                 )}
               </a>
