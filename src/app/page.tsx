@@ -1139,7 +1139,7 @@ export default function Home() {
       {!isTouchDevice && (
         <div
           ref={cursorLensRef}
-          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[998] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
+          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[9999] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
           style={{
             backdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
             WebkitBackdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
@@ -1152,7 +1152,7 @@ export default function Home() {
       {!isTouchDevice && (
         <div
           ref={cursorPngRef}
-          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
+          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[9999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           <img

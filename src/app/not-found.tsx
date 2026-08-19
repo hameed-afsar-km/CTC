@@ -340,7 +340,7 @@ export default function NotFound() {
       {/* Custom cursor */}
       <div
         ref={cursorRef}
-        className="pointer-events-none fixed left-0 top-0 z-[200] h-10 w-10"
+        className="pointer-events-none fixed left-0 top-0 z-[9999] h-10 w-10"
         style={{ opacity: cursorVisible ? 0.9 : 0 }}
         aria-hidden
       >

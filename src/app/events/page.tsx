@@ -488,7 +488,7 @@ function EventsPageContent() {
       {!isTouchDevice && (
         <div
           ref={cursorPngRef}
-          className="fixed top-0 left-0 z-[110] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference"
+          className="fixed top-0 left-0 z-[9999] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           <Image

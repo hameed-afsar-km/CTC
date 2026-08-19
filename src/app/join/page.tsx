@@ -896,7 +896,9 @@ export default function JoinPage() {
               <h1 className="text-3xl font-extrabold tracking-tight text-white">
                 Application Received!
               </h1>
-              {submittedRole && !submittedRole.toLowerCase().includes("volunteer") ? (
+              {submittedRole &&
+              !submittedRole.toLowerCase().includes("volunteer") &&
+              submittedRole.toLowerCase() !== "member" ? (
                 <>
                   <p className="text-sm text-gray-400 mt-4 max-w-sm leading-relaxed">
                     Thanks {submittedName || "for applying"}! You will be interviewed soon.
@@ -926,22 +928,24 @@ export default function JoinPage() {
                 >
                   Back to Homepage
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setForm(INITIAL_FORM);
-                    setSubmitted(false);
-                    setSubmittedRole("");
-                    setConsented(false);
-                    setAcceptedRoleRules(false);
-                    setErrors({});
-                    setStep(1);
-                    scrollToTop("auto");
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
-                >
-                  Submit Another
-                </button>
+                {!memberMode && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm(INITIAL_FORM);
+                      setSubmitted(false);
+                      setSubmittedRole("");
+                      setConsented(false);
+                      setAcceptedRoleRules(false);
+                      setErrors({});
+                      setStep(1);
+                      scrollToTop("auto");
+                    }}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl border border-white/15 text-gray-300 hover:bg-white/5 hover:text-white font-bold text-xs uppercase tracking-wider transition-all"
+                  >
+                    Submit Another
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -1881,7 +1885,7 @@ export default function JoinPage() {
       {!isTouchDevice && (
         <div
           ref={cursorPngRef}
-          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[99] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
+          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[9999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
           style={{ opacity: cursorVisible ? 1 : 0 }}
         >
           <img
