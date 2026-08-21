@@ -42,6 +42,7 @@ import {
   X,
 } from "lucide-react";
 import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
+import JoinSuccessOverlay from "@/components/JoinSuccessOverlay";
 import {
   BRANCHES,
   DEGREES,
@@ -443,6 +444,10 @@ export default function JoinPage() {
   const [submitted, setSubmitted] = useState(false);
   const [submittedName, setSubmittedName] = useState("");
   const [submittedRole, setSubmittedRole] = useState("");
+  // Celebration overlay variant shown right after a successful submission.
+  const [celebration, setCelebration] = useState<
+    null | "member" | "role-new" | "role-switch"
+  >(null);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [memberMode, setMemberMode] = useState(false);
   const [currentRoles, setCurrentRoles] = useState<string[]>([]);
@@ -550,6 +555,16 @@ export default function JoinPage() {
     typeof roleDetails[role]?.description === "string"
       ? (roleDetails[role]?.description ?? "").trim()
       : "";
+
+  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key as string];
+      return next;
+    });
+  };
 
   const setRole = (value: string) => {
     set("role", value);
@@ -673,6 +688,28 @@ export default function JoinPage() {
         );
         setMemberBranch(typeof data?.branch === "string" ? data.branch : "");
         setHasPending(!!data?.hasPending);
+        // Auto-fill the form with details from the applicant's most recent
+        // application so re-applying for another role needs no re-entry.
+        const p = data?.profile as Record<string, unknown> | null | undefined;
+        if (p && typeof p === "object") {
+          const str = (v: unknown) => (typeof v === "string" ? v : "");
+          const arr = (v: unknown) =>
+            Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+          setForm((prev) => ({
+            ...prev,
+            contactNumber: prev.contactNumber.trim() || str(p.contactNumber),
+            degree: prev.degree || str(p.degree),
+            branch: prev.branch || str(p.branch),
+            section: prev.section || str(p.section),
+            year: prev.year || str(p.year),
+            interests: prev.interests.length ? prev.interests : arr(p.interests),
+            skills: prev.skills.length ? prev.skills : arr(p.skills),
+            linkedinUrl: prev.linkedinUrl || str(p.linkedinUrl),
+            githubUrl: prev.githubUrl || str(p.githubUrl),
+            socialMediaUrl: prev.socialMediaUrl || str(p.socialMediaUrl),
+            portfolioUrl: prev.portfolioUrl || str(p.portfolioUrl),
+          }));
+        }
       } catch {
         if (!cancelled) setAlreadyApplied(false);
       }
@@ -682,16 +719,6 @@ export default function JoinPage() {
       cancelled = true;
     };
   }, [authUser]);
-
-  const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-    setErrors((prev) => {
-      if (!(key in prev)) return prev;
-      const next = { ...prev };
-      delete next[key as string];
-      return next;
-    });
-  };
 
   const validateStep1 = (): boolean => {
     const e: Record<string, string> = {};
@@ -785,6 +812,11 @@ export default function JoinPage() {
       setSubmitted(true);
       setSubmittedName(form.fullName);
       setSubmittedRole(form.role);
+      // Member applications celebrate collaboration; other roles get the
+      // onboarding-interview message.
+      setCelebration(
+        form.role.trim().toLowerCase() === "member" ? "member" : "role-new"
+      );
     } catch (err) {
       setSubmitError(
         err instanceof Error && err.message
@@ -854,6 +886,8 @@ export default function JoinPage() {
       setSubmittedName(form.fullName);
       setSubmittedRole(form.role);
       setHasPending(true);
+      // Existing member applying for another role — interview celebration.
+      setCelebration("role-switch");
     } catch (err) {
       setSubmitError(
         err instanceof Error && err.message
@@ -1895,6 +1929,17 @@ export default function JoinPage() {
             draggable={false}
           />
         </div>
+      )}
+
+      {/* Celebration overlay — staggered gradient lines after a successful application */}
+      {celebration && (
+        <JoinSuccessOverlay
+          variant={celebration}
+          ctaHref={
+            submittedRole && roleLinks[submittedRole] ? roleLinks[submittedRole] : "/"
+          }
+          onClose={() => setCelebration(null)}
+        />
       )}
     </div>
   );

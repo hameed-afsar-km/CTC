@@ -1,11 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, Search, UserPlus, X, Shield, Trash2, Loader2, Pencil, Save, RotateCcw, QrCode, ShieldCheck } from "lucide-react";
+import {
+  Plus,
+  Search,
+  UserPlus,
+  X,
+  Shield,
+  Trash2,
+  Loader2,
+  Pencil,
+  Save,
+  RotateCcw,
+  QrCode,
+  ShieldCheck,
+  SlidersHorizontal,
+  GraduationCap,
+} from "lucide-react";
 import type { SiteUser } from "@/lib/users-store";
 import { useAdmin } from "./admin-context";
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_BADGE, ALL_SCOPES, SCOPE_LABELS, hasScope } from "@/lib/roles";
 import type { AdminRole, AdminScope, ScopePermissions } from "@/lib/roles";
+import { DEGREES, BRANCHES, SECTIONS, YEARS } from "@/lib/applications";
+import { displayJoinRole } from "@/lib/join-roles";
 import { EmptyState, LoadingState, PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
 import MemberCard from "@/components/MemberCard";
 
@@ -37,6 +54,16 @@ export default function UsersPanel() {
   const [query, setQuery] = useState("");
   const [busyEmail, setBusyEmail] = useState<string | null>(null);
   const [message, setMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
+
+  // Classification & filters (opened via the filter icon)
+  const [showFilters, setShowFilters] = useState(false);
+  const [roleFilter, setRoleFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
+  const [degreeFilter, setDegreeFilter] = useState("all");
+  const [branchFilter, setBranchFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("all");
+  const [sectionFilter, setSectionFilter] = useState("all");
+  const [sortBy, setSortBy] = useState<"recent" | "name-asc" | "name-desc" | "email">("recent");
 
   const [newUser, setNewUser] = useState({ name: "", email: "", role: "" });
   const [creating, setCreating] = useState(false);
@@ -356,17 +383,104 @@ export default function UsersPanel() {
     }
   };
 
+  // Distinct classification options present in the loaded data.
+  const roleOptions = useMemo(
+    () =>
+      Array.from(new Set(users.flatMap((u) => (Array.isArray(u.roles) ? u.roles : [])))).sort(),
+    [users]
+  );
+  const sourceOptions = useMemo(
+    () =>
+      Array.from(new Set(users.flatMap((u) => (Array.isArray(u.sources) ? u.sources : [])))).sort(),
+    [users]
+  );
+  const profileOptions = useCallback(
+    (key: "degree" | "branch" | "year" | "section") =>
+      Array.from(
+        new Set(users.map((u) => u.profile?.[key]).filter((v): v is string => Boolean(v)))
+      ).sort(),
+    [users]
+  );
+
+  const activeFilterCount =
+    [
+      roleFilter,
+      sourceFilter,
+      degreeFilter,
+      branchFilter,
+      yearFilter,
+      sectionFilter,
+    ].filter((v) => v !== "all").length + (sortBy !== "recent" ? 1 : 0);
+
+  const resetFilters = () => {
+    setRoleFilter("all");
+    setSourceFilter("all");
+    setDegreeFilter("all");
+    setBranchFilter("all");
+    setYearFilter("all");
+    setSectionFilter("all");
+    setSortBy("recent");
+  };
+
   const filtered = useMemo(() => {
-    const approved = users.filter((u) => Array.isArray(u.roles) && u.roles.length > 0);
+    let list = users.filter((u) => Array.isArray(u.roles) && u.roles.length > 0);
+
+    if (roleFilter !== "all") list = list.filter((u) => u.roles.includes(roleFilter));
+    if (sourceFilter !== "all") list = list.filter((u) => (u.sources ?? []).includes(sourceFilter));
+    if (degreeFilter !== "all") list = list.filter((u) => u.profile?.degree === degreeFilter);
+    if (branchFilter !== "all") list = list.filter((u) => u.profile?.branch === branchFilter);
+    if (yearFilter !== "all") list = list.filter((u) => u.profile?.year === yearFilter);
+    if (sectionFilter !== "all") list = list.filter((u) => u.profile?.section === sectionFilter);
+
     const q = query.trim().toLowerCase();
-    if (!q) return approved;
-    return approved.filter(
-      (u) =>
-        u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q) ||
-        u.roles.join(" ").toLowerCase().includes(q)
-    );
-  }, [users, query]);
+    if (q) {
+      list = list.filter((u) =>
+        [
+          u.name,
+          u.email,
+          ...(u.roles ?? []),
+          ...(u.sources ?? []),
+          u.createdAt,
+          u.updatedAt,
+          u.joinResetAt,
+          u.profile?.degree,
+          u.profile?.department,
+          u.profile?.branch,
+          u.profile?.section,
+          u.profile?.year,
+          u.profile?.contactNumber,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(q)
+      );
+    }
+
+    const sorted = [...list].sort((a, b) => {
+      switch (sortBy) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "email":
+          return a.email.localeCompare(b.email);
+        default:
+          return new Date(b.updatedAt || 0).getTime() - new Date(a.updatedAt || 0).getTime();
+      }
+    });
+    return sorted;
+  }, [users, query, roleFilter, sourceFilter, degreeFilter, branchFilter, yearFilter, sectionFilter, sortBy]);
+
+  // Role-wise classification counts (chips above the list).
+  const roleCounts = useMemo(() => {
+    const approved = users.filter((u) => Array.isArray(u.roles) && u.roles.length > 0);
+    const counts = new Map<string, number>();
+    for (const u of approved) {
+      for (const r of u.roles) counts.set(r, (counts.get(r) ?? 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  }, [users]);
 
   return (
     <div className="space-y-5">
@@ -449,14 +563,152 @@ export default function UsersPanel() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search users or roles..."
+                placeholder="Search by name, email, role, source..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-emerald-400 transition-colors"
               />
             </div>
-            <span className="text-xs font-mono text-gray-400">
+            <button
+              type="button"
+              onClick={() => setShowFilters((s) => !s)}
+              title="Filters & sorting"
+              aria-expanded={showFilters}
+              className={`relative inline-flex items-center justify-center w-[46px] h-[42px] shrink-0 rounded-xl border transition-all ${
+                showFilters || activeFilterCount > 0
+                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                  : "bg-black/50 border-white/15 text-gray-400 hover:text-white hover:border-white/30"
+              }`}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+              {activeFilterCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-mint text-black text-[10px] font-bold">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            <span className="text-xs font-mono text-gray-400 whitespace-nowrap">
               {filtered.length} approved member{filtered.length === 1 ? "" : "s"}
             </span>
           </div>
+
+          {/* Filters & sorting — opened via the filter icon */}
+          {showFilters && (
+            <div className="rounded-2xl border border-white/10 bg-[#0d1317] p-4 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-2 text-[10px] uppercase tracking-widest font-mono text-gray-500">
+                  <GraduationCap className="w-3.5 h-3.5 text-emerald-400" />
+                  Classify &amp; Sort
+                </span>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  disabled={activeFilterCount === 0}
+                  className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-400 hover:text-white text-[10px] font-mono uppercase tracking-wider transition-all disabled:opacity-40"
+                >
+                  Reset all
+                </button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                <div>
+                  <label className={labelCls}>Role</label>
+                  <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} className={inputCls}>
+                    <option value="all">All roles</option>
+                    {roleOptions.map((r) => (
+                      <option key={r} value={r}>{displayJoinRole(r)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Source</label>
+                  <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className={inputCls}>
+                    <option value="all">All sources</option>
+                    {sourceOptions.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Degree</label>
+                  <select value={degreeFilter} onChange={(e) => setDegreeFilter(e.target.value)} className={inputCls}>
+                    <option value="all">All degrees</option>
+                    {Array.from(new Set([...profileOptions("degree"), ...DEGREES])).sort().map((d) => (
+                      <option key={d} value={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Branch</label>
+                  <select value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} className={inputCls}>
+                    <option value="all">All branches</option>
+                    {Array.from(new Set([...profileOptions("branch"), ...BRANCHES])).sort().map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Year</label>
+                  <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className={inputCls}>
+                    <option value="all">All years</option>
+                    {Array.from(new Set([...profileOptions("year"), ...YEARS])).sort().map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Section</label>
+                  <select value={sectionFilter} onChange={(e) => setSectionFilter(e.target.value)} className={inputCls}>
+                    <option value="all">All sections</option>
+                    {Array.from(new Set([...profileOptions("section"), ...SECTIONS])).sort().map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className={labelCls}>Sort By</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                    className={inputCls}
+                  >
+                    <option value="recent">Recent activity</option>
+                    <option value="name-asc">Name A → Z</option>
+                    <option value="name-desc">Name Z → A</option>
+                    <option value="email">Email A → Z</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Role-wise classification chips */}
+          {!loading && filtered.length >= 0 && roleCounts.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setRoleFilter("all")}
+                className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${
+                  roleFilter === "all"
+                    ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                    : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
+                }`}
+              >
+                All ({users.filter((u) => Array.isArray(u.roles) && u.roles.length > 0).length})
+              </button>
+              {roleCounts.map(([role, count]) => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setRoleFilter(roleFilter === role ? "all" : role)}
+                  className={`px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider border transition-all ${
+                    roleFilter === role
+                      ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
+                      : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
+                  }`}
+                >
+                  {displayJoinRole(role)} ({count})
+                </button>
+              ))}
+            </div>
+          )}
 
           {loading ? (
             <LoadingState />
@@ -492,6 +744,25 @@ export default function UsersPanel() {
                           )}
                         </div>
                         <div className="text-xs font-mono text-emerald-400 mt-0.5">{user.email}</div>
+                        {(user.profile?.degree ||
+                          user.profile?.branch ||
+                          user.profile?.section ||
+                          user.profile?.year ||
+                          user.profile?.contactNumber) && (
+                          <div className="text-[11px] font-mono text-gray-400 mt-0.5">
+                            {[
+                              user.profile.degree,
+                              user.profile.branch,
+                              user.profile.section,
+                              user.profile.year,
+                            ]
+                              .filter(Boolean)
+                              .join(" • ")}
+                            {user.profile.contactNumber && (
+                              <span className="text-gray-500"> · {user.profile.contactNumber}</span>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                           {user.sources.map((s) => (
                             <span

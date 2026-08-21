@@ -640,6 +640,66 @@ html {
   animation: modalFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Modal exit — mirror of the entrance: fade + settle down/scale */
+@keyframes modalFadeDown {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+}
+
+.animate-modal-out {
+  animation: modalFadeDown 0.35s cubic-bezier(0.55, 0, 0.55, 0.2) both;
+}
+
+@keyframes backdropFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-backdrop-out {
+  animation: backdropFadeOut 0.35s ease both;
+}
+
+/* Modal slide entrance/exit — welcome tour panel */
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(72px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: modalSlideUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modalSlideDown {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(72px);
+  }
+}
+
+.animate-slide-out {
+  animation: modalSlideDown 0.35s cubic-bezier(0.55, 0, 0.55, 0.2) both;
+}
+
 /* Animated gradient text used for the hostit stage keywords (EVENT / IDEA / ONE) */
 @keyframes text-gradient-shift {
   0% {
@@ -764,4 +824,137 @@ html {
 }
 .animate-blob-morph {
   animation: blob-morph 12s ease-in-out infinite alternate;
+}
+
+/* ── Join success celebration overlay ─────────────────────────────────── */
+/* Lines appear one after another (staggered via inline animation-delay). */
+@keyframes celebrate-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(26px) scale(0.96);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+.celebrate-line {
+  opacity: 0;
+  animation: celebrate-line-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Animated gradient keywords inside celebration lines */
+.gradient-word {
+  display: inline-block;
+  background-image: linear-gradient(
+    90deg,
+    #34d399,
+    #2dd4bf,
+    #22d3ee,
+    #818cf8,
+    #c084fc,
+    #34d399
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: text-gradient-shift 3s linear infinite;
+  filter: drop-shadow(0 0 14px rgba(52, 211, 153, 0.35));
+}
+
+/* ── Welcome tour (desktop) stage motion ─────────────────────────────────── */
+@keyframes tour-float {
+  0%,
+  100% {
+    transform: translateY(-8px);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+.animate-tour-float {
+  animation: tour-float 6s ease-in-out infinite;
+}
+
+@keyframes spin-slower {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.animate-spin-slower {
+  animation: spin-slower 60s linear infinite;
+}
+.animate-spin-slower-rev {
+  animation: spin-slower 45s linear infinite reverse;
+}
+
+/* ── RGB theme-gradient surfaces (welcome tour desktop) ──────────────────── */
+/* Flowing --theme-gradient fill — used as borders/rims/strips. Never combined
+   with another `animation:` class on the same node (shorthand collision). */
+.animate-gradient-flow {
+  background-image: var(--theme-gradient);
+  background-size: 300% 100%;
+  animation: gradientLoop 4s linear infinite;
+}
+
+/* Brighter RGB ramp sized so black label text stays readable on every stop */
+.rgb-btn-surface {
+  background-image: linear-gradient(
+    90deg,
+    #34d399,
+    #67e8f9,
+    #a78bfa,
+    #f0abfc,
+    #67e8f9,
+    #34d399
+  );
+  background-size: 250% 100%;
+  animation: gradientLoop 4s linear infinite;
+}
+
+/* Circular RGB orbit ring — the mask leaves only the rim visible */
+.rgb-ring {
+  background-color: transparent;
+  background-image: var(--theme-gradient);
+  background-size: 300% 100%;
+  -webkit-mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 1.5px),
+    #000 calc(100% - 1.5px)
+  );
+  mask: radial-gradient(
+    farthest-side,
+    transparent calc(100% - 1.5px),
+    #000 calc(100% - 1.5px)
+  );
+}
+/* Rotation + gradient flow in one keyframe set (avoids shorthand collision) */
+@keyframes ring-spin-rgb {
+  to {
+    transform: rotate(360deg);
+    background-position: 300% 50%;
+  }
+}
+.rgb-ring-spin {
+  animation: ring-spin-rgb 60s linear infinite;
+}
+
+/* Ambient hue drift for backdrop glow orbs (replaces animate-pulse there) */
+@keyframes orb-drift-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    filter: hue-rotate(-30deg);
+  }
+  50% {
+    opacity: 1;
+    filter: hue-rotate(50deg);
+  }
+}
+.animate-orb-hue {
+  animation: orb-drift-pulse 9s ease-in-out infinite;
 }

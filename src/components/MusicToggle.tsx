@@ -37,7 +37,13 @@ function rememberPreference(choice: "yes" | "no") {
   }
 }
 
-export default function MusicToggle({ start }: { start: boolean }) {
+export default function MusicToggle({
+  start,
+  onResolved,
+}: {
+  start: boolean;
+  onResolved?: () => void;
+}) {
   const [muted, setMuted] = useState(false);
   const [playing, setPlaying] = useState(false);
   const [promptOpen, setPromptOpen] = useState(false);
@@ -46,6 +52,13 @@ export default function MusicToggle({ start }: { start: boolean }) {
   const mutedRef = useRef(false);
   const playingRef = useRef(false);
   const fadeRafRef = useRef<number | null>(null);
+
+  // Keep the latest callback in a ref so the consent-gating effect below can
+  // call it without re-running (parents often pass inline arrow functions).
+  const onResolvedRef = useRef(onResolved);
+  useEffect(() => {
+    onResolvedRef.current = onResolved;
+  }, [onResolved]);
 
   // Create the looping audio element once — src is only assigned after consent,
   // so nothing is downloaded until the visitor opts in.
@@ -102,9 +115,13 @@ export default function MusicToggle({ start }: { start: boolean }) {
   useEffect(() => {
     if (!start) return;
     const pref = readPreference();
-    if (pref === "no") return;
+    if (pref === "no") {
+      onResolvedRef.current?.();
+      return;
+    }
     if (pref === "yes") {
       startPlayback();
+      onResolvedRef.current?.();
       const resume = () => {
         if (!playingRef.current) startPlayback();
       };
@@ -243,6 +260,7 @@ export default function MusicToggle({ start }: { start: boolean }) {
                 onClick={() => {
                   rememberPreference("yes");
                   startPlayback();
+                  onResolvedRef.current?.();
                   setPromptOpen(false);
                 }}
                 className="flex-1 px-5 py-3 rounded-full bg-mint text-black font-syne text-sm font-bold tracking-wider uppercase shadow-lg shadow-mint/20 hover:shadow-mint/40 hover:scale-[1.03] transition-all duration-300"
@@ -253,6 +271,7 @@ export default function MusicToggle({ start }: { start: boolean }) {
                 type="button"
                 onClick={() => {
                   rememberPreference("no");
+                  onResolvedRef.current?.();
                   setPromptOpen(false);
                 }}
                 className="flex-1 px-5 py-3 rounded-full border border-white/15 text-white/70 hover:border-mint/40 hover:text-white font-syne text-sm font-bold tracking-wider uppercase transition-all duration-300"

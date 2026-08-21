@@ -45,7 +45,16 @@ import { useAdmin } from "./admin-context";
 import { DecisionModal, EmptyState, LoadingState, PanelCard, StatusBadge, inputCls, labelCls } from "./ui";
 
 const FILTERS = ["all", "pending", "approved", "rejected"] as const;
-const TYPE_FILTERS = ["all", "join", "role"] as const;
+
+// Primary classification — every application is either a new-membership
+// request ("join") or an existing member applying for another role ("role").
+const CLASSIFIERS = [
+  { id: "all", label: "All Applications", hint: "Both classifications combined" },
+  { id: "join", label: "Join Applications", hint: "New membership requests" },
+  { id: "role", label: "Role Applications", hint: "Members applying for another role" },
+] as const;
+
+type ClassifierId = (typeof CLASSIFIERS)[number]["id"];
 
 function toExportRows(apps: Application[]): Row[] {
   return apps.map((a) => ({
@@ -103,7 +112,7 @@ export default function ApplicationsPanel() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
-  const [typeFilter, setTypeFilter] = useState<(typeof TYPE_FILTERS)[number]>("all");
+  const [typeFilter, setTypeFilter] = useState<ClassifierId>("all");
   const [query, setQuery] = useState("");
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -373,7 +382,31 @@ export default function ApplicationsPanel() {
       if (filter !== "all" && (a.status ?? "pending") !== filter) return false;
       if (typeFilter !== "all" && (a.type ?? "join") !== typeFilter) return false;
       if (!q) return true;
-      return [a.fullName, a.collegeMail, a.degree, a.branch, a.section, a.year, a.role]
+      return [
+        a.id,
+        a.fullName,
+        a.collegeMail,
+        a.contactNumber,
+        a.role,
+        a.degree,
+        a.department,
+        a.branch,
+        a.section,
+        a.year,
+        ...(a.interests ?? []),
+        ...(a.skills ?? []),
+        a.reason,
+        a.experience,
+        ...(a.memberRoles ?? []),
+        a.linkedinUrl,
+        a.githubUrl,
+        a.socialMediaUrl,
+        a.portfolioUrl,
+        a.status ?? "pending",
+        a.type ?? "join",
+        a.rejectionReason,
+        a.submittedAt,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(q);
@@ -391,6 +424,15 @@ export default function ApplicationsPanel() {
   const rejectedApps = useMemo(
     () => filtered.filter((a) => a.status === "rejected"),
     [filtered]
+  );
+
+  const classifierCounts = useMemo(
+    () => ({
+      all: apps.length,
+      join: apps.filter((a) => (a.type ?? "join") === "join").length,
+      role: apps.filter((a) => a.type === "role").length,
+    }),
+    [apps]
   );
 
   const exportHeaders = [
@@ -557,10 +599,10 @@ export default function ApplicationsPanel() {
             <div>
               <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-400" />
-                Join Applications ({filtered.length})
+                Applications ({filtered.length})
               </h2>
               <p className="text-xs text-gray-400 mt-1">
-                Review membership and role applications organized by status dropdowns.
+                Classified into Join and Role applications — each with approved, waiting and rejected sections.
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -599,6 +641,44 @@ export default function ApplicationsPanel() {
             </div>
           </div>
 
+          {/* Primary classification — Join vs Role applications */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {CLASSIFIERS.map((c) => {
+              const active = typeFilter === c.id;
+              const accent =
+                c.id === "role"
+                  ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
+                  : c.id === "join"
+                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                  : "bg-white/10 border-white/30 text-white";
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setTypeFilter(c.id)}
+                  className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                    active ? accent : "bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/25"
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold uppercase tracking-wider truncate">
+                      {c.label}
+                    </span>
+                    <span className="block text-[10px] font-mono opacity-70 truncate mt-0.5">
+                      {c.hint}
+                    </span>
+                  </span>
+                  <span
+                    className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-mono font-bold ${
+                      active ? "bg-black/30" : "bg-black/20"
+                    }`}
+                  >
+                    {classifierCounts[c.id]}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
           <div className="flex flex-col sm:flex-row items-stretch gap-3">
             <div className="relative flex-1">
               <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500" />
@@ -606,7 +686,7 @@ export default function ApplicationsPanel() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by name, email, degree, branch..."
+                placeholder="Search by name, email, phone, role, skills, links..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-emerald-400 transition-colors"
               />
             </div>
@@ -625,27 +705,6 @@ export default function ApplicationsPanel() {
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs font-mono text-gray-500 uppercase tracking-widest mr-1">
-              Type:
-            </span>
-            {TYPE_FILTERS.map((t) => (
-              <button
-                key={t}
-                onClick={() => setTypeFilter(t)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider border transition-all ${
-                  typeFilter === t
-                    ? t === "role"
-                      ? "bg-violet-500/20 border-violet-500/40 text-violet-300"
-                      : "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                    : "bg-white/5 border-white/10 text-gray-400 hover:text-white"
-                }`}
-              >
-                {t === "all" ? "All" : t === "join" ? "Join" : "Role"}
-              </button>
-            ))}
           </div>
         </div>
       </PanelCard>

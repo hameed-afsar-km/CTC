@@ -34,11 +34,31 @@ export async function GET(request: Request) {
   const isMember = Boolean(user && Array.isArray(user.roles) && user.roles.length > 0);
   const mode = isMember ? "role" : "join";
 
+  // Latest application profile so the form can auto-fill known details when
+  // the visitor applies again for another role.
+  const profile = app
+    ? {
+        fullName: app.fullName ?? "",
+        contactNumber: app.contactNumber ?? "",
+        degree: app.degree ?? "",
+        branch: app.branch ?? "",
+        section: app.section ?? "",
+        year: app.year ?? "",
+        interests: Array.isArray(app.interests) ? app.interests : [],
+        skills: Array.isArray(app.skills) ? app.skills : [],
+        linkedinUrl: app.linkedinUrl ?? "",
+        githubUrl: app.githubUrl ?? "",
+        socialMediaUrl: app.socialMediaUrl ?? "",
+        portfolioUrl: app.portfolioUrl ?? "",
+      }
+    : null;
+
   return NextResponse.json({
     hasApplied,
     mode,
     roles: user?.roles ?? [],
     hasPending,
     branch: app?.branch ?? "",
+    profile,
   });
 }

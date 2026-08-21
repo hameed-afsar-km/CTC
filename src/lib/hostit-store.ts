@@ -50,7 +50,8 @@ export async function saveHostitSubmission(submission: HostitSubmission): Promis
 export async function updateHostitStatus(
   id: string,
   status: SubmissionStatus,
-  rejectionReason?: string
+  rejectionReason?: string,
+  token?: string | null
 ): Promise<HostitSubmission | null> {
   const record: Record<string, unknown> = { status };
   if (status === "rejected") {
@@ -58,24 +59,28 @@ export async function updateHostitStatus(
   } else {
     record.rejectionReason = "";
   }
-  await saveDocument(COLLECTION, id, record);
+  await saveDocument(COLLECTION, id, record, token);
   const subs = await getHostitSubmissions();
   return subs.find((s) => s.id === id) || null;
 }
 
 export async function updateHostitSubmission(
   id: string,
-  patch: Partial<HostitSubmission>
+  patch: Partial<HostitSubmission>,
+  token?: string | null
 ): Promise<HostitSubmission | null> {
   const rest: Partial<HostitSubmission> = { ...patch };
   delete rest.id;
   const record: Record<string, unknown> = { ...rest };
   if (rest.status) record.status = rest.status;
-  await saveDocument(COLLECTION, id, record);
+  await saveDocument(COLLECTION, id, record, token);
   const subs = await getHostitSubmissions();
   return subs.find((s) => s.id === id) || null;
 }
 
-export async function deleteHostitSubmission(id: string): Promise<boolean> {
-  return deleteDocument(COLLECTION, id);
+export async function deleteHostitSubmission(
+  id: string,
+  token?: string | null
+): Promise<boolean> {
+  return deleteDocument(COLLECTION, id, token);
 }

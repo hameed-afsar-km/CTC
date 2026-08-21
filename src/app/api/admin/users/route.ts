@@ -11,11 +11,26 @@ import {
 } from "@/lib/users-store";
 import { ADMIN_ROLES, isAdminRole, ALL_SCOPES } from "@/lib/roles";
 import type { AdminScope, ScopePermissions } from "@/lib/roles";
+import { bearerToken } from "@/lib/auth";
 import { logAction } from "@/lib/logs-store";
+import { getApplications, profileFromApplication } from "@/lib/applications-store";
 
 export const dynamic = "force-dynamic";
 
 const ADMIN_ROLE_SET = new Set<string>(ADMIN_ROLES);
+
+// Distinguishes malformed JSON ("invalid payload") from server-side failures,
+// which are logged and surfaced with their real message instead of a blanket
+// 400 that hides the root cause.
+function errorResponse(scope: string, err: unknown): NextResponse {
+  if (err instanceof SyntaxError) {
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  }
+  console.error(`[${scope}]`, err);
+  const message =
+    err instanceof Error && err.message ? err.message : "internal server error";
+  return NextResponse.json({ error: message }, { status: 500 });
+}
 
 export async function GET(request: Request) {
   const access = await resolveAccess(request, "users");
@@ -30,7 +45,28 @@ export async function GET(request: Request) {
   const approvedMembers = users.filter(
     (u) => Array.isArray(u.roles) && u.roles.length > 0
   );
-  return NextResponse.json({ users: approvedMembers });
+
+  // Enrich members whose record has no stored profile yet with the academic
+  // details from their most recent application, so classification filters
+  // (year / branch / degree / …) work for existing members too.
+  const needsProfiles = approvedMembers.some(
+    (u) => !u.profile || Object.keys(u.profile).length === 0
+  );
+  const latestApps = needsProfiles ? await getApplications() : [];
+  const enriched = approvedMembers.map((u) => {
+    if (u.profile && Object.keys(u.profile).length > 0) return u;
+    const latest = latestApps.find(
+      (a) => (a.collegeMail || "").toLowerCase() === u.email.toLowerCase()
+    );
+    if (!latest) return u;
+    const profile = profileFromApplication(latest);
+    if (!profile.degree && !profile.branch && !profile.year && !profile.contactNumber) {
+      return u;
+    }
+    return { ...u, profile };
+  });
+
+  return NextResponse.json({ users: enriched });
 }
 
 export async function POST(request: Request) {
@@ -52,7 +88,7 @@ export async function POST(request: Request) {
     const roles = Array.isArray(body.roles)
       ? Array.from(new Set(body.roles.map((r) => String(r).trim()).filter(Boolean)))
       : [];
-    const user = await createUser({ name: body.name, email: body.email, roles });
+    const user = await createUser({ name: body.name, email: body.email, roles }, bearerToken(request));
     await logAction(
       request,
       access.session,
@@ -63,8 +99,8 @@ export async function POST(request: Request) {
       }`
     );
     return NextResponse.json({ user }, { status: 201 });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    return errorResponse("admin/users POST", err);
   }
 }
 
@@ -99,7 +135,7 @@ export async function PATCH(request: Request) {
           cleaned[scope as AdminScope] = value;
         }
       }
-      const updated = await setUserPermissions(email, cleaned);
+      const updated = await setUserPermissions(email, cleaned, bearerToken(request));
       if (!updated) {
         return NextResponse.json({ error: "user not found" }, { status: 404 });
       }
@@ -136,7 +172,7 @@ export async function PATCH(request: Request) {
           { status: 400 }
         );
       }
-      const updated = await setUserRoles(email, roles);
+      const updated = await setUserRoles(email, roles, bearerToken(request));
       if (!updated) {
         return NextResponse.json({ error: "user not found" }, { status: 404 });
       }
@@ -156,7 +192,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: "roles or adminRole are required" }, { status: 400 });
     }
     const roles = Array.from(new Set(body.roles.map((r) => String(r).trim()).filter(Boolean)));
-    const updated = await setUserRoles(email, roles);
+    const updated = await setUserRoles(email, roles, bearerToken(request));
     if (!updated) {
       return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
@@ -168,8 +204,8 @@ export async function PATCH(request: Request) {
       `Set roles for ${email} to: ${roles.join(", ") || "(none)"}`
     );
     return NextResponse.json({ user: updated });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    return errorResponse("admin/users PATCH", err);
   }
 }
 
@@ -212,13 +248,17 @@ export async function PUT(request: Request) {
             )
           )
         : undefined;
-    const updated = await updateUser(currentEmail, {
-      email: body.email,
-      name: body.name,
-      roles,
-      sources,
-      permissions,
-    });
+    const updated = await updateUser(
+      currentEmail,
+      {
+        email: body.email,
+        name: body.name,
+        roles,
+        sources,
+        permissions,
+      },
+      bearerToken(request)
+    );
     if (!updated) {
       return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
@@ -232,8 +272,8 @@ export async function PUT(request: Request) {
       }`
     );
     return NextResponse.json({ user: updated });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    return errorResponse("admin/users PUT", err);
   }
 }
 
@@ -256,7 +296,7 @@ export async function DELETE(request: Request) {
       { status: 400 }
     );
   }
-  const ok = await deleteUser(email);
+  const ok = await deleteUser(email, bearerToken(request));
   if (!ok) {
     return NextResponse.json({ error: "failed to delete user" }, { status: 500 });
   }

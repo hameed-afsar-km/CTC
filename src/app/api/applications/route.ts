@@ -4,6 +4,7 @@ import {
   getApplications,
   hasActiveApplicationLimit,
   hasPendingApplication,
+  findLatestApplicationByEmail,
   saveApplication,
 } from "@/lib/applications-store";
 import { cleanStudentName, type Application } from "@/lib/applications";
@@ -90,6 +91,15 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "reason is required" }, { status: 400 });
       }
 
+      // Carry over the applicant's existing profile from their most recent
+      // application so the dashboard always shows complete data, even though
+      // the role form only asks for the role and a reason.
+      const prior = await findLatestApplicationByEmail(collegeMail);
+      const carry = (value: unknown, fallback?: string) => {
+        const v = String(value ?? "").trim();
+        return v || fallback || "";
+      };
+
       const rawName = String(body.fullName || user?.name || identity.name).trim();
       const fullName = cleanStudentName(rawName) || rawName;
       const application: Application = {
@@ -97,22 +107,28 @@ export async function POST(request: Request) {
         type: "role",
         fullName,
         collegeMail,
-        contactNumber: String(body.contactNumber ?? "").trim(),
+        contactNumber: carry(body.contactNumber, prior?.contactNumber),
         role,
-        degree: "",
-        department: "",
-        branch: "",
-        section: "",
-        year: "",
-        interests: [],
-        skills: [],
+        degree: carry(body.degree, prior?.degree),
+        department: carry(body.department, prior?.department),
+        branch: carry(body.branch, prior?.branch),
+        section: carry(body.section, prior?.section),
+        year: carry(body.year, prior?.year),
+        interests:
+          Array.isArray(body.interests) && body.interests.length > 0
+            ? body.interests.map(String)
+            : prior?.interests ?? [],
+        skills:
+          Array.isArray(body.skills) && body.skills.length > 0
+            ? body.skills.map(String)
+            : prior?.skills ?? [],
         reason: String(body.reason).trim(),
         experience: String(body.experience ?? "").trim() || undefined,
         memberRoles: user?.roles ?? [],
-        linkedinUrl: String(body.linkedinUrl ?? "").trim(),
-        githubUrl: String(body.githubUrl ?? "").trim(),
-        socialMediaUrl: String(body.socialMediaUrl ?? "").trim(),
-        portfolioUrl: String(body.portfolioUrl ?? "").trim(),
+        linkedinUrl: carry(body.linkedinUrl, prior?.linkedinUrl),
+        githubUrl: carry(body.githubUrl, prior?.githubUrl),
+        socialMediaUrl: carry(body.socialMediaUrl, prior?.socialMediaUrl),
+        portfolioUrl: carry(body.portfolioUrl, prior?.portfolioUrl),
         consented: false,
         acceptedRoleRules: Boolean(body.acceptedRoleRules),
         authUid: identity.uid,

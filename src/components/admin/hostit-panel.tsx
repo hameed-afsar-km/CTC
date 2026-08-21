@@ -309,7 +309,23 @@ export default function HostitPanel() {
     return items.filter((s) => {
       if (filter !== "all" && s.status !== filter) return false;
       if (!q) return true;
-      return [s.organizerName, s.email, s.department, s.eventType, s.section, s.year]
+      return [
+        s.id,
+        s.organizerName,
+        s.email,
+        s.contactNumber,
+        s.eventType,
+        s.degree,
+        s.department,
+        s.section,
+        s.year,
+        s.expectedAttendees,
+        s.description,
+        s.proposedDate,
+        s.status,
+        s.rejectionReason,
+        s.submittedAt,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(q);
@@ -373,7 +389,7 @@ export default function HostitPanel() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search by organizer, email, department..."
+                placeholder="Search by organizer, email, phone, event type..."
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-black/50 border border-white/15 text-white text-sm focus:outline-none focus:border-emerald-400 transition-colors"
               />
             </div>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { resolveAccess } from "@/lib/auth";
+import { resolveAccess, bearerToken } from "@/lib/auth";
 import { revokeJoinLimit } from "@/lib/users-store";
 import { logAction } from "@/lib/logs-store";
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     if (!body.email) {
       return NextResponse.json({ error: "email is required" }, { status: 400 });
     }
-    const user = await revokeJoinLimit(body.email);
+    const user = await revokeJoinLimit(body.email, bearerToken(request));
     if (!user) {
       return NextResponse.json({ error: "user not found" }, { status: 404 });
     }
@@ -30,7 +30,13 @@ export async function POST(request: Request) {
       `Revoked join-application limit for ${user.email}`
     );
     return NextResponse.json({ user });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    if (err instanceof SyntaxError) {
+      return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+    }
+    console.error("[admin/users/revoke-join]", err);
+    const message =
+      err instanceof Error && err.message ? err.message : "internal server error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

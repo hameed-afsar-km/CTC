@@ -7,11 +7,25 @@ import {
   deleteHostitSubmission,
 } from "@/lib/hostit-store";
 import type { HostitSubmission, SubmissionStatus } from "@/lib/hostit-store";
+import { bearerToken } from "@/lib/auth";
 import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
 
 const VALID_STATUSES: SubmissionStatus[] = ["pending", "approved", "rejected"];
+
+// Distinguishes malformed JSON ("invalid payload") from server-side failures,
+// which are logged and surfaced with their real message instead of a blanket
+// 400 that hides the root cause.
+function errorResponse(scope: string, err: unknown): NextResponse {
+  if (err instanceof SyntaxError) {
+    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  }
+  console.error(`[${scope}]`, err);
+  const message =
+    err instanceof Error && err.message ? err.message : "internal server error";
+  return NextResponse.json({ error: message }, { status: 500 });
+}
 
 export async function GET(request: Request) {
   const access = await resolveAccess(request, "hostit");
@@ -41,7 +55,12 @@ export async function PATCH(request: Request) {
     if (!VALID_STATUSES.includes(body.status as SubmissionStatus)) {
       return NextResponse.json({ error: "invalid status" }, { status: 400 });
     }
-    const updated = await updateHostitStatus(body.id, body.status as SubmissionStatus, body.reason);
+    const updated = await updateHostitStatus(
+      body.id,
+      body.status as SubmissionStatus,
+      body.reason,
+      bearerToken(request)
+    );
     if (!updated) {
       return NextResponse.json({ error: "submission not found" }, { status: 404 });
     }
@@ -55,8 +74,8 @@ export async function PATCH(request: Request) {
       }`
     );
     return NextResponse.json({ submission: updated });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    return errorResponse("admin/hostit PATCH", err);
   }
 }
 
@@ -76,7 +95,7 @@ export async function PUT(request: Request) {
     if (body.status && !VALID_STATUSES.includes(body.status as SubmissionStatus)) {
       return NextResponse.json({ error: "invalid status" }, { status: 400 });
     }
-    const updated = await updateHostitSubmission(body.id, body);
+    const updated = await updateHostitSubmission(body.id, body, bearerToken(request));
     if (!updated) {
       return NextResponse.json({ error: "submission not found" }, { status: 404 });
     }
@@ -88,8 +107,8 @@ export async function PUT(request: Request) {
       `Updated Host'It submission ${body.id}`
     );
     return NextResponse.json({ submission: updated });
-  } catch {
-    return NextResponse.json({ error: "invalid payload" }, { status: 400 });
+  } catch (err) {
+    return errorResponse("admin/hostit PUT", err);
   }
 }
 
@@ -106,7 +125,7 @@ export async function DELETE(request: Request) {
   if (!id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 });
   }
-  const ok = await deleteHostitSubmission(id);
+  const ok = await deleteHostitSubmission(id, bearerToken(request));
   if (!ok) {
     return NextResponse.json({ error: "failed to delete submission" }, { status: 500 });
   }

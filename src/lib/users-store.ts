@@ -1,6 +1,15 @@
 import { fetchCollectionDocs, saveDocument, deleteDocument } from "./firebase-db";
 import type { ScopePermissions } from "./roles";
 
+export interface UserProfile {
+  degree?: string;
+  department?: string;
+  branch?: string;
+  section?: string;
+  year?: string;
+  contactNumber?: string;
+}
+
 export interface SiteUser {
   email: string;
   name: string;
@@ -13,9 +22,25 @@ export interface SiteUser {
   memberCodeVersion?: number;
   memberCodeIssuedAt?: string;
   permissions?: ScopePermissions;
+  profile?: UserProfile;
 }
 
 const COLLECTION = "users";
+
+// Strips empty values so blank form fields never overwrite known profile data.
+function cleanProfile(profile?: UserProfile): UserProfile | undefined {
+  if (!profile || typeof profile !== "object") return undefined;
+  const out: UserProfile = {};
+  let hasAny = false;
+  for (const [key, value] of Object.entries(profile)) {
+    const v = typeof value === "string" ? value.trim() : "";
+    if (v) {
+      out[key as keyof UserProfile] = v;
+      hasAny = true;
+    }
+  }
+  return hasAny ? out : undefined;
+}
 
 export async function getUsers(): Promise<SiteUser[]> {
   const docs = await fetchCollectionDocs(COLLECTION);
@@ -72,21 +97,28 @@ export async function upsertUser(
   }
 }
 
-export async function setUserRoles(email: string, roles: string[]): Promise<SiteUser | null> {
+export async function setUserRoles(
+  email: string,
+  roles: string[],
+  token?: string | null
+): Promise<SiteUser | null> {
   const cleanEmail = email.trim().toLowerCase();
   const existing = await getUser(cleanEmail);
   if (!existing) return null;
   const now = new Date().toISOString();
-  await saveDocument(COLLECTION, cleanEmail, { roles, updatedAt: now });
+  await saveDocument(COLLECTION, cleanEmail, { roles, updatedAt: now }, token);
   return { ...existing, roles, updatedAt: now };
 }
 
-export async function revokeJoinLimit(email: string): Promise<SiteUser | null> {
+export async function revokeJoinLimit(
+  email: string,
+  token?: string | null
+): Promise<SiteUser | null> {
   const cleanEmail = email.trim().toLowerCase();
   const existing = await getUser(cleanEmail);
   if (!existing) return null;
   const now = new Date().toISOString();
-  await saveDocument(COLLECTION, cleanEmail, { joinResetAt: now, updatedAt: now });
+  await saveDocument(COLLECTION, cleanEmail, { joinResetAt: now, updatedAt: now }, token);
   return { ...existing, joinResetAt: now, updatedAt: now };
 }
 
@@ -98,11 +130,15 @@ export async function clearJoinReset(email: string): Promise<void> {
   });
 }
 
-export async function createUser(input: {
-  name: string;
-  email: string;
-  roles?: string[];
-}): Promise<SiteUser> {
+export async function createUser(
+  input: {
+    name: string;
+    email: string;
+    roles?: string[];
+    profile?: UserProfile;
+  },
+  token?: string | null
+): Promise<SiteUser> {
   const email = input.email.trim().toLowerCase();
   const now = new Date().toISOString();
   const user: SiteUser = {
@@ -112,19 +148,24 @@ export async function createUser(input: {
     sources: [],
     createdAt: now,
     updatedAt: now,
+    profile: cleanProfile(input.profile),
   };
-  await saveDocument(COLLECTION, email, user as unknown as Record<string, unknown>);
+  await saveDocument(COLLECTION, email, user as unknown as Record<string, unknown>, token);
   return user;
 }
 
-export async function deleteUser(email: string): Promise<boolean> {
+export async function deleteUser(
+  email: string,
+  token?: string | null
+): Promise<boolean> {
   const cleanEmail = email.trim().toLowerCase();
-  return deleteDocument(COLLECTION, cleanEmail);
+  return deleteDocument(COLLECTION, cleanEmail, token);
 }
 
 export async function updateUser(
   oldEmail: string,
-  patch: Partial<SiteUser>
+  patch: Partial<SiteUser>,
+  token?: string | null
 ): Promise<SiteUser | null> {
   const currentEmail = oldEmail.trim().toLowerCase();
   const nextEmail = (patch.email?.trim().toLowerCase() || currentEmail).toLowerCase();
@@ -145,27 +186,30 @@ export async function updateUser(
       patch.permissions && typeof patch.permissions === "object"
         ? { ...patch.permissions }
         : existing.permissions,
+    profile:
+      cleanProfile(patch.profile) ?? (existing.profile ? { ...existing.profile } : undefined),
     createdAt: existing.createdAt,
     updatedAt: now,
     joinResetAt: existing.joinResetAt,
   };
 
-  await saveDocument(COLLECTION, nextEmail, updated as unknown as Record<string, unknown>);
+  await saveDocument(COLLECTION, nextEmail, updated as unknown as Record<string, unknown>, token);
   if (nextEmail !== currentEmail) {
-    await deleteDocument(COLLECTION, currentEmail);
+    await deleteDocument(COLLECTION, currentEmail, token);
   }
   return updated;
 }
 
 export async function setUserPermissions(
   email: string,
-  permissions: ScopePermissions
+  permissions: ScopePermissions,
+  token?: string | null
 ): Promise<SiteUser | null> {
   const cleanEmail = email.trim().toLowerCase();
   const existing = await getUser(cleanEmail);
   if (!existing) return null;
   const now = new Date().toISOString();
-  await saveDocument(COLLECTION, cleanEmail, { permissions, updatedAt: now });
+  await saveDocument(COLLECTION, cleanEmail, { permissions, updatedAt: now }, token);
   return { ...existing, permissions, updatedAt: now };
 }
 
@@ -173,7 +217,9 @@ export async function syncAppliedRole(
   email: string,
   name: string,
   role: string,
-  shouldHaveRole: boolean
+  shouldHaveRole: boolean,
+  profile?: UserProfile,
+  token?: string | null
 ): Promise<void> {
   const cleanEmail = email.trim().toLowerCase();
   const cleanRole = String(role || "").trim().toLowerCase();
@@ -181,17 +227,49 @@ export async function syncAppliedRole(
   const existing = await getUser(cleanEmail);
   const roles = existing?.roles ?? [];
   const hasRole = roles.includes(cleanRole);
+  const nextProfile = cleanProfile({
+    ...(existing?.profile ?? {}),
+    ...(profile ?? {}),
+  });
 
   if (!existing) {
     if (!shouldHaveRole) return;
-    await createUser({ name: name.trim(), email: cleanEmail, roles: [cleanRole] });
+    await createUser(
+      { name: name.trim(), email: cleanEmail, roles: [cleanRole], profile: nextProfile },
+      token
+    );
+    return;
+  }
+
+  if (!shouldHaveRole && !hasRole) {
+    // Status change without a role delta — still keep the academic profile fresh.
+    if (nextProfile && JSON.stringify(nextProfile) !== JSON.stringify(existing.profile)) {
+      await saveDocument(
+        COLLECTION,
+        cleanEmail,
+        { profile: nextProfile, updatedAt: new Date().toISOString() },
+        token
+      );
+    }
     return;
   }
 
   if (shouldHaveRole && !hasRole) {
-    await setUserRoles(cleanEmail, [...roles, cleanRole]);
+    await saveDocument(
+      COLLECTION,
+      cleanEmail,
+      { roles: [...roles, cleanRole], updatedAt: new Date().toISOString() },
+      token
+    );
+    if (nextProfile && JSON.stringify(nextProfile) !== JSON.stringify(existing.profile)) {
+      await saveDocument(COLLECTION, cleanEmail, { profile: nextProfile }, token);
+    }
   } else if (!shouldHaveRole && hasRole) {
-    await setUserRoles(cleanEmail, roles.filter((r) => r !== cleanRole));
+    await setUserRoles(
+      cleanEmail,
+      roles.filter((r) => r !== cleanRole),
+      token
+    );
   }
 }
 
@@ -200,18 +278,24 @@ export async function syncAppliedRole(
 export async function saveMemberCode(
   email: string,
   codeHash: string,
-  version: number
+  version: number,
+  token?: string | null
 ): Promise<SiteUser | null> {
   const cleanEmail = email.trim().toLowerCase();
   const existing = await getUser(cleanEmail);
   if (!existing) return null;
   const now = new Date().toISOString();
-  await saveDocument(COLLECTION, cleanEmail, {
-    memberCodeHash: codeHash,
-    memberCodeVersion: version,
-    memberCodeIssuedAt: now,
-    updatedAt: now,
-  });
+  await saveDocument(
+    COLLECTION,
+    cleanEmail,
+    {
+      memberCodeHash: codeHash,
+      memberCodeVersion: version,
+      memberCodeIssuedAt: now,
+      updatedAt: now,
+    },
+    token
+  );
   return { ...existing, memberCodeHash: codeHash, memberCodeVersion: version, memberCodeIssuedAt: now, updatedAt: now };
 }
 

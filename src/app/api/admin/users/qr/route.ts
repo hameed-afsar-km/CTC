@@ -6,6 +6,7 @@ import {
   saveMemberCode,
 } from "@/lib/users-store";
 import { buildMemberCode, hashMemberCode } from "@/lib/member-codes";
+import { bearerToken } from "@/lib/auth";
 import { logAction } from "@/lib/logs-store";
 
 export const dynamic = "force-dynamic";
@@ -79,7 +80,7 @@ export async function POST(request: Request) {
 
   const version = nextMemberCodeVersion(user);
   const code = buildMemberCode(email, version);
-  await saveMemberCode(email, hashMemberCode(code), version);
+  await saveMemberCode(email, hashMemberCode(code), version, bearerToken(request));
 
   await logAction(
     request,

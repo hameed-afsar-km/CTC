@@ -11,6 +11,7 @@ import HostItSection from "@/components/HostItSection";
 import IdeasMarquee from "@/components/IdeasMarquee";
 import HomeFooter from "@/components/HomeFooter";
 import MusicToggle from "@/components/MusicToggle";
+import WelcomeTour from "@/components/WelcomeTour";
 import FocusTicker from "@/components/FocusTicker";
 import { useSmoothScroll } from "@/components/SmoothScroll";
 
@@ -22,6 +23,7 @@ CustomEase.create("smoothOut", "0.65, 0, 0.35, 1");
 export default function Home() {
   const lenis = useSmoothScroll();
   const [splashDone, setSplashDone] = useState(false);
+  const [musicResolved, setMusicResolved] = useState(false);
   const [splashReveal, setSplashReveal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -82,6 +84,8 @@ export default function Home() {
   const [cursorVisible, setCursorVisible] = useState(false);
   const [navHover, setNavHover] = useState(false);
   const [macHover, setMacHover] = useState(false);
+  // True while the first-visit welcome tour overlay is open — pauses the smudge cursor lens.
+  const [tourActive, setTourActive] = useState(false);
 
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
@@ -776,7 +780,13 @@ export default function Home() {
       </div>
 
       {/* Background Music Toggle — bottom right, fades in after the splash ends */}
-      <MusicToggle start={splashDone} />
+      <MusicToggle start={splashDone} onResolved={() => setMusicResolved(true)} />
+
+      {/* Welcome tour — question-mark toggle at the bottom left (fades in after splash) */}
+      <WelcomeTour
+        start={splashDone && musicResolved}
+        onActiveChange={setTourActive}
+      />
 
       {/* Currently Focusing Ticker — fixed to the very top of the page */}
       <FocusTicker
@@ -1143,7 +1153,7 @@ export default function Home() {
           style={{
             backdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
             WebkitBackdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
-            opacity: cursorVisible && !navHover && !macHover ? 1 : 0,
+            opacity: cursorVisible && !navHover && !macHover && !tourActive ? 1 : 0,
           }}
         />
       )}
