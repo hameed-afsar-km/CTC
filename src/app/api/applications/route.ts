@@ -91,13 +91,17 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "reason is required" }, { status: 400 });
       }
 
-      // Carry over the applicant's existing profile from their most recent
-      // application so the dashboard always shows complete data, even though
-      // the role form only asks for the role and a reason.
+      // Carry over the applicant's existing profile so the dashboard always
+      // shows complete data: prefer anything typed now, then the most recent
+      // application, then the member's stored Firestore profile.
       const prior = await findLatestApplicationByEmail(collegeMail);
-      const carry = (value: unknown, fallback?: string) => {
-        const v = String(value ?? "").trim();
-        return v || fallback || "";
+      const stored = user?.profile;
+      const carry = (...values: unknown[]) => {
+        for (const value of values) {
+          const v = String(value ?? "").trim();
+          if (v) return v;
+        }
+        return "";
       };
 
       const rawName = String(body.fullName || user?.name || identity.name).trim();
@@ -107,13 +111,14 @@ export async function POST(request: Request) {
         type: "role",
         fullName,
         collegeMail,
-        contactNumber: carry(body.contactNumber, prior?.contactNumber),
+        contactNumber: carry(body.contactNumber, prior?.contactNumber, stored?.contactNumber),
         role,
-        degree: carry(body.degree, prior?.degree),
-        department: carry(body.department, prior?.department),
-        branch: carry(body.branch, prior?.branch),
-        section: carry(body.section, prior?.section),
-        year: carry(body.year, prior?.year),
+        degree: carry(body.degree, prior?.degree, stored?.degree),
+        department: carry(body.department, prior?.department, stored?.department),
+        branch: carry(body.branch, prior?.branch, stored?.branch),
+        section: carry(body.section, prior?.section, stored?.section),
+        year: carry(body.year, prior?.year, stored?.year),
+
         interests:
           Array.isArray(body.interests) && body.interests.length > 0
             ? body.interests.map(String)

@@ -34,22 +34,31 @@ export async function GET(request: Request) {
   const isMember = Boolean(user && Array.isArray(user.roles) && user.roles.length > 0);
   const mode = isMember ? "role" : "join";
 
-  // Latest application profile so the form can auto-fill known details when
-  // the visitor applies again for another role.
-  const profile = app
+  // Profile for form auto-fill: prefer the latest application's answers, and
+  // fall back to the member's stored Firestore profile so admins-added members
+  // (who may have no application history) still get their details filled in.
+  const stored = user?.profile;
+  const pick = (...values: unknown[]) => {
+    for (const value of values) {
+      const v = String(value ?? "").trim();
+      if (v) return v;
+    }
+    return "";
+  };
+  const profile = app || stored
     ? {
-        fullName: app.fullName ?? "",
-        contactNumber: app.contactNumber ?? "",
-        degree: app.degree ?? "",
-        branch: app.branch ?? "",
-        section: app.section ?? "",
-        year: app.year ?? "",
-        interests: Array.isArray(app.interests) ? app.interests : [],
-        skills: Array.isArray(app.skills) ? app.skills : [],
-        linkedinUrl: app.linkedinUrl ?? "",
-        githubUrl: app.githubUrl ?? "",
-        socialMediaUrl: app.socialMediaUrl ?? "",
-        portfolioUrl: app.portfolioUrl ?? "",
+        fullName: pick(app?.fullName, user?.name),
+        contactNumber: pick(app?.contactNumber, stored?.contactNumber),
+        degree: pick(app?.degree, stored?.degree),
+        branch: pick(app?.branch, stored?.branch),
+        section: pick(app?.section, stored?.section),
+        year: pick(app?.year, stored?.year),
+        interests: Array.isArray(app?.interests) ? app.interests : [],
+        skills: Array.isArray(app?.skills) ? app.skills : [],
+        linkedinUrl: app?.linkedinUrl ?? "",
+        githubUrl: app?.githubUrl ?? "",
+        socialMediaUrl: app?.socialMediaUrl ?? "",
+        portfolioUrl: app?.portfolioUrl ?? "",
       }
     : null;
 
@@ -58,7 +67,7 @@ export async function GET(request: Request) {
     mode,
     roles: user?.roles ?? [],
     hasPending,
-    branch: app?.branch ?? "",
+    branch: pick(app?.branch, stored?.branch),
     profile,
   });
 }

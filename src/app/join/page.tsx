@@ -58,8 +58,6 @@ import { useSmoothScroll } from "@/components/SmoothScroll";
 
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 const PHONE_RE = /^[+]?[\d\s()-]{10,15}$/;
-const CSE_BRANCH = "Computer Science & Engineering";
-const CSE_ALLOWED_ROLES = new Set(["member", "event-volunteer"]);
 
 function authErrorCode(err: unknown): string {
   if (typeof err === "object" && err !== null && "code" in err) {
@@ -448,10 +446,12 @@ export default function JoinPage() {
   const [celebration, setCelebration] = useState<
     null | "member" | "role-new" | "role-switch"
   >(null);
+  // Set when the applicant opens the group link from the celebration overlay,
+  // so the success card doesn't ask for the same action twice.
+  const [groupLinkOpened, setGroupLinkOpened] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
   const [memberMode, setMemberMode] = useState(false);
   const [currentRoles, setCurrentRoles] = useState<string[]>([]);
-  const [memberBranch, setMemberBranch] = useState("");
   const [hasPending, setHasPending] = useState(false);
   const [authStatus, setAuthStatus] = useState<"loading" | "signed-out" | "ready">("loading");
   const [authUser, setAuthUser] = useState<{
@@ -571,20 +571,14 @@ export default function JoinPage() {
     setAcceptedRoleRules(false);
   };
 
-  const effectiveBranch = form.branch || memberBranch;
-  const isCse = effectiveBranch === CSE_BRANCH;
-
   const visibleRoles = useMemo(() => {
     let roles = openRoles;
-    if (isCse) {
-      roles = roles.filter((r) => CSE_ALLOWED_ROLES.has(normalizeCustomRole(r)));
-    }
     if (memberMode && currentRoles.length > 0) {
       const owned = new Set(currentRoles.map(normalizeCustomRole));
       roles = roles.filter((r) => !owned.has(normalizeCustomRole(r)));
     }
     return roles;
-  }, [openRoles, isCse, memberMode, currentRoles]);
+  }, [openRoles, memberMode, currentRoles]);
 
   useEffect(() => {
     if (form.role && rolesLoaded && visibleRoles.length > 0 && !visibleRoles.includes(form.role)) {
@@ -686,7 +680,6 @@ export default function JoinPage() {
             ? data.roles.filter((r: unknown): r is string => typeof r === "string")
             : []
         );
-        setMemberBranch(typeof data?.branch === "string" ? data.branch : "");
         setHasPending(!!data?.hasPending);
         // Auto-fill the form with details from the applicant's most recent
         // application so re-applying for another role needs no re-entry.
@@ -812,6 +805,7 @@ export default function JoinPage() {
       setSubmitted(true);
       setSubmittedName(form.fullName);
       setSubmittedRole(form.role);
+      setGroupLinkOpened(false);
       // Member applications celebrate collaboration; other roles get the
       // onboarding-interview message.
       setCelebration(
@@ -885,6 +879,7 @@ export default function JoinPage() {
       setSubmitted(true);
       setSubmittedName(form.fullName);
       setSubmittedRole(form.role);
+      setGroupLinkOpened(false);
       setHasPending(true);
       // Existing member applying for another role — interview celebration.
       setCelebration("role-switch");
@@ -937,17 +932,28 @@ export default function JoinPage() {
                   <p className="text-sm text-gray-400 mt-4 max-w-sm leading-relaxed">
                     Thanks {submittedName || "for applying"}! You will be interviewed soon.
                   </p>
-                  {roleLinks[submittedRole] && (
-                    <a
-                      href={roleLinks[submittedRole]}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-mint/15 hover:bg-mint/25 border border-mint/30 text-mint text-xs font-mono uppercase tracking-wider transition-all"
-                    >
-                      Join the Group
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </a>
-                  )}
+                  {roleLinks[submittedRole] &&
+                    (groupLinkOpened ? (
+                      <a
+                        href={roleLinks[submittedRole]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-5 inline-flex items-center gap-2 text-xs font-mono text-gray-500 hover:text-mint transition-colors"
+                      >
+                        <CheckCircle className="w-4 h-4 text-mint shrink-0" />
+                        Group opened — see you there! Tap to reopen if it didn&apos;t load.
+                      </a>
+                    ) : (
+                      <a
+                        href={roleLinks[submittedRole]}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-mint/15 hover:bg-mint/25 border border-mint/30 text-mint text-xs font-mono uppercase tracking-wider transition-all"
+                      >
+                        Join the Group
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </a>
+                    ))}
                 </>
               ) : (
                 <p className="text-sm text-gray-400 mt-4 max-w-sm leading-relaxed">
@@ -969,6 +975,7 @@ export default function JoinPage() {
                       setForm(INITIAL_FORM);
                       setSubmitted(false);
                       setSubmittedRole("");
+                      setGroupLinkOpened(false);
                       setConsented(false);
                       setAcceptedRoleRules(false);
                       setErrors({});
@@ -1935,9 +1942,8 @@ export default function JoinPage() {
       {celebration && (
         <JoinSuccessOverlay
           variant={celebration}
-          ctaHref={
-            submittedRole && roleLinks[submittedRole] ? roleLinks[submittedRole] : "/"
-          }
+          ctaHref={submittedRole ? roleLinks[submittedRole] : undefined}
+          onOpenLink={() => setGroupLinkOpened(true)}
           onClose={() => setCelebration(null)}
         />
       )}

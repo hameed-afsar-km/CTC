@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { ArrowRight, X } from "lucide-react";
+import { ArrowRight, Check, X } from "lucide-react";
 
 type OverlayVariant = "member" | "role-new" | "role-switch";
 
@@ -10,71 +10,61 @@ interface OverlaySegment {
   highlight?: boolean;
 }
 
-// Each variant's lines appear one after another (2s apart). The last line of
-// every variant is the call-to-action link.
-const LINES: Record<OverlayVariant, OverlaySegment[][]> = {
-  member: [
-    [
-      { text: "Congratulations", highlight: true },
-      { text: " Joining Us!" },
+interface VariantCopy {
+  // Phrases revealed one after another inside a single flowing paragraph.
+  phrases: OverlaySegment[][];
+  // Contextual ending shown when the role has no group link.
+  outro: OverlaySegment[];
+}
+
+const VARIANTS: Record<OverlayVariant, VariantCopy> = {
+  member: {
+    phrases: [
+      [{ text: "Congratulations", highlight: true }, { text: " Joining Us!" }],
+      [{ text: "Next Step is " }, { text: "Collaborating", highlight: true }, { text: "!" }],
     ],
-    [
-      { text: "Next Step is " },
-      { text: "Collaborating", highlight: true },
-      { text: "!" },
+    outro: [
+      { text: "Our team will " },
+      { text: "Reach Out Soon", highlight: true },
+      { text: " at your college email with the next steps!" },
     ],
-    [
-      { text: "Click The Link & " },
-      { text: "Let's Go!", highlight: true },
+  },
+  "role-new": {
+    phrases: [
+      [{ text: "Congratulations", highlight: true }, { text: " on Joining Us!" }],
+      [{ text: "A Quick " }, { text: "Onboarding Interview", highlight: true }, { text: " will be Taken Soon!" }],
     ],
-  ],
-  "role-new": [
-    [
-      { text: "Congratulations", highlight: true },
-      { text: " on Joining Us!" },
+    outro: [
+      { text: "Sit Tight — our team will " },
+      { text: "Reach Out Soon", highlight: true },
+      { text: " with your interview details!" },
     ],
-    [
-      { text: "A Quick " },
-      { text: "Onboarding Interview", highlight: true },
-      { text: " will be Taken Soon!" },
+  },
+  "role-switch": {
+    phrases: [
+      [{ text: "Another " }, { text: "Great Role", highlight: true }, { text: "?" }],
+      [{ text: "That's What " }, { text: "This Club", highlight: true }, { text: " Looks For!" }],
+      [{ text: "A Quick " }, { text: "Interview", highlight: true }, { text: " will Be Taken Shortly!" }],
     ],
-    [
-      { text: "Click the Link and " },
-      { text: "Collaborate Now!", highlight: true },
+    outro: [
+      { text: "Fingers Crossed — we'll " },
+      { text: "See You Soon", highlight: true },
+      { text: " at the interview!" },
     ],
-  ],
-  "role-switch": [
-    [
-      { text: "Another " },
-      { text: "Great Role", highlight: true },
-      { text: "?" },
-    ],
-    [
-      { text: "That's What " },
-      { text: "This Club", highlight: true },
-      { text: " Looks For!" },
-    ],
-    [
-      { text: "A Quick " },
-      { text: "Interview", highlight: true },
-      { text: " will Be Taken Shortly!" },
-    ],
-    [
-      { text: "Click the Link And " },
-      { text: "Join Us!", highlight: true },
-    ],
-  ],
+  },
 };
 
-const LINE_STAGGER_MS = 2000;
+const PHRASE_STAGGER_MS = 850;
 
 export default function JoinSuccessOverlay({
   variant,
   ctaHref,
+  onOpenLink,
   onClose,
 }: {
   variant: OverlayVariant;
   ctaHref?: string;
+  onOpenLink?: () => void;
   onClose: () => void;
 }) {
   // Scroll lock + Escape to dismiss while the celebration is up.
@@ -90,10 +80,10 @@ export default function JoinSuccessOverlay({
     };
   }, [onClose]);
 
-  const lines = LINES[variant];
-  const href = ctaHref && ctaHref.trim() ? ctaHref.trim() : "/";
-  const external = href.startsWith("http");
-  const ctaIndex = lines.length - 1;
+  const { phrases, outro } = VARIANTS[variant];
+  const href = ctaHref?.trim() ?? "";
+  const hasLink = /^https?:\/\//i.test(href);
+  const endingDelay = phrases.length * PHRASE_STAGGER_MS + 350;
 
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-in">
@@ -123,41 +113,13 @@ export default function JoinSuccessOverlay({
           ✦
         </span>
 
-        {lines.map((segments, i) => {
-          const isCta = i === ctaIndex;
-
-          if (isCta) {
-            return (
-              <div key={i} className="celebrate-line mt-12" style={{ animationDelay: `${i * LINE_STAGGER_MS}ms` }}>
-                <a
-                  href={href}
-                  target={external ? "_blank" : undefined}
-                  rel={external ? "noopener noreferrer" : undefined}
-                  onClick={onClose}
-                  className="group inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 font-syne text-xl sm:text-3xl font-black tracking-tight text-white/80 hover:text-white transition-colors duration-500"
-                >
-                  {segments.map((seg, j) =>
-                    seg.highlight ? (
-                      <span key={j} className="gradient-word">
-                        {seg.text}
-                      </span>
-                    ) : (
-                      <span key={j}>{seg.text}</span>
-                    )
-                  )}
-                  <ArrowRight className="w-6 h-6 sm:w-8 sm:h-8 text-mint transition-transform duration-300 group-hover:translate-x-1.5" />
-                </a>
-              </div>
-            );
-          }
-
-          return (
-            <p
+        {/* All phrases flow inline like a sentence and reveal sequentially. */}
+        <p className="font-syne font-black tracking-tight leading-snug text-2xl sm:text-4xl text-white">
+          {phrases.map((segments, i) => (
+            <span
               key={i}
-              className={`celebrate-line font-syne font-black tracking-tight leading-snug ${
-                i === 0 ? "text-3xl sm:text-5xl text-white" : "mt-6 text-xl sm:text-3xl text-white/85"
-              }`}
-              style={{ animationDelay: `${i * LINE_STAGGER_MS}ms` }}
+              className="celebrate-line"
+              style={{ animationDelay: `${i * PHRASE_STAGGER_MS}ms` }}
             >
               {segments.map((seg, j) =>
                 seg.highlight ? (
@@ -167,10 +129,54 @@ export default function JoinSuccessOverlay({
                 ) : (
                   <span key={j}>{seg.text}</span>
                 )
+              )}{" "}
+            </span>
+          ))}
+          {!hasLink && (
+            <span
+              className="celebrate-line text-white/85"
+              style={{ animationDelay: `${phrases.length * PHRASE_STAGGER_MS}ms` }}
+            >
+              {outro.map((seg, j) =>
+                seg.highlight ? (
+                  <span key={j} className="gradient-word">
+                    {seg.text}
+                  </span>
+                ) : (
+                  <span key={j}>{seg.text}</span>
+                )
               )}
-            </p>
-          );
-        })}
+            </span>
+          )}
+        </p>
+
+        {/* The call-to-action pops in once the sentence completes. */}
+        <div className="celebrate-pop mt-12" style={{ animationDelay: `${endingDelay}ms` }}>
+          {hasLink ? (
+            <a
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => {
+                onOpenLink?.();
+                onClose();
+              }}
+              className="group inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-mint hover:bg-mint-light text-black text-sm sm:text-base font-black uppercase tracking-widest shadow-[0_0_35px_rgba(52,211,153,0.45)] hover:shadow-[0_0_55px_rgba(52,211,153,0.65)] hover:-translate-y-0.5 transition-all duration-300"
+            >
+              Join the Group
+              <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1.5" />
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              className="inline-flex items-center gap-2 px-7 py-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-bold uppercase tracking-widest transition-all duration-300"
+            >
+              Done
+              <Check className="w-4 h-4 text-mint" />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

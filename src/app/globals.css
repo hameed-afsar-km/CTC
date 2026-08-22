@@ -827,12 +827,13 @@ html {
 }
 
 /* ── Join success celebration overlay ─────────────────────────────────── */
-/* Lines appear one after another (staggered via inline animation-delay). */
+/* Phrases flow inline in one paragraph and appear one after another
+   (staggered via inline animation-delay). */
 @keyframes celebrate-line-in {
   from {
     opacity: 0;
-    transform: translateY(26px) scale(0.96);
-    filter: blur(8px);
+    transform: translateY(18px) scale(0.97);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
@@ -841,8 +842,25 @@ html {
   }
 }
 .celebrate-line {
+  display: inline-block;
   opacity: 0;
-  animation: celebrate-line-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: celebrate-line-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Final call-to-action pops in after the sentence completes. */
+@keyframes celebrate-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.celebrate-pop {
+  opacity: 0;
+  animation: celebrate-pop-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Animated gradient keywords inside celebration lines */
