@@ -112,12 +112,18 @@ const SLIDES: TourSlide[] = [
 
 export default function WelcomeTour({
   start,
+  autoOpen,
   onActiveChange,
+  onAutoOpen,
 }: {
   /** Gates the toggle button in once the splash sequence has finished. */
   start?: boolean;
+  /** Auto-open the tour overlay (used after music preference is resolved). */
+  autoOpen?: boolean;
   /** Reports whether the tour overlay is currently open (used to pause other effects, e.g. the smudge cursor). */
   onActiveChange?: (open: boolean) => void;
+  /** Called when auto-open triggers (so parent can reset the trigger). */
+  onAutoOpen?: () => void;
 }) {
   const lenis = useSmoothScroll();
   const [mounted, setMounted] = useState(false);
@@ -133,6 +139,16 @@ export default function WelcomeTour({
     const t = window.setTimeout(() => setMounted(true), 600);
     return () => window.clearTimeout(t);
   }, [start]);
+
+  // Auto-open the tour when autoOpen is triggered (after music preference resolved)
+  useEffect(() => {
+    if (!autoOpen || !mounted || open) return;
+    const t = window.setTimeout(() => {
+      setOpen(true);
+      onAutoOpen?.();
+    }, 300);
+    return () => window.clearTimeout(t);
+  }, [autoOpen, mounted, open, onAutoOpen]);
 
   // Report open/close so the host page can react (pause the smudge cursor).
   useEffect(() => {

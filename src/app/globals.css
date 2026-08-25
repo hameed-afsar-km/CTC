@@ -506,9 +506,8 @@ html {
 
 /* Floating Holographic 3D Glass Pill Navbar Utilities */
 @keyframes holoShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  from { background-position: 0% 50%; }
+  to { background-position: 300% 50%; }
 }
 
 .holo-border-wrapper {
@@ -545,7 +544,7 @@ html {
 /* Looping Theme Gradient — shared color mapping & unidirectional flow animation */
 @keyframes gradientLoop {
   from { background-position: 0% 50%; }
-  to { background-position: 100% 50%; }
+  to { background-position: 200% 50%; }
 }
 
 .text-gradient-loop {
@@ -649,6 +648,17 @@ html {
   to {
     opacity: 0;
     transform: translateY(16px) scale(0.96);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

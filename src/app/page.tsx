@@ -13,6 +13,7 @@ import HomeFooter from "@/components/HomeFooter";
 import MusicToggle from "@/components/MusicToggle";
 import WelcomeTour from "@/components/WelcomeTour";
 import FocusTicker from "@/components/FocusTicker";
+import LightBeamButton from "@/components/LightBeamButton";
 import { useSmoothScroll } from "@/components/SmoothScroll";
 
 gsap.registerPlugin(ScrollTrigger, CustomEase);
@@ -24,6 +25,7 @@ export default function Home() {
   const lenis = useSmoothScroll();
   const [splashDone, setSplashDone] = useState(false);
   const [musicResolved, setMusicResolved] = useState(false);
+  const [showWelcomeTour, setShowWelcomeTour] = useState(false);
   const [splashReveal, setSplashReveal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
@@ -780,12 +782,20 @@ export default function Home() {
       </div>
 
       {/* Background Music Toggle — bottom right, fades in after the splash ends */}
-      <MusicToggle start={splashDone} onResolved={() => setMusicResolved(true)} />
+      <MusicToggle
+        start={splashDone}
+        onResolved={() => {
+          setMusicResolved(true);
+          setShowWelcomeTour(true);
+        }}
+      />
 
-      {/* Welcome tour — question-mark toggle at the bottom left (fades in after splash) */}
+      {/* Welcome tour — question-mark toggle at the bottom left (fades in after splash & music resolved) */}
       <WelcomeTour
         start={splashDone && musicResolved}
+        autoOpen={showWelcomeTour}
         onActiveChange={setTourActive}
+        onAutoOpen={() => setShowWelcomeTour(false)}
       />
 
       {/* Currently Focusing Ticker — fixed to the very top of the page */}
@@ -1103,6 +1113,24 @@ export default function Home() {
           >
             Club
           </h2>
+
+          {/* CTA Button — Join Us */}
+          <LightBeamButton
+            href="/join"
+            className="mt-10 opacity-0"
+            style={{ animation: "fadeInUp 0.8s cubic-bezier(0.16,1,0.3,1) 1.2s forwards" }}
+          >
+            Join Us
+            <svg
+              className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform duration-300 text-emerald-400"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M7 17L17 7M17 7H7M17 7V17" />
+            </svg>
+          </LightBeamButton>
         </main>
 
         {/* Sparkle Icon (Bottom Right, matching mockup) */}
