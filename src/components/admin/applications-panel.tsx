@@ -378,16 +378,30 @@ export default function ApplicationsPanel() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const qSpaced = q.replace(/[-_]+/g, " ").replace(/\s+/g, " ").trim();
+    const acronymForRole = (r: string) =>
+      displayJoinRole(r)
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join("")
+        .toLowerCase();
     return apps.filter((a) => {
       if (filter !== "all" && (a.status ?? "pending") !== filter) return false;
       if (typeFilter !== "all" && (a.type ?? "join") !== typeFilter) return false;
       if (!q) return true;
-      return [
+      const roleDisplay = a.role ? displayJoinRole(a.role) : "";
+      const roleAcronym = a.role ? acronymForRole(a.role) : "";
+      const memberRoleDisplays = (a.memberRoles ?? []).map((r) => displayJoinRole(r));
+      const memberRoleAcronyms = (a.memberRoles ?? []).map((r) => acronymForRole(r));
+      const haystackRaw = [
         a.id,
         a.fullName,
         a.collegeMail,
         a.contactNumber,
         a.role,
+        roleDisplay,
+        roleAcronym,
         a.degree,
         a.department,
         a.branch,
@@ -398,18 +412,28 @@ export default function ApplicationsPanel() {
         a.reason,
         a.experience,
         ...(a.memberRoles ?? []),
+        ...memberRoleDisplays,
+        ...memberRoleAcronyms,
         a.linkedinUrl,
         a.githubUrl,
         a.socialMediaUrl,
         a.portfolioUrl,
         a.status ?? "pending",
+        (a.status ?? "pending") === "pending" ? "waiting" : "",
         a.type ?? "join",
         a.rejectionReason,
         a.submittedAt,
       ]
+        .filter(Boolean)
         .join(" ")
-        .toLowerCase()
-        .includes(q);
+        .toLowerCase();
+      const haystackSpaced = haystackRaw.replace(/[-_]+/g, " ");
+      return (
+        haystackRaw.includes(q) ||
+        haystackSpaced.includes(qSpaced) ||
+        haystackSpaced.includes(q) ||
+        haystackRaw.includes(qSpaced)
+      );
     });
   }, [apps, filter, typeFilter, query]);
 

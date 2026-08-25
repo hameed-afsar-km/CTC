@@ -141,9 +141,14 @@ export default function WelcomeTour({
   }, [start]);
 
   // Auto-open the tour when autoOpen is triggered (after music preference resolved)
+  // Only auto-open once per browser session — use sessionStorage so it won't
+  // reappear when the user navigates away and comes back. Closing the tab
+  // clears sessionStorage, so a fresh visit triggers the tour again.
   useEffect(() => {
     if (!autoOpen || !mounted || open) return;
+    if (sessionStorage.getItem("welcomeTourShown")) return;
     const t = window.setTimeout(() => {
+      sessionStorage.setItem("welcomeTourShown", "1");
       setOpen(true);
       onAutoOpen?.();
     }, 300);
