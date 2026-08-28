@@ -81,10 +81,14 @@ export default function EventDetailsModal({
     };
   }, [deadlineActive, deadlineMs, now]);
 
-  const contactName = event.contactName?.trim();
-  const contactEmail = event.contactEmail?.trim();
-  const contactPhone = event.contactPhone?.trim();
-  const hasContact = !!(contactName || contactEmail || contactPhone);
+  const contacts = (
+    Array.isArray(event.contacts) && event.contacts.length > 0
+      ? event.contacts
+      : event.contactName || event.contactEmail || event.contactPhone
+        ? [{ name: event.contactName ?? "", email: event.contactEmail ?? "", phone: event.contactPhone ?? "", role: "" }]
+        : []
+  ).filter((c) => c.name?.trim() || c.email?.trim() || c.phone?.trim());
+  const hasContact = contacts.length > 0;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-2xl p-4 sm:p-8 animate-in fade-in duration-300">
@@ -124,7 +128,7 @@ export default function EventDetailsModal({
             )}
           </div>
 
-          <h2 className="font-syne text-3xl sm:text-4xl font-extrabold text-white mb-6 leading-tight">
+          <h2 className="font-syne text-2xl font-bold text-white mb-6 leading-tight">
             {event.title}
           </h2>
 
@@ -324,33 +328,44 @@ export default function EventDetailsModal({
 
         {/* Modal Footer — contact info + register CTA */}
         {(hasContact || !isPast) && (
-          <div className="p-6 sm:px-10 border-t border-white/10 bg-black/40 shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 min-w-0">
-              {contactName && (
-                <span className="inline-flex items-center gap-2 text-xs font-mono text-white/70">
-                  <User className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                  {contactName}
-                </span>
-              )}
-              {contactEmail && (
-                <a
-                  href={`mailto:${contactEmail}`}
-                  className="inline-flex items-center gap-2 text-xs font-mono text-emerald-300 hover:text-emerald-200 underline-offset-4 hover:underline"
-                >
-                  <Mail className="h-3.5 w-3.5 shrink-0" />
-                  {contactEmail}
-                </a>
-              )}
-              {contactPhone && (
-                <a
-                  href={`tel:${contactPhone.replace(/[^\d+]/g, "")}`}
-                  className="inline-flex items-center gap-2 text-xs font-mono text-emerald-300 hover:text-emerald-200 underline-offset-4 hover:underline"
-                >
-                  <Phone className="h-3.5 w-3.5 shrink-0" />
-                  {contactPhone}
-                </a>
-              )}
-              {!hasContact && isPast && (
+          <div className="p-6 sm:px-10 border-t border-white/10 bg-black/40 shrink-0 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-6">
+            <div className="flex flex-col gap-3 min-w-0 flex-1">
+              {hasContact ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {contacts.map((c, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl bg-white/[0.03] border border-white/10 p-3 space-y-1.5"
+                    >
+                      <div className="flex items-center gap-2 text-xs font-mono font-bold text-white">
+                        <User className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                        <span className="truncate">{c.name || "Coordinator"}</span>
+                        {c.role && (
+                          <span className="text-[10px] font-normal text-emerald-300/70 truncate">• {c.role}</span>
+                        )}
+                      </div>
+                      {c.email && (
+                        <a
+                          href={`mailto:${c.email.trim()}`}
+                          className="inline-flex items-center gap-2 text-xs font-mono text-emerald-300 hover:text-emerald-200 underline-offset-4 hover:underline break-all"
+                        >
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          {c.email.trim()}
+                        </a>
+                      )}
+                      {c.phone && (
+                        <a
+                          href={`tel:${c.phone.replace(/[^\d+]/g, "")}`}
+                          className="inline-flex items-center gap-2 text-xs font-mono text-emerald-300 hover:text-emerald-200 underline-offset-4 hover:underline"
+                        >
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          {c.phone.trim()}
+                        </a>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
                 <span className="text-xs font-mono text-white/40">Event completed</span>
               )}
             </div>

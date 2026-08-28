@@ -3,6 +3,7 @@ import { Geist, Geist_Mono, Space_Grotesk, Syne } from "next/font/google";
 import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/react";
 import SmoothScrollProvider from "@/components/SmoothScroll";
+import FirebaseHiddenDbSuppress from "@/components/FirebaseHiddenDbSuppress";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -75,6 +76,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${spaceGrotesk.variable} ${syne.variable} ${architxt.variable} ${inversionz.variable} ${nechlas.variable} ${gameshow.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <FirebaseHiddenDbSuppress />
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
         <Analytics />
       </body>

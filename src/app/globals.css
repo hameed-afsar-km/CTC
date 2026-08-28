@@ -34,7 +34,7 @@
 
 @media (pointer: fine) {
   * {
-    cursor: none !important;
+    cursor: url("/assets/cursor.png") 8 8, auto !important;
   }
 }
 
@@ -71,7 +71,7 @@ body {
 
 @media (pointer: fine) {
   body {
-    cursor: none;
+    cursor: url("/assets/cursor.png") 8 8, auto;
   }
 }
 

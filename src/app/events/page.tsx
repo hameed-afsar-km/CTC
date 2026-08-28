@@ -14,6 +14,10 @@ import {
   X,
   Search,
   Tag,
+  IndianRupee,
+  Award,
+  Trophy,
+  Utensils,
 } from "lucide-react";
 import type { ClubEvent } from "@/lib/events";
 import { eventCtaHref, hasCtaLink } from "@/lib/events";
@@ -237,9 +241,36 @@ function EventsPageContent() {
           {ev.title}
         </h3>
 
-        <p className="text-sm text-white/60 mb-6 line-clamp-3 leading-relaxed font-sans">
+        <p className="text-sm text-white/60 mb-3 line-clamp-3 leading-relaxed font-sans">
           {ev.description}
         </p>
+
+        {/* Perks Row — Fee / Certificate / Prize / Refreshments */}
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {/* Fee: always show Free vs Paid */}
+          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider border ${ev.registrationFeeEnabled ? "bg-amber-500/15 text-amber-300 border-amber-500/30" : "bg-emerald-500/10 text-emerald-300 border-emerald-500/20"}`}>
+            <IndianRupee className="h-3 w-3" />
+            {ev.registrationFeeEnabled ? (ev.registrationFeeAmount?.trim() ? `₹${ev.registrationFeeAmount.trim().replace(/^₹/, "")}` : "Paid") : "Free"}
+          </span>
+          {(ev.certificateEnabled !== false) && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-sky-500/10 text-sky-300 border border-sky-500/20">
+              <Award className="h-3 w-3" />
+              {ev.certificateType === "certificate" ? "Certificate" : ev.certificateType === "both" ? "Certified (Both)" : "E-Certificate"}
+            </span>
+          )}
+          {ev.prizeEnabled && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/20">
+              <Trophy className="h-3 w-3" />
+              {ev.prizeAmount?.trim() ? `Prize ${ev.prizeAmount.trim()}` : "Prizes"}
+            </span>
+          )}
+          {ev.appetizersEnabled && (
+            <span className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-white/5 text-white/70 border border-white/10">
+              <Utensils className="h-3 w-3" />
+              {ev.appetizersNote?.trim() || "Refreshments"}
+            </span>
+          )}
+        </div>
 
         {/* Footer Details */}
         <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-3">
@@ -484,12 +515,12 @@ function EventsPageContent() {
         <EventDetailsModal event={modalEvent} onClose={closeModal} />
       )}
 
-      {/* Custom Mouse Cursor */}
-      {!isTouchDevice && (
+      {/* Custom Mouse Cursor — disabled: system cursor now via CSS */}
+      {false && !isTouchDevice && (
         <div
           ref={cursorPngRef}
-          className="fixed top-0 left-0 z-[9999] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference"
-          style={{ opacity: cursorVisible ? 1 : 0 }}
+          className="fixed top-0 left-0 z-[9999] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference hidden"
+          style={{ opacity: 0 }}
         >
           <Image
             src="/assets/cursor.png"

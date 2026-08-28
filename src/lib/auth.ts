@@ -1,6 +1,7 @@
 import { getUser, type SiteUser } from "./users-store";
 import {
   hasScopeWithPermissions,
+  isAdminRole,
   resolveRole,
   type AdminRole,
   type AdminScope,
@@ -100,14 +101,29 @@ function roleForUser(
 
 export async function verifyAdminToken(token: string): Promise<AdminSession | null> {
   const decoded = decodeTokenPayload(token);
-  if (!decoded || !decoded.email || !isAllowedAdminEmail(decoded.email)) {
+  if (!decoded || !decoded.email) {
     return null;
   }
+  const email = decoded.email.toLowerCase();
   let user: SiteUser | null = null;
   try {
-    user = await getUser(decoded.email);
+    user = await getUser(email);
   } catch {
     user = null;
+  }
+  // Allow either:
+  // 1) email in ADMIN_EMAILS / SUPER_ADMIN allowlist (env), OR
+  // 2) existing Firestore user with at least one admin role/permissions
+  const inAllowlist = isAllowedAdminEmail(email);
+  const hasStoredRole =
+    !!user && Array.isArray(user.roles) && user.roles.some((r) => isAdminRole(String(r)));
+  const hasStoredPermissions =
+    !!user?.permissions && Object.values(user.permissions).some((v) => v === true);
+  if (!inAllowlist && !hasStoredRole && !hasStoredPermissions) {
+    // Keep server log useful for debugging denied logins
+    console.warn(`[auth] denied admin login: ${email} not in ADMIN_EMAILS and no stored role`);
+    console.warn(`[auth] ADMIN_EMAILS=${ADMIN_EMAILS.join(", ")}`);
+    return null;
   }
   return {
     uid: decoded.uid || "admin",

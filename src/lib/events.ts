@@ -4,25 +4,107 @@ export interface EventScheduleItem {
   description?: string;
 }
 
+export type CustomFieldType =
+  | "text"
+  | "textarea"
+  | "select"
+  | "radio"
+  | "checkbox"
+  | "number"
+  | "url";
+
+export interface EventCustomField {
+  id: string;
+  label: string;
+  type: CustomFieldType;
+  required?: boolean;
+  placeholder?: string;
+  options?: string[]; // for select / radio
+  helpText?: string;
+}
+
+export interface EventContact {
+  name: string;
+  email?: string;
+  phone?: string;
+  role?: string;
+}
+
+export type CertificateType = "e-certificate" | "certificate" | "both";
+
 export interface ClubEvent {
   id: string;
   title: string;
+  slug?: string;
   description: string;
   image: string;
   category: string;
   venue: string;
   date: string;
+  registrationMode?: "inbuilt" | "external";
   registerUrl: string;
   registrationDeadline?: string;
   featured?: boolean;
   contactName?: string;
   contactEmail?: string;
   contactPhone?: string;
+  contacts?: EventContact[];
   highlights?: string[];
   dos?: string[];
   donts?: string[];
   schedule?: EventScheduleItem[];
+  customFields?: EventCustomField[];
+  // New perks
+  registrationFeeEnabled?: boolean;
+  registrationFeeAmount?: string;
+  certificateEnabled?: boolean;
+  certificateType?: CertificateType;
+  prizeEnabled?: boolean;
+  prizeAmount?: string;
+  appetizersEnabled?: boolean;
+  appetizersNote?: string;
 }
+
+export function generateEventSlug(title: string): string {
+  return title
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || `event-${Date.now()}`;
+}
+
+export const DEFAULT_WORKSHOP_FIELDS: EventCustomField[] = [
+  {
+    id: "laptop",
+    label: "Will you bring a laptop?",
+    type: "radio",
+    required: true,
+    options: ["Yes, I will bring my laptop", "No, I do not have a laptop"],
+    helpText: "Hands-on coding exercises will be conducted during the session.",
+  },
+  {
+    id: "skillLevel",
+    label: "Familiarity with Workshop Topic",
+    type: "select",
+    required: false,
+    options: ["Beginner", "Intermediate", "Advanced", "All Levels"],
+    helpText: "Helps mentors calibrate the pace of the hands-on tracks.",
+  },
+  {
+    id: "githubUrl",
+    label: "GitHub Profile URL",
+    type: "url",
+    required: false,
+    placeholder: "https://github.com/username",
+  },
+  {
+    id: "expectations",
+    label: "Questions or Topics you hope to learn",
+    type: "textarea",
+    required: false,
+    placeholder: "What are you most excited to learn in this workshop?",
+  },
+];
 
 const NO_CTA = new Set(["#", "#!", "#/", "/", ""]);
 
@@ -102,12 +184,15 @@ export const defaultEvents: ClubEvent[] = [
   {
     id: "webforge-2026",
     title: "WebForge Workshop",
+    slug: "webforge-2026",
     description: "Hands-on workshop covering modern full-stack development, performance, and deployment best practices.",
     image: "/assets/hero_glass_sphere.png",
     category: "Workshop",
     venue: "Innovation Lab",
     date: "2026-09-12T14:00:00+05:30",
-    registerUrl: "#",
+    registrationMode: "inbuilt",
+    registerUrl: "/events/webforge-2026/register",
+    customFields: DEFAULT_WORKSHOP_FIELDS,
   },
   {
     id: "techtalk-scaling-2026",

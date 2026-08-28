@@ -22,6 +22,7 @@ import {
 import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
 import { cleanStudentName } from "@/lib/applications";
 import MemberCard from "@/components/MemberCard";
+import CursorOverlay from "@/components/CursorOverlay";
 
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 
@@ -151,14 +152,15 @@ export default function MemberPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#06090c] text-white font-syne relative">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden>
-        <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-[#34d399]/10 blur-[160px]" />
-        <div className="absolute bottom-0 -right-32 w-[500px] h-[500px] rounded-full bg-[#059669]/10 blur-[160px]" />
-      </div>
-
+    <div className="min-h-screen bg-[#06090c] text-white font-syne antialiased">
+      <CursorOverlay />
       <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        {/* Ambient glow */}
+        <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden>
+          <div className="absolute -top-32 -left-32 w-[500px] h-[500px] rounded-full bg-[#34d399]/10 blur-[160px]" />
+          <div className="absolute bottom-0 -right-32 w-[500px] h-[500px] rounded-full bg-[#059669]/10 blur-[160px]" />
+        </div>
+
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-xs font-mono text-mint hover:text-mint-light mb-10 transition-colors"

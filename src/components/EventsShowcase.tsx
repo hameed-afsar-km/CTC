@@ -22,6 +22,9 @@ import {
   Search,
   Trophy,
   Users,
+  IndianRupee,
+  Award,
+  Utensils,
 } from "lucide-react";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -152,20 +155,19 @@ export default function EventsShowcase() {
           }
         );
 
-        // Mac Window glides directly upward from its hero peek to the landing spot
+        // Mac Window subtle scale — section is now auto-height so avoid large y translation that would overlap the See More pill
         gsap.fromTo(
           macWindow,
-          { y: 0, scale: 0.95 },
+          { scale: 0.95 },
           {
-            y: 300,
             scale: 1,
             ease: "none",
             force3D: true,
             scrollTrigger: {
               trigger: section,
               start: "top bottom",
-              end: "top top",
-              scrub: 1.2,
+              end: "top center",
+              scrub: 1,
             },
           }
         );
@@ -221,7 +223,7 @@ export default function EventsShowcase() {
         sectionRef.current = node;
         inViewRef.current = node;
       }}
-      className="relative z-40 w-full min-h-screen h-screen max-h-screen flex flex-col items-center justify-start px-4 sm:px-6 overflow-visible select-none pt-12 sm:pt-16 snap-start"
+      className="relative z-40 w-full min-h-screen flex flex-col items-center justify-start px-4 sm:px-6 overflow-visible select-none pt-12 sm:pt-16 pb-24 sm:pb-28 snap-start"
       data-section-theme="dark"
     >
       {/* Background dark overlay — Fades in as user scrolls into section */}
@@ -243,8 +245,8 @@ export default function EventsShowcase() {
           <CountdownTimer target={nextEvent?.date ?? ""} />
         </div>
 
-        {/* Mac UI Flex Centering Wrapper — anchors Mac header in the hero bottom edge on desktop, flows naturally on mobile */}
-        <div className="relative md:absolute top-0 md:-top-32 inset-x-0 w-full flex justify-center z-45 pointer-events-none px-4 sm:px-6 mb-2 md:mb-0">
+        {/* Mac UI Flex Centering Wrapper — in-flow on all viewports so the section height grows with long titles/descriptions */}
+        <div className="relative w-full flex justify-center z-40 pointer-events-none px-0 sm:px-6 mb-0">
           <div
             ref={macWindowRef}
             data-mac-ui
@@ -285,90 +287,129 @@ export default function EventsShowcase() {
                 </div>
               </div>
 
-              {/* Hero / Landing Card Interior */}
+              {/* Redesign: Poster left / Content right — mac chrome unchanged */}
               {nextEvent && (
-                <div className="relative min-h-[300px] sm:min-h-[400px] text-white overflow-hidden">
-                  {/* Full-bleed backdrop image */}
-                  <img
-                    src={nextEvent.image}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105"
-                    draggable={false}
-                  />
-                  <div className="absolute inset-0 bg-[#05080a]/10 pointer-events-none" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-[#05080a]/10 via-[#05080a]/80 to-[#05080a]/95 pointer-events-none" />
-                  <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(70%_55%_at_50%_38%,rgba(52,211,153,0.14),transparent_72%)]" />
-
-                  {/* Centered landing content */}
-                  <div className="relative h-full min-h-[300px] sm:min-h-[400px] flex flex-col items-center justify-center text-center px-6 sm:px-10 py-3 sm:py-6">
-                    {/* Badge row */}
-                    <div className="flex flex-wrap items-center justify-center gap-2 mb-2.5">
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 text-black font-mono text-[11px] font-black uppercase tracking-wider shadow-[0_0_18px_rgba(52,211,153,0.45)] transition-transform duration-300 hover:scale-105 cursor-default">
-                        {nextEvent.category}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/10 text-emerald-300 font-mono text-[11px] font-bold uppercase border border-emerald-400/30 shadow-[0_0_12px_rgba(52,211,153,0.15)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_16px_rgba(52,211,153,0.3)] cursor-default">
-                        <Sparkles className="w-3.5 h-3.5" /> CTC Feature Event
-                      </span>
-                    </div>
-
-                    {/* Headline */}
-                    <h3 className="group/title max-w-2xl text-3xl sm:text-5xl md:text-6xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-50 to-emerald-300 tracking-tight leading-[1.05] drop-shadow-[0_2px_24px_rgba(52,211,153,0.25)] transition-all duration-500 group-hover/title:from-emerald-50 group-hover/title:via-emerald-200 group-hover/title:to-white">
-                      {nextEvent.title}
-                    </h3>
-
-                    {/* Tagline / description */}
-                    <p className="mt-2.5 max-w-xl text-[13px] sm:text-base text-slate-300 leading-snug sm:leading-relaxed transition-colors duration-300 hover:text-white cursor-default">
-                      {nextEvent.description}
-                    </p>
-
-                    {/* Meta pills */}
-                    <div className="mt-2.5 flex flex-wrap items-center justify-center gap-2.5 text-xs font-mono text-emerald-300 font-semibold">
-                      <span className="inline-flex items-center gap-1.5 bg-black/50 border border-emerald-500/25 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-400/10 hover:-translate-y-0.5 cursor-pointer">
-                        <Calendar className="w-3.5 h-3.5 text-emerald-400" />
-                        {formatDate(nextEvent.date)}
-                        {formatTime(nextEvent.date) ? ` • ${formatTime(nextEvent.date)}` : ""}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 bg-black/50 border border-emerald-500/25 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-400/10 hover:-translate-y-0.5 cursor-pointer">
-                        <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                        {nextEvent.venue}
-                      </span>
-                    </div>
-
-                    {/* CTA row */}
-                    <div className="mt-3 flex flex-wrap items-center justify-center gap-3">
-                      <a
-                        href={eventCtaHref(nextEvent.registerUrl)}
-                        target={hasCtaLink(nextEvent.registerUrl) ? "_blank" : undefined}
-                        rel={hasCtaLink(nextEvent.registerUrl) ? "noreferrer" : undefined}
-                        className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-black font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_32px_rgba(52,211,153,0.5)] hover:shadow-[0_0_48px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
-                      >
-                        Register Now
-                        <ExternalLink className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
-                      </a>
-                      <Link
-                        href={`/events?event=${nextEvent.id}`}
-                        className="inline-flex items-center gap-1.5 px-5 py-2.5 sm:px-6 sm:py-3.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-semibold text-xs sm:text-sm hover:border-emerald-300/70 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
-                      >
-                        View Details
-                        <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                      </Link>
-                    </div>
-
-                    {/* Stat strip */}
-                    <div className="mt-3 w-full max-w-md grid grid-cols-3 divide-x divide-white/10 rounded-full border border-white/10 bg-black/40 backdrop-blur-sm overflow-hidden">
-                      <div className="group/stat flex flex-col items-center gap-1 py-2 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
-                        <Users className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover/stat:scale-125" />
-                        <span className="text-[10px] font-mono text-emerald-300 font-bold uppercase tracking-wider">Free Entry</span>
+                <div className="relative bg-[#070c10] text-white overflow-hidden flex flex-col md:flex-row items-stretch min-h-[380px] sm:min-h-[420px]">
+                  {/* Left — Poster image in poster ratio */}
+                  <div className="relative w-full md:w-[360px] lg:w-[400px] shrink-0 bg-black overflow-hidden flex md:border-r border-white/10">
+                    {/* Poster ratio container: aspect-[3/4] on mobile, stretch to match content height on md+ */}
+                    <div className="relative w-full aspect-[3/4] max-h-[420px] md:max-h-none md:aspect-auto md:min-h-full md:flex-1 overflow-hidden">
+                      <img
+                        src={nextEvent.image}
+                        alt={nextEvent.title}
+                        loading="lazy"
+                        decoding="async"
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-[1500ms] hover:scale-[1.03]"
+                        draggable={false}
+                      />
+                      {/* Subtle gradient for poster depth — keeps image legible but not overlaying text */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-black/20" />
+                      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(80%_60%_at_50%_35%,rgba(52,211,153,0.12),transparent_70%)]" />
+                      {/* Mobile badge overlay on poster bottom (optional polish, hidden on md) */}
+                      <div className="absolute bottom-3 left-3 md:hidden">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 text-black font-mono text-[10px] font-black uppercase tracking-wider shadow-lg">
+                          {nextEvent.category}
+                        </span>
                       </div>
-                      <div className="group/stat flex flex-col items-center gap-1 py-2 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
-                        <Trophy className="w-4 h-4 text-amber-400 transition-transform duration-300 group-hover/stat:scale-125" />
-                        <span className="text-[10px] font-mono text-amber-300 font-bold uppercase tracking-wider">Prizes</span>
+                    </div>
+                  </div>
+
+                  {/* Right — Title / Description / CTA */}
+                  <div className="relative flex-1 flex flex-col justify-center px-6 sm:px-8 lg:px-10 py-6 sm:py-8 lg:py-9 bg-[#0a1210] overflow-hidden">
+                    {/* Subtle background glow behind content */}
+                    <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(70%_65%_at_30%_25%,rgba(52,211,153,0.10),transparent_70%)]" />
+                    <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-emerald-500/[0.03] via-transparent to-transparent" />
+
+                    <div className="relative flex flex-col items-start text-left w-full">
+                      {/* Badge row */}
+                      <div className="flex flex-wrap items-center gap-2 mb-3">
+                        <span className="hidden md:inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 text-black font-mono text-[11px] font-black uppercase tracking-wider shadow-[0_0_18px_rgba(52,211,153,0.45)] transition-transform duration-300 hover:scale-105 cursor-default">
+                          {nextEvent.category}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-400/10 text-emerald-300 font-mono text-[11px] font-bold uppercase border border-emerald-400/30 shadow-[0_0_12px_rgba(52,211,153,0.15)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_16px_rgba(52,211,153,0.3)] cursor-default">
+                          <Sparkles className="w-3.5 h-3.5" /> CTC Feature Event
+                        </span>
                       </div>
-                      <div className="group/stat flex flex-col items-center gap-1 py-2 transition-colors duration-300 hover:bg-emerald-400/10 cursor-default">
-                        <ShieldCheck className="w-4 h-4 text-cyan-400 transition-transform duration-300 group-hover/stat:scale-125" />
-                        <span className="text-[10px] font-mono text-cyan-300 font-bold uppercase tracking-wider">Certified</span>
+
+                      {/* Headline — left aligned on md, still centered on very small? Now left for poster layout */}
+                      <h3 className="group/title w-full max-w-xl text-[26px] sm:text-3xl lg:text-[40px] font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white via-emerald-50 to-emerald-300 tracking-tight leading-[1.05] drop-shadow-[0_2px_24px_rgba(52,211,153,0.25)] transition-all duration-500 group-hover/title:from-emerald-50 group-hover/title:via-emerald-200 group-hover/title:to-white break-words [overflow-wrap:anywhere]">
+                        {nextEvent.title}
+                      </h3>
+
+                      {/* Tagline / description */}
+                      <p className="mt-3 w-full max-w-xl text-[13px] sm:text-[15px] text-slate-300 leading-relaxed transition-colors duration-300 hover:text-white cursor-default break-words [overflow-wrap:anywhere] line-clamp-none">
+                        {nextEvent.description}
+                      </p>
+
+                      {/* Meta pills */}
+                      <div className="mt-4 flex flex-wrap items-center gap-2.5 text-xs font-mono text-emerald-300 font-semibold">
+                        <span className="inline-flex items-center gap-1.5 bg-black/50 border border-emerald-500/25 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-400/10 hover:-translate-y-0.5 cursor-pointer">
+                          <Calendar className="w-3.5 h-3.5 text-emerald-400" />
+                          {formatDate(nextEvent.date)}
+                          {formatTime(nextEvent.date) ? ` • ${formatTime(nextEvent.date)}` : ""}
+                        </span>
+                        <span className="inline-flex items-center gap-1.5 bg-black/50 border border-emerald-500/25 px-3 py-1.5 rounded-full backdrop-blur-sm transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-400/10 hover:-translate-y-0.5 cursor-pointer">
+                          <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                          {nextEvent.venue}
+                        </span>
+                      </div>
+
+                      {/* CTA row — left aligned to match poster layout */}
+                      <div className="mt-5 flex flex-wrap items-center gap-3">
+                        <a
+                          href={eventCtaHref(nextEvent.registerUrl)}
+                          target={hasCtaLink(nextEvent.registerUrl) ? "_blank" : undefined}
+                          rel={hasCtaLink(nextEvent.registerUrl) ? "noreferrer" : undefined}
+                          className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-7 sm:py-3 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-black font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_32px_rgba(52,211,153,0.5)] hover:shadow-[0_0_48px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
+                        >
+                          Register Now
+                          <ExternalLink className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
+                        </a>
+                        <Link
+                          href={`/events?event=${nextEvent.id}`}
+                          className="inline-flex items-center gap-1.5 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-semibold text-xs sm:text-sm hover:border-emerald-300/70 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"
+                        >
+                          View Details
+                          <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                        </Link>
+                      </div>
+
+                      {/* Stat strip — only enabled perks (fee always shown, others only if enabled) */}
+                      <div className="mt-6 w-full max-w-md flex divide-x divide-white/10 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-sm overflow-hidden">
+                        {/* Fee — always shown as Free vs Paid */}
+                        <div className={`group/stat flex flex-1 flex-col items-center gap-1 py-2.5 cursor-default ${nextEvent.registrationFeeEnabled ? "bg-amber-500/5" : "hover:bg-emerald-400/10"}`}>
+                          <IndianRupee className={`w-4 h-4 transition-transform duration-300 group-hover/stat:scale-125 ${nextEvent.registrationFeeEnabled ? "text-amber-400" : "text-emerald-400"}`} />
+                          <span className={`text-[10px] font-mono font-bold uppercase tracking-wider text-center px-1 ${nextEvent.registrationFeeEnabled ? "text-amber-300" : "text-emerald-300"}`}>
+                            {nextEvent.registrationFeeEnabled ? (nextEvent.registrationFeeAmount?.trim() ? `₹${nextEvent.registrationFeeAmount.trim().replace(/^₹/, "")}` : "Paid") : "Free"}
+                          </span>
+                        </div>
+                        {/* Prize — only if enabled */}
+                        {nextEvent.prizeEnabled && (
+                          <div className="group/stat flex flex-1 flex-col items-center gap-1 py-2.5 cursor-default bg-fuchsia-500/5">
+                            <Trophy className="w-4 h-4 text-amber-400 transition-transform duration-300 group-hover/stat:scale-125" />
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-center leading-tight px-1 text-amber-300">
+                              {nextEvent.prizeAmount?.trim() ? nextEvent.prizeAmount.trim() : "Prizes"}
+                            </span>
+                          </div>
+                        )}
+                        {/* Certificate — only if enabled (enabled by default) */}
+                        {nextEvent.certificateEnabled !== false && (
+                          <div className="group/stat flex flex-1 flex-col items-center gap-1 py-2.5 cursor-default hover:bg-sky-400/10">
+                            <Award className="w-4 h-4 text-sky-400 transition-transform duration-300 group-hover/stat:scale-125" />
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-center leading-tight px-1 text-sky-300">
+                              {nextEvent.certificateType === "certificate" ? "Certificate" : nextEvent.certificateType === "both" ? "Both Certs" : "E-Cert"}
+                            </span>
+                          </div>
+                        )}
+                        {/* Appetizers / Refreshments — only if enabled */}
+                        {nextEvent.appetizersEnabled && (
+                          <div className="group/stat flex flex-1 flex-col items-center gap-1 py-2.5 cursor-default bg-emerald-500/5">
+                            <Utensils className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover/stat:scale-125" />
+                            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-center leading-tight px-1 text-emerald-300">
+                              {nextEvent.appetizersNote?.trim() || "Refreshments"}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -382,8 +423,8 @@ export default function EventsShowcase() {
         </div>
       </div>
 
-      {/* See More Events — glassmorphic glow pill pinned at the bottom of the section */}
-      <div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-20">
+      {/* See More Events — in-flow below the card so it never overlaps the CTA when the card grows */}
+      <div className="relative mt-10 sm:mt-12 z-20 flex justify-center w-full">
         {/* Pulsing mint halo behind the pill */}
         <div
           aria-hidden

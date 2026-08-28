@@ -337,11 +337,11 @@ export default function NotFound() {
         </p>
       </div>
 
-      {/* Custom cursor */}
+      {/* Custom cursor — disabled: system cursor now via CSS */}
       <div
         ref={cursorRef}
-        className="pointer-events-none fixed left-0 top-0 z-[9999] h-10 w-10"
-        style={{ opacity: cursorVisible ? 0.9 : 0 }}
+        className="pointer-events-none fixed left-0 top-0 z-[9999] h-10 w-10 hidden"
+        style={{ opacity: 0 }}
         aria-hidden
       >
         <Image

@@ -3,6 +3,7 @@ export type AdminRole = "super-admin" | "admin" | "tech" | "media" | "review";
 export type AdminScope =
   | "events"
   | "applications"
+  | "registrations"
   | "hostit"
   | "users"
   | "gallery"
@@ -37,6 +38,7 @@ export const ROLE_BADGE: Record<AdminRole, string> = {
 export const SCOPE_ROLES: Record<AdminScope, AdminRole[]> = {
   events: ["super-admin", "admin", "tech"],
   applications: ["super-admin", "admin", "review"],
+  registrations: ["super-admin", "admin", "tech", "review"],
   hostit: ["super-admin", "admin", "review"],
   gallery: ["super-admin", "admin", "media"],
   users: ["super-admin"],
@@ -48,6 +50,7 @@ export const SCOPE_ROLES: Record<AdminScope, AdminRole[]> = {
 export const ALL_SCOPES: AdminScope[] = [
   "events",
   "applications",
+  "registrations",
   "hostit",
   "gallery",
   "users",
@@ -59,6 +62,7 @@ export const ALL_SCOPES: AdminScope[] = [
 export const SCOPE_LABELS: Record<AdminScope, string> = {
   events: "Events",
   applications: "Join Applications",
+  registrations: "Registrations",
   hostit: "Host'It",
   users: "Users & Roles",
   gallery: "Gallery",

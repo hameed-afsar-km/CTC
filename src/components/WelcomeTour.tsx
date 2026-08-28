@@ -140,20 +140,14 @@ export default function WelcomeTour({
     return () => window.clearTimeout(t);
   }, [start]);
 
-  // Auto-open the tour when autoOpen is triggered (after music preference resolved)
-  // Only auto-open once per browser session — use sessionStorage so it won't
-  // reappear when the user navigates away and comes back. Closing the tab
-  // clears sessionStorage, so a fresh visit triggers the tour again.
+  // Auto-open disabled — tour now only opens when user clicks the
+  // question-mark toggle. Keeping the prop for backwards compat but
+  // never auto-triggering; useEffect intentionally no-ops.
   useEffect(() => {
-    if (!autoOpen || !mounted || open) return;
-    if (sessionStorage.getItem("welcomeTourShown")) return;
-    const t = window.setTimeout(() => {
-      sessionStorage.setItem("welcomeTourShown", "1");
-      setOpen(true);
-      onAutoOpen?.();
-    }, 300);
-    return () => window.clearTimeout(t);
-  }, [autoOpen, mounted, open, onAutoOpen]);
+    // no-op: manual open only via toggle()
+    // clear any pending autoOpen flag so parent doesn't stay in triggered state
+    if (autoOpen) onAutoOpen?.();
+  }, [autoOpen, onAutoOpen]);
 
   // Report open/close so the host page can react (pause the smudge cursor).
   useEffect(() => {

@@ -1,12 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Calendar, Clock, Plus, Trash2, Edit2, Save, X, CheckCircle, Sparkles, ImagePlus, Loader2, UploadCloud, Search } from "lucide-react";
-import type { ClubEvent } from "@/lib/events";
+import { Calendar, Clock, Plus, Trash2, Edit2, Save, X, CheckCircle, Sparkles, ImagePlus, Loader2, UploadCloud, Search, Ticket, ExternalLink, ChevronUp, ChevronDown, Phone, Mail, User, IndianRupee, Award, Trophy, Utensils, GripVertical } from "lucide-react";
+import type { ClubEvent, EventCustomField, CustomFieldType, EventContact } from "@/lib/events";
+import { generateEventSlug, DEFAULT_WORKSHOP_FIELDS } from "@/lib/events";
 import { useAdmin } from "./admin-context";
 import { EmptyState, LoadingState, PanelCard, PanelHeading, inputCls, labelCls } from "./ui";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
 import { getClientApp } from "@/lib/firebase-client";
+
+const selectCls = `${inputCls} appearance-none pr-10`;
 
 const DEFAULT_EVENT_DATE = new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16);
 
@@ -33,21 +36,33 @@ export default function EventsPanel() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [form, setForm] = useState<Partial<ClubEvent>>({
     title: "",
+    slug: "",
     description: "",
     image: "/assets/hero_3d.png",
     category: "Hackathon",
     venue: "Main Auditorium",
     date: DEFAULT_EVENT_DATE,
+    registrationMode: "inbuilt",
     registerUrl: "#",
     registrationDeadline: "",
     featured: false,
     contactName: "",
     contactEmail: "",
     contactPhone: "",
+    contacts: [],
     highlights: [],
     dos: [],
     donts: [],
     schedule: [],
+    customFields: DEFAULT_WORKSHOP_FIELDS,
+    registrationFeeEnabled: false,
+    registrationFeeAmount: "",
+    certificateEnabled: true,
+    certificateType: "e-certificate",
+    prizeEnabled: false,
+    prizeAmount: "",
+    appetizersEnabled: false,
+    appetizersNote: "",
   });
 
   const [highlightsText, setHighlightsText] = useState("");
@@ -121,24 +136,44 @@ export default function EventsPanel() {
     const regLocalIso = regDt && !Number.isNaN(regDt.getTime())
       ? new Date(regDt.getTime() - regDt.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
       : event.registrationDeadline ?? "";
+    const slug = event.slug || generateEventSlug(event.title);
+    const regMode = event.registrationMode || (event.registerUrl?.startsWith("/events/") || event.registerUrl?.startsWith("/register") ? "inbuilt" : "external");
+    const legacyContacts: EventContact[] =
+      Array.isArray(event.contacts) && event.contacts.length > 0
+        ? event.contacts
+        : (event.contactName || event.contactEmail || event.contactPhone)
+          ? [{ name: event.contactName ?? "", email: event.contactEmail ?? "", phone: event.contactPhone ?? "" }]
+          : [];
     setForm({
       id: event.id,
       title: event.title,
+      slug,
       description: event.description,
       image: event.image,
       category: event.category,
       venue: event.venue,
       date: localIso,
-      registerUrl: event.registerUrl,
+      registrationMode: regMode,
+      registerUrl: regMode === "inbuilt" ? `/events/${slug}/register` : event.registerUrl,
       registrationDeadline: regLocalIso,
       featured: event.featured === true,
       contactName: event.contactName ?? "",
       contactEmail: event.contactEmail ?? "",
       contactPhone: event.contactPhone ?? "",
+      contacts: legacyContacts,
       highlights: Array.isArray(event.highlights) ? event.highlights : [],
       dos: Array.isArray(event.dos) ? event.dos : [],
       donts: Array.isArray(event.donts) ? event.donts : [],
       schedule: Array.isArray(event.schedule) ? event.schedule : [],
+      customFields: Array.isArray(event.customFields) && event.customFields.length > 0 ? event.customFields : DEFAULT_WORKSHOP_FIELDS,
+      registrationFeeEnabled: event.registrationFeeEnabled === true,
+      registrationFeeAmount: event.registrationFeeAmount ?? "",
+      certificateEnabled: event.certificateEnabled !== false,
+      certificateType: event.certificateType ?? "e-certificate",
+      prizeEnabled: event.prizeEnabled === true,
+      prizeAmount: event.prizeAmount ?? "",
+      appetizersEnabled: event.appetizersEnabled === true,
+      appetizersNote: event.appetizersNote ?? "",
     });
     setHighlightsText((Array.isArray(event.highlights) ? event.highlights : []).join("\n"));
     setDosText((Array.isArray(event.dos) ? event.dos : []).join("\n"));
@@ -151,25 +186,163 @@ export default function EventsPanel() {
     setPreview(null);
     setForm({
       title: "",
+      slug: "",
       description: "",
       image: "/assets/hero_3d.png",
       category: "Hackathon",
       venue: "Main Auditorium",
       date: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
+      registrationMode: "inbuilt",
       registerUrl: "#",
       registrationDeadline: "",
       featured: false,
       contactName: "",
       contactEmail: "",
       contactPhone: "",
+      contacts: [],
       highlights: [],
       dos: [],
       donts: [],
       schedule: [],
+      customFields: DEFAULT_WORKSHOP_FIELDS,
+      registrationFeeEnabled: false,
+      registrationFeeAmount: "",
+      certificateEnabled: true,
+      certificateType: "e-certificate",
+      prizeEnabled: false,
+      prizeAmount: "",
+      appetizersEnabled: false,
+      appetizersNote: "",
     });
     setHighlightsText("");
     setDosText("");
     setDontsText("");
+  };
+
+  const addCustomField = () => {
+    const newField: EventCustomField = {
+      id: `field_${Date.now().toString(36)}`,
+      label: "New Question / Field",
+      type: "text",
+      required: false,
+      placeholder: "",
+    };
+    setForm((prev) => ({
+      ...prev,
+      customFields: [...(prev.customFields ?? []), newField],
+    }));
+  };
+
+  const updateCustomField = (idx: number, patch: Partial<EventCustomField>) => {
+    setForm((prev) => {
+      const list = [...(prev.customFields ?? [])];
+      list[idx] = { ...list[idx], ...patch };
+      return { ...prev, customFields: list };
+    });
+  };
+
+  const removeCustomField = (idx: number) => {
+    setForm((prev) => {
+      const list = (prev.customFields ?? []).filter((_, i) => i !== idx);
+      return { ...prev, customFields: list };
+    });
+  };
+
+  const moveCustomField = (idx: number, direction: -1 | 1) => {
+    setForm((prev) => {
+      const list = [...(prev.customFields ?? [])];
+      const target = idx + direction;
+      if (target < 0 || target >= list.length) return prev;
+      const tmp = list[idx];
+      list[idx] = list[target];
+      list[target] = tmp;
+      return { ...prev, customFields: list };
+    });
+  };
+
+  const [draggedFieldIdx, setDraggedFieldIdx] = useState<number | null>(null);
+
+  const handleFieldDragStart = (idx: number) => setDraggedFieldIdx(idx);
+  const handleFieldDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggedFieldIdx === null || draggedFieldIdx === idx) return;
+  };
+  const handleFieldDrop = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (draggedFieldIdx === null || draggedFieldIdx === idx) return;
+    setForm((prev) => {
+      const list = [...(prev.customFields ?? [])];
+      const [dragged] = list.splice(draggedFieldIdx, 1);
+      list.splice(idx, 0, dragged);
+      return { ...prev, customFields: list };
+    });
+    setDraggedFieldIdx(null);
+  };
+  const handleFieldDragEnd = () => setDraggedFieldIdx(null);
+
+  const addContact = () => {
+    setForm((prev) => ({
+      ...prev,
+      contacts: [...(prev.contacts ?? []), { name: "", email: "", phone: "", role: "" }],
+    }));
+  };
+
+  const updateContact = (idx: number, patch: Partial<EventContact>) => {
+    setForm((prev) => {
+      const list = [...(prev.contacts ?? [])];
+      list[idx] = { ...list[idx], ...patch };
+      return { ...prev, contacts: list };
+    });
+  };
+
+  const removeContact = (idx: number) => {
+    setForm((prev) => ({
+      ...prev,
+      contacts: (prev.contacts ?? []).filter((_, i) => i !== idx),
+    }));
+  };
+
+  const addPresetField = (preset: "laptop" | "github" | "skillLevel" | "team") => {
+    let field: EventCustomField;
+    if (preset === "laptop") {
+      field = {
+        id: "laptop",
+        label: "Will you bring a laptop?",
+        type: "radio",
+        required: true,
+        options: ["Yes, I will bring my laptop", "No, I do not have a laptop"],
+        helpText: "Hands-on exercises will be conducted during the session.",
+      };
+    } else if (preset === "github") {
+      field = {
+        id: "githubUrl",
+        label: "GitHub Profile URL",
+        type: "url",
+        required: false,
+        placeholder: "https://github.com/username",
+      };
+    } else if (preset === "skillLevel") {
+      field = {
+        id: "skillLevel",
+        label: "Familiarity with Topic",
+        type: "select",
+        required: false,
+        options: ["Beginner", "Intermediate", "Advanced", "All Levels"],
+        helpText: "Helps mentors calibrate the session.",
+      };
+    } else {
+      field = {
+        id: "teamName",
+        label: "Team Name (if participating with team)",
+        type: "text",
+        required: false,
+        placeholder: "e.g. Binary Beasts",
+      };
+    }
+    setForm((prev) => ({
+      ...prev,
+      customFields: [...(prev.customFields ?? []), field],
+    }));
   };
 
   const handleImageFile = (file: File | null) => {
@@ -250,29 +423,56 @@ export default function EventsPanel() {
       if (imageFile) {
         image = await uploadImage();
       }
-      const eventId = form.id || `evt-${Date.now()}`;
+      const slug = (form.slug || "").trim() || generateEventSlug(form.title || "new-event");
+      const eventId = form.id || slug;
+      const regMode = form.registrationMode === "external" ? "external" : "inbuilt";
+      const registerUrl = regMode === "inbuilt" ? `/events/${slug}/register` : (form.registerUrl ?? "#");
+
+      const sanitizedContacts: EventContact[] = (form.contacts ?? [])
+        .map((c) => ({
+          name: c.name?.trim() ?? "",
+          email: c.email?.trim() ?? "",
+          phone: c.phone?.trim() ?? "",
+          role: c.role?.trim() ?? "",
+        }))
+        .filter((c) => c.name || c.email || c.phone);
+
+      const primary = sanitizedContacts[0];
+
       const payload: ClubEvent = {
         id: eventId,
         title: form.title,
+        slug,
         description: form.description ?? "",
         image: image ?? "/assets/hero_3d.png",
         category: form.category ?? "Event",
         venue: form.venue ?? "Crescent Campus",
         date: new Date(form.date).toISOString(),
-        registerUrl: form.registerUrl ?? "#",
+        registrationMode: regMode,
+        registerUrl,
         registrationDeadline: form.registrationDeadline
           ? new Date(form.registrationDeadline).toISOString()
           : undefined,
         featured: form.featured === true,
-        contactName: form.contactName?.trim() || undefined,
-        contactEmail: form.contactEmail?.trim() || undefined,
-        contactPhone: form.contactPhone?.trim() || undefined,
+        contactName: primary?.name || form.contactName?.trim() || undefined,
+        contactEmail: primary?.email || form.contactEmail?.trim() || undefined,
+        contactPhone: primary?.phone || form.contactPhone?.trim() || undefined,
+        contacts: sanitizedContacts.length > 0 ? sanitizedContacts : undefined,
         highlights: linesToArray(highlightsText),
         dos: linesToArray(dosText),
         donts: linesToArray(dontsText),
         schedule: (form.schedule ?? []).filter(
           (row) => row.title?.trim() || row.time?.trim() || row.description?.trim()
         ),
+        customFields: form.customFields ?? DEFAULT_WORKSHOP_FIELDS,
+        registrationFeeEnabled: form.registrationFeeEnabled === true,
+        registrationFeeAmount: form.registrationFeeEnabled ? (form.registrationFeeAmount?.trim() || "") : "",
+        certificateEnabled: form.certificateEnabled !== false,
+        certificateType: form.certificateEnabled !== false ? (form.certificateType ?? "e-certificate") : undefined,
+        prizeEnabled: form.prizeEnabled === true,
+        prizeAmount: form.prizeEnabled ? (form.prizeAmount?.trim() || "") : "",
+        appetizersEnabled: form.appetizersEnabled === true,
+        appetizersNote: form.appetizersEnabled ? (form.appetizersNote?.trim() || "") : "",
       };
 
       const res = await fetch("/api/admin/events", {
@@ -479,6 +679,151 @@ export default function EventsPanel() {
               </button>
             </div>
 
+            {/* Perk Toggles — Fee / Certificate / Prize / Appetizers */}
+            <div className="rounded-2xl border border-white/10 bg-black/40 p-4 space-y-4">
+              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" /> Perks & Logistics
+              </h3>
+
+              {/* Registration Fee */}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0">
+                    <IndianRupee className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">Registration Fee</p>
+                    <p className="text-[11px] font-mono text-gray-500">Toggle if this event is paid</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.registrationFeeEnabled === true}
+                  onClick={() => setForm({ ...form, registrationFeeEnabled: !form.registrationFeeEnabled })}
+                  className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${form.registrationFeeEnabled ? "bg-amber-500" : "bg-white/15"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.registrationFeeEnabled ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+              {form.registrationFeeEnabled && (
+                <div>
+                  <label className="text-[10px] font-mono text-gray-400 block mb-1">Fee Amount</label>
+                  <input
+                    type="text"
+                    value={form.registrationFeeAmount ?? ""}
+                    onChange={(e) => setForm({ ...form, registrationFeeAmount: e.target.value })}
+                    placeholder="e.g. ₹199 or 199"
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {/* Certificates */}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-300 shrink-0">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">Certificates</p>
+                    <p className="text-[11px] font-mono text-gray-500">Provide certificates to participants</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.certificateEnabled !== false}
+                  onClick={() => setForm({ ...form, certificateEnabled: form.certificateEnabled === false ? true : false })}
+                  className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${form.certificateEnabled !== false ? "bg-sky-500" : "bg-white/15"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.certificateEnabled !== false ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+              {form.certificateEnabled !== false && (
+                <div>
+                  <label className="text-[10px] font-mono text-gray-400 block mb-1">Certificate Type</label>
+                  <select
+                    value={form.certificateType ?? "e-certificate"}
+                    onChange={(e) => setForm({ ...form, certificateType: e.target.value as ClubEvent["certificateType"] })}
+                    className={selectCls}
+                  >
+                    <option value="e-certificate">E-Certificate (digital)</option>
+                    <option value="certificate">Printed Certificate</option>
+                    <option value="both">Both</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Prize */}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-fuchsia-500/15 border border-fuchsia-500/30 flex items-center justify-center text-fuchsia-300 shrink-0">
+                    <Trophy className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">Prize Pool</p>
+                    <p className="text-[11px] font-mono text-gray-500">Toggle if winners get cash/prizes</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.prizeEnabled === true}
+                  onClick={() => setForm({ ...form, prizeEnabled: !form.prizeEnabled })}
+                  className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${form.prizeEnabled ? "bg-fuchsia-500" : "bg-white/15"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.prizeEnabled ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+              {form.prizeEnabled && (
+                <div>
+                  <label className="text-[10px] font-mono text-gray-400 block mb-1">Prize Amount</label>
+                  <input
+                    type="text"
+                    value={form.prizeAmount ?? ""}
+                    onChange={(e) => setForm({ ...form, prizeAmount: e.target.value })}
+                    placeholder="e.g. ₹50,000 or ₹10k + goodies"
+                    className={inputCls}
+                  />
+                </div>
+              )}
+
+              {/* Appetizers / Refreshments */}
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="h-8 w-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0">
+                    <Utensils className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white">Refreshments</p>
+                    <p className="text-[11px] font-mono text-gray-500">Food / snacks / appetizers provided</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.appetizersEnabled === true}
+                  onClick={() => setForm({ ...form, appetizersEnabled: !form.appetizersEnabled })}
+                  className={`relative w-11 h-6 rounded-full shrink-0 transition-colors ${form.appetizersEnabled ? "bg-emerald-500" : "bg-white/15"}`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${form.appetizersEnabled ? "translate-x-5" : ""}`} />
+                </button>
+              </div>
+              {form.appetizersEnabled && (
+                <div>
+                  <label className="text-[10px] font-mono text-gray-400 block mb-1">Note (optional)</label>
+                  <input
+                    type="text"
+                    value={form.appetizersNote ?? ""}
+                    onChange={(e) => setForm({ ...form, appetizersNote: e.target.value })}
+                    placeholder="e.g. Lunch & snacks provided"
+                    className={inputCls}
+                  />
+                </div>
+              )}
+            </div>
+
             <div>
               <label className={labelCls}>Event Image</label>
               <label className="block cursor-pointer">
@@ -540,48 +885,425 @@ export default function EventsPanel() {
               </div>
             </div>
 
-            <div>
-              <label className={labelCls}>Registration Link (CTA)</label>
-              <input
-                type="text"
-                value={form.registerUrl || ""}
-                onChange={(e) => setForm({ ...form, registerUrl: e.target.value })}
-                placeholder="https://example.com/register"
-                className={inputCls}
-              />
-              <p className="mt-1.5 text-[11px] font-mono text-gray-500">
-                Leave empty to point the CTA to the 404 page — a real link redirects to the
-                assigned page.
-              </p>
+            {/* Registration Mode & In-Built Field Builder */}
+            <div className="rounded-2xl border border-white/10 bg-black/40 p-4 sm:p-5 space-y-4 overflow-hidden">
+              <div className="flex flex-col gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                    <Ticket className="w-4 h-4 text-emerald-400 shrink-0" />
+                    Registration Mode
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    Choose whether users register directly on this website or redirect to an external link.
+                  </p>
+                </div>
+
+                {/* Mode Toggle — full-width on mobile, wraps cleanly instead of overflowing card */}
+                <div className="flex rounded-xl bg-white/5 border border-white/10 p-1 gap-1 w-full overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const s = form.slug || generateEventSlug(form.title || "new-event");
+                      setForm({
+                        ...form,
+                        registrationMode: "inbuilt",
+                        slug: s,
+                        registerUrl: `/events/${s}/register`,
+                      });
+                    }}
+                    className={`flex-1 min-w-0 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-mono font-bold text-center leading-tight transition-all ${
+                      form.registrationMode !== "external"
+                        ? "bg-emerald-500 text-black shadow-[0_0_12px_rgba(52,211,153,0.3)]"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    In-Built Website Form
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm({
+                        ...form,
+                        registrationMode: "external",
+                        registerUrl: form.registerUrl?.startsWith("/events/") ? "" : form.registerUrl,
+                      })
+                    }
+                    className={`flex-1 min-w-0 px-2 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-xs font-mono font-bold text-center leading-tight transition-all ${
+                      form.registrationMode === "external"
+                        ? "bg-cyan-500 text-black shadow-[0_0_12px_rgba(6,182,212,0.3)]"
+                        : "text-gray-400 hover:text-white"
+                    }`}
+                  >
+                    External Link
+                  </button>
+                </div>
+              </div>
+
+              {form.registrationMode === "external" ? (
+                <div>
+                  <label className={labelCls}>External Registration URL (CTA)</label>
+                  <input
+                    type="url"
+                    value={form.registerUrl || ""}
+                    onChange={(e) => setForm({ ...form, registerUrl: e.target.value })}
+                    placeholder="https://devfolio.co/... or https://forms.gle/..."
+                    className={inputCls}
+                  />
+                  <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                    Attendees clicking &quot;Register&quot; will be redirected directly to this external website.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="min-w-0">
+                    <label className={labelCls}>Event Slug & Dedicated Page URL</label>
+                    <div className="flex flex-col sm:flex-row items-stretch gap-2 min-w-0">
+                      <span className="hidden sm:inline-flex items-center justify-center text-xs font-mono text-gray-400 bg-white/5 border border-white/10 px-3 py-2.5 rounded-xl shrink-0">
+                        /events/
+                      </span>
+                      <span className="sm:hidden text-[10px] font-mono text-gray-500">/events/</span>
+                      <input
+                        type="text"
+                        value={form.slug || ""}
+                        onChange={(e) => {
+                          const s = generateEventSlug(e.target.value);
+                          setForm({
+                            ...form,
+                            slug: s,
+                            registerUrl: `/events/${s}/register`,
+                          });
+                        }}
+                        placeholder="workshop-title-2026"
+                        className={`${inputCls} font-mono min-w-0 flex-1`}
+                      />
+                      <span className="hidden sm:inline-flex items-center justify-center text-xs font-mono text-gray-400 bg-white/5 border border-white/10 px-3 py-2.5 rounded-xl shrink-0">
+                        /register
+                      </span>
+                      <span className="sm:hidden text-[10px] font-mono text-gray-500 self-end">/register</span>
+                    </div>
+                    {form.slug && (
+                      <div className="mt-1 text-[11px] font-mono text-emerald-400 flex items-center gap-1.5">
+                        <span>Page URL:</span>
+                        <a
+                          href={`/events/${form.slug}/register`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline hover:text-emerald-300 inline-flex items-center gap-1"
+                        >
+                          /events/{form.slug}/register <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Form Fields Builder */}
+                  <div className="pt-4 border-t border-white/10">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <div>
+                        <label className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-300 block">
+                          Custom Form Fields Builder
+                        </label>
+                        <p className="text-[11px] font-mono text-gray-400">
+                          Standard identity fields (Name, College Email, Roll No, Dept, Year, Phone) are always collected. Configure additional fields below.
+                        </p>
+                      </div>
+
+                      {/* Quick presets */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] font-mono text-gray-500">Presets:</span>
+                        <button
+                          type="button"
+                          onClick={() => addPresetField("laptop")}
+                          className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-emerald-300 border border-emerald-500/20"
+                        >
+                          + Laptop
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addPresetField("github")}
+                          className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-cyan-300 border border-cyan-500/20"
+                        >
+                          + GitHub
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addPresetField("skillLevel")}
+                          className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-violet-300 border border-violet-500/20"
+                        >
+                          + Skill
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addPresetField("team")}
+                          className="text-[10px] font-mono px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-amber-300 border border-amber-500/20"
+                        >
+                          + Team
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {(form.customFields ?? []).map((field, idx) => (
+                        <div
+                          key={field.id || idx}
+                          draggable
+                          onDragStart={() => handleFieldDragStart(idx)}
+                          onDragOver={(e) => handleFieldDragOver(e, idx)}
+                          onDrop={(e) => handleFieldDrop(e, idx)}
+                          onDragEnd={handleFieldDragEnd}
+                          className={`rounded-xl border bg-white/[0.02] p-3.5 space-y-3 transition-all ${draggedFieldIdx === idx ? "border-emerald-500/50 bg-emerald-500/5 opacity-60" : "border-white/10"}`}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                draggable
+                                onDragStart={(e) => {
+                                  e.stopPropagation();
+                                  handleFieldDragStart(idx);
+                                }}
+                                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white cursor-grab active:cursor-grabbing transition-colors"
+                                title="Drag to reorder"
+                                aria-label="Drag to reorder"
+                              >
+                                <GripVertical className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="text-[10px] font-mono font-bold text-gray-500 uppercase tracking-wider">Field {idx + 1}</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeCustomField(idx)}
+                              className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                              title="Remove field"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 items-end">
+                            <div className="lg:col-span-5">
+                              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                                Field Question / Label *
+                              </label>
+                              <input
+                                type="text"
+                                value={field.label}
+                                onChange={(e) =>
+                                  updateCustomField(idx, { label: e.target.value })
+                                }
+                                placeholder="e.g. Will you bring a laptop?"
+                                className={inputCls}
+                              />
+                            </div>
+
+                            <div className="lg:col-span-4">
+                              <label className="text-[10px] font-mono text-gray-400 block mb-1">
+                                Input Data Type *
+                              </label>
+                              <select
+                                value={field.type}
+                                onChange={(e) =>
+                                  updateCustomField(idx, {
+                                    type: e.target.value as CustomFieldType,
+                                  })
+                                }
+                                className={selectCls}
+                              >
+                                <option value="text">Short Text (text)</option>
+                                <option value="textarea">Paragraph / Long Text (textarea)</option>
+                                <option value="select">Dropdown Menu (select)</option>
+                                <option value="radio">Radio Buttons (radio)</option>
+                                <option value="checkbox">Single Checkbox (checkbox)</option>
+                                <option value="url">URL Link (url)</option>
+                                <option value="number">Numeric (number)</option>
+                              </select>
+                            </div>
+
+                            <div className="lg:col-span-3 flex items-end justify-between gap-2 rounded-xl bg-black/20 border border-white/5 p-2.5">
+                              <label className="flex items-center gap-1.5 cursor-pointer text-xs font-mono text-gray-300 whitespace-nowrap">
+                                <input
+                                  type="checkbox"
+                                  checked={field.required === true}
+                                  onChange={(e) =>
+                                    updateCustomField(idx, { required: e.target.checked })
+                                  }
+                                  className="rounded bg-white/10 border-white/20 text-emerald-400 shrink-0"
+                                />
+                                <span>Required</span>
+                              </label>
+
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => moveCustomField(idx, -1)}
+                                  disabled={idx === 0}
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                  title="Move up"
+                                >
+                                  <ChevronUp className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => moveCustomField(idx, 1)}
+                                  disabled={idx === (form.customFields?.length ?? 0) - 1}
+                                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                  title="Move down"
+                                >
+                                  <ChevronDown className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          {(field.type === "select" || field.type === "radio") && (
+                            <div>
+                              <label className="text-[10px] font-mono text-cyan-400 block mb-1">
+                                Dropdown / Radio Options (comma-separated) *
+                              </label>
+                              <input
+                                type="text"
+                                value={(field.options ?? []).join(", ")}
+                                onChange={(e) =>
+                                  updateCustomField(idx, {
+                                    options: e.target.value
+                                      .split(",")
+                                      .map((s) => s.trim())
+                                      .filter(Boolean),
+                                  })
+                                }
+                                placeholder="e.g. Option 1, Option 2, Option 3"
+                                className={`${inputCls} font-mono text-xs`}
+                              />
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                            <input
+                              type="text"
+                              value={field.placeholder ?? ""}
+                              onChange={(e) =>
+                                updateCustomField(idx, { placeholder: e.target.value })
+                              }
+                              placeholder="Placeholder text (optional)"
+                              className="w-full px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 text-xs font-mono"
+                            />
+                            <input
+                              type="text"
+                              value={field.helpText ?? ""}
+                              onChange={(e) =>
+                                updateCustomField(idx, { helpText: e.target.value })
+                              }
+                              placeholder="Instructions / Help hint (optional)"
+                              className="w-full px-3 py-1.5 rounded-lg bg-black/40 border border-white/10 text-gray-300 text-xs font-mono"
+                            />
+                          </div>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        onClick={addCustomField}
+                        className="w-full py-2.5 rounded-xl border border-dashed border-white/20 hover:border-emerald-400/50 hover:bg-emerald-500/5 text-xs font-mono text-gray-300 hover:text-emerald-300 transition-all flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Add Custom Form Field</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
-              <label className={`${labelCls} text-cyan-400`}>Contact Information</label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <input
-                  type="text"
-                  value={form.contactName ?? ""}
-                  onChange={(e) => setForm({ ...form, contactName: e.target.value })}
-                  placeholder="Contact name"
-                  className={inputCls}
-                />
-                <input
-                  type="email"
-                  value={form.contactEmail ?? ""}
-                  onChange={(e) => setForm({ ...form, contactEmail: e.target.value })}
-                  placeholder="Contact email"
-                  className={inputCls}
-                />
-                <input
-                  type="tel"
-                  value={form.contactPhone ?? ""}
-                  onChange={(e) => setForm({ ...form, contactPhone: e.target.value })}
-                  placeholder="Contact phone"
-                  className={inputCls}
-                />
+              <div className="flex items-center justify-between mb-2">
+                <label className={`${labelCls} text-cyan-400`}>Contact Information (Multiple)</label>
+                <button
+                  type="button"
+                  onClick={addContact}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 text-[10px] font-mono font-bold uppercase tracking-wider transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Add Contact
+                </button>
               </div>
+              {(form.contacts ?? []).length === 0 ? (
+                <p className="text-[11px] font-mono text-gray-500 rounded-xl border border-dashed border-white/10 bg-black/20 px-4 py-4">
+                  No contacts added — add one or more coordinator contacts. Leave empty if not needed.
+                </p>
+              ) : (
+                <div className="space-y-3">
+                  {(form.contacts ?? []).map((contact, idx) => (
+                    <div key={idx} className="rounded-xl border border-white/10 bg-black/30 p-3 space-y-2.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-mono text-cyan-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                          <User className="w-3.5 h-3.5" /> Contact {idx + 1}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeContact(idx)}
+                          className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
+                          title="Remove contact"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="text-[10px] font-mono text-gray-400 block mb-1">Name *</label>
+                          <div className="relative">
+                            <User className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <input
+                              type="text"
+                              value={contact.name ?? ""}
+                              onChange={(e) => updateContact(idx, { name: e.target.value })}
+                              placeholder="Coordinator name"
+                              className={`${inputCls} pl-8`}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-mono text-gray-400 block mb-1">Role (optional)</label>
+                          <input
+                            type="text"
+                            value={contact.role ?? ""}
+                            onChange={(e) => updateContact(idx, { role: e.target.value })}
+                            placeholder="e.g. Event Lead"
+                            className={inputCls}
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-mono text-gray-400 block mb-1">Email</label>
+                          <div className="relative">
+                            <Mail className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <input
+                              type="email"
+                              value={contact.email ?? ""}
+                              onChange={(e) => updateContact(idx, { email: e.target.value })}
+                              placeholder="email@crescent.education"
+                              className={`${inputCls} pl-8`}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-mono text-gray-400 block mb-1">Phone</label>
+                          <div className="relative">
+                            <Phone className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <input
+                              type="tel"
+                              value={contact.phone ?? ""}
+                              onChange={(e) => updateContact(idx, { phone: e.target.value })}
+                              placeholder="+91 98765 43210"
+                              className={`${inputCls} pl-8`}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
               <p className="mt-1.5 text-[11px] font-mono text-gray-500">
-                Optional — shown in the footer of the expanded event details.
+                Shown in the event details footer. Add multiple contacts for different coordinators.
               </p>
             </div>
 

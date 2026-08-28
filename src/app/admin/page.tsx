@@ -18,12 +18,14 @@ import {
   History,
   Crosshair,
   BadgeCheck,
+  Ticket,
 } from "lucide-react";
 import { AdminProvider, useAdmin } from "@/components/admin/admin-context";
 import { hasScopeWithPermissions, ROLE_LABELS } from "@/lib/roles";
 import type { AdminScope } from "@/lib/roles";
 import EventsPanel from "@/components/admin/events-panel";
 import ApplicationsPanel from "@/components/admin/applications-panel";
+import RegistrationsPanel from "@/components/admin/registrations-panel";
 import HostitPanel from "@/components/admin/hostit-panel";
 import UsersPanel from "@/components/admin/users-panel";
 import GalleryPanel from "@/components/admin/gallery-panel";
@@ -35,6 +37,7 @@ type Tab = AdminScope;
 
 const TABS: { id: Tab; label: string; icon: typeof Calendar }[] = [
   { id: "events", label: "Events", icon: Calendar },
+  { id: "registrations", label: "Registrations", icon: Ticket },
   { id: "applications", label: "Join Applications", icon: Users },
   { id: "hostit", label: "Host'It", icon: CalendarClock },
   { id: "users", label: "Users & Roles", icon: Shield },
@@ -310,6 +313,7 @@ function DashboardShell() {
       {/* Content */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 py-6">
         {activeTab === "events" && <EventsPanel />}
+        {activeTab === "registrations" && <RegistrationsPanel />}
         {activeTab === "applications" && <ApplicationsPanel />}
         {activeTab === "hostit" && <HostitPanel />}
         {activeTab === "users" && <UsersPanel />}

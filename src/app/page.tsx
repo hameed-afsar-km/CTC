@@ -29,6 +29,13 @@ export default function Home() {
   const [splashReveal, setSplashReveal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isTouchDevice, setIsTouchDevice] = useState(false);
+  const [isLowMemory, setIsLowMemory] = useState(() => {
+    if (typeof navigator !== "undefined") {
+      const dm = (navigator as unknown as { deviceMemory?: number })?.deviceMemory;
+      return typeof dm === "number" && dm < 4;
+    }
+    return false;
+  });
   const [focusTickerOn, setFocusTickerOn] = useState(false);
 
   // Detect touch/pointer-coarse devices (mobile/Android) — run once on mount
@@ -41,6 +48,14 @@ export default function Home() {
       window.clearTimeout(t);
       mq.removeEventListener("change", handler);
     };
+  }, []);
+
+  // Detect low-RAM devices (<4GB) — remove cursor blur orb to save GPU/memory
+  useEffect(() => {
+    const dm = (navigator as unknown as { deviceMemory?: number })?.deviceMemory;
+    if (typeof dm === "number" && dm < 4) {
+      setIsLowMemory(true);
+    }
   }, []);
 
   const navRef = useRef<HTMLElement>(null);
@@ -108,8 +123,11 @@ export default function Home() {
   }, []);
 
   // Global Liquid Smudge Cursor Effect — distorts page content directly under mouse pointer on movement, decaying back to sharp 0 on stop
+  // Disabled entirely on low-RAM devices (<4GB) where the blur orb is removed to save GPU/memory.
   useEffect(() => {
     if (!splashDone) return;
+    // Skip blur-orb physics on touch or low-memory devices; PNG cursor still handled via its own quickTo below if needed
+    const blurDisabled = isLowMemory || isTouchDevice;
 
     let prevX = 0;
     let prevY = 0;
@@ -127,7 +145,7 @@ export default function Home() {
       quickPngX = gsap.quickTo(cursorPngRef.current, "x", { duration: 0.08, ease: "power2.out" });
       quickPngY = gsap.quickTo(cursorPngRef.current, "y", { duration: 0.08, ease: "power2.out" });
     }
-    if (cursorLensRef.current) {
+    if (!blurDisabled && cursorLensRef.current) {
       gsap.set(cursorLensRef.current, { xPercent: -50, yPercent: -50 });
       quickLensX = gsap.quickTo(cursorLensRef.current, "x", { duration: 0.18, ease: "power2.out" });
       quickLensY = gsap.quickTo(cursorLensRef.current, "y", { duration: 0.18, ease: "power2.out" });
@@ -162,63 +180,72 @@ export default function Home() {
       // Position cursor PNG overlay and liquid lens centered exactly on cursor pointer
       quickPngX?.(x);
       quickPngY?.(y);
-      quickLensX?.(x);
-      quickLensY?.(y);
+      if (!blurDisabled) {
+        quickLensX?.(x);
+        quickLensY?.(y);
+      }
 
-      // Compute cursor velocity
-      const vx = x - prevX;
-      const vy = y - prevY;
-      const speed = Math.sqrt(vx * vx + vy * vy);
-      prevX = x;
-      prevY = y;
+      // Compute cursor velocity — only for blur orb displacement (skip on low-RAM)
+      if (!blurDisabled) {
+        const vx = x - prevX;
+        const vy = y - prevY;
+        const speed = Math.sqrt(vx * vx + vy * vy);
+        prevX = x;
+        prevY = y;
 
-      if (speed > 0.8) {
-        const targetScale = Math.min(speed * 1.6 + 14, 52);
+        if (speed > 0.8) {
+          const targetScale = Math.min(speed * 1.6 + 14, 52);
 
-        gsap.to(animProxy, {
-          scale: targetScale,
-          lensSize: 1.12,
-          duration: 0.12,
-          ease: "power1.out",
-          onUpdate: () => {
-            if (cursorDisplacementRef.current) {
-              cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
-            }
-          },
-        });
-
-        // Decay scale back to 0 when cursor stops
-        if (stopTimer) clearTimeout(stopTimer);
-        stopTimer = setTimeout(() => {
           gsap.to(animProxy, {
-            scale: 0,
-            lensSize: 0.8,
-            duration: 0.6,
-            ease: "power3.out",
+            scale: targetScale,
+            lensSize: 1.12,
+            duration: 0.12,
+            ease: "power1.out",
             onUpdate: () => {
               if (cursorDisplacementRef.current) {
                 cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
               }
             },
           });
-        }, 55);
+
+          // Decay scale back to 0 when cursor stops
+          if (stopTimer) clearTimeout(stopTimer);
+          stopTimer = setTimeout(() => {
+            gsap.to(animProxy, {
+              scale: 0,
+              lensSize: 0.8,
+              duration: 0.6,
+              ease: "power3.out",
+              onUpdate: () => {
+                if (cursorDisplacementRef.current) {
+                  cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
+                }
+              },
+            });
+          }, 55);
+        }
+      } else {
+        prevX = x;
+        prevY = y;
       }
     };
 
     const handleMouseLeave = () => {
       setCursorVisible(false);
       if (stopTimer) clearTimeout(stopTimer);
-      gsap.to(animProxy, {
-        scale: 0,
-        lensSize: 0.5,
-        duration: 0.5,
-        ease: "power2.out",
-        onUpdate: () => {
-          if (cursorDisplacementRef.current) {
-            cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
-          }
-        },
-      });
+      if (!blurDisabled) {
+        gsap.to(animProxy, {
+          scale: 0,
+          lensSize: 0.5,
+          duration: 0.5,
+          ease: "power2.out",
+          onUpdate: () => {
+            if (cursorDisplacementRef.current) {
+              cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
+            }
+          },
+        });
+      }
     };
 
     window.addEventListener("mousemove", handleWindowMouseMove);
@@ -229,7 +256,7 @@ export default function Home() {
       document.removeEventListener("mouseleave", handleMouseLeave);
       if (stopTimer) clearTimeout(stopTimer);
     };
-  }, [splashDone, cursorVisible]);
+  }, [splashDone, cursorVisible, isLowMemory, isTouchDevice]);
 
   // Mac UI hover — rotate the cursor PNG 40° counter-clockwise and drop the smudge lens
   useEffect(() => {
@@ -786,14 +813,13 @@ export default function Home() {
         start={splashDone}
         onResolved={() => {
           setMusicResolved(true);
-          setShowWelcomeTour(true);
         }}
       />
 
-      {/* Welcome tour — question-mark toggle at the bottom left (fades in after splash & music resolved) */}
+      {/* Welcome tour — question-mark toggle at the bottom left (fades in after splash & music resolved) — manual open only */}
       <WelcomeTour
         start={splashDone && musicResolved}
-        autoOpen={showWelcomeTour}
+        autoOpen={false}
         onActiveChange={setTourActive}
         onAutoOpen={() => setShowWelcomeTour(false)}
       />
@@ -1173,8 +1199,8 @@ export default function Home() {
       {/* Large Typography Animated Home Footer */}
       <HomeFooter />
 
-      {/* Liquid Smudge Cursor Lens — hidden on touch/mobile devices */}
-      {!isTouchDevice && (
+      {/* Liquid Smudge Cursor Lens — hidden on touch/mobile and low-RAM (<4GB) devices to save GPU/memory */}
+      {!isTouchDevice && !isLowMemory && (
         <div
           ref={cursorLensRef}
           className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[9999] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
@@ -1186,8 +1212,8 @@ export default function Home() {
         />
       )}
 
-      {/* Cursor PNG Overlay — hidden on touch/mobile devices */}
-      {!isTouchDevice && (
+      {/* Cursor PNG Overlay — disabled: system cursor now uses cursor.png via CSS (globals.css) */}
+      {false && !isTouchDevice && (
         <div
           ref={cursorPngRef}
           className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[9999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
@@ -1202,29 +1228,31 @@ export default function Home() {
         </div>
       )}
 
-      {/* SVG Liquid Smudge Displacement Filter */}
-      <svg className="fixed w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true" style={{ position: "fixed", width: 0, height: 0 }}>
-        <defs>
-          <filter id="cursor-liquid-smudge" x="-20%" y="-20%" width="140%" height="140%">
-            <feTurbulence
-              type="fractalNoise"
-              baseFrequency="0.035 0.035"
-              numOctaves="2"
-              result="noise"
-            />
-            <feDisplacementMap
-              ref={cursorDisplacementRef}
-              in="SourceGraphic"
-              in2="noise"
-              scale="0"
-              xChannelSelector="R"
-              yChannelSelector="G"
-              result="displaced"
-            />
-            <feGaussianBlur in="displaced" stdDeviation="2" />
-          </filter>
-        </defs>
-      </svg>
+      {/* SVG Liquid Smudge Displacement Filter — not mounted on low-RAM devices */}
+      {!isTouchDevice && !isLowMemory && (
+        <svg className="fixed w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true" style={{ position: "fixed", width: 0, height: 0 }}>
+          <defs>
+            <filter id="cursor-liquid-smudge" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence
+                type="fractalNoise"
+                baseFrequency="0.035 0.035"
+                numOctaves="2"
+                result="noise"
+              />
+              <feDisplacementMap
+                ref={cursorDisplacementRef}
+                in="SourceGraphic"
+                in2="noise"
+                scale="0"
+                xChannelSelector="R"
+                yChannelSelector="G"
+                result="displaced"
+              />
+              <feGaussianBlur in="displaced" stdDeviation="2" />
+            </filter>
+          </defs>
+        </svg>
+      )}
 
       <style jsx global>{`
         .holo-border-wrapper {

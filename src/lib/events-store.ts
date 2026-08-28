@@ -22,7 +22,22 @@ export async function deleteEvent(id: string, token?: string | null): Promise<bo
   return deleteDocument(COLLECTION, id, token);
 }
 
+import { defaultEvents } from "./events";
+
 export async function getEventById(id: string): Promise<ClubEvent | null> {
   const events = await getEvents();
-  return events.find((e) => e.id === id) || null;
+  const found = events.find((e) => e.id === id);
+  if (found) return found;
+  return defaultEvents.find((e) => e.id === id) || null;
+}
+
+export async function getEventBySlugOrId(slugOrId: string): Promise<ClubEvent | null> {
+  const clean = slugOrId.trim().toLowerCase();
+  const events = await getEvents();
+  const allEvents = events.length > 0 ? events : defaultEvents;
+  return (
+    allEvents.find(
+      (e) => (e.slug && e.slug.toLowerCase() === clean) || e.id.toLowerCase() === clean
+    ) || null
+  );
 }

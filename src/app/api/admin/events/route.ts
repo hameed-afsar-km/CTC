@@ -44,15 +44,23 @@ export async function POST(request: Request) {
     if (!body.title || !body.date) {
       return NextResponse.json({ error: "title and date are required" }, { status: 400 });
     }
+    const slug = (body.slug || "").trim() || (body.title ? body.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : `evt-${Date.now()}`);
+    const registrationMode = body.registrationMode === "external" ? "external" : "inbuilt";
+    const registerUrl = registrationMode === "inbuilt"
+      ? `/events/${slug}/register`
+      : (body.registerUrl ?? "#");
+
     const event: ClubEvent = {
-      id: body.id ?? `evt-${Date.now()}`,
+      id: body.id ?? slug,
       title: body.title,
+      slug,
       description: body.description ?? "",
       image: body.image ?? "/assets/hero_3d.png",
       category: body.category ?? "Event",
       venue: body.venue ?? "Crescent Campus",
       date: body.date,
-      registerUrl: body.registerUrl ?? "#",
+      registrationMode,
+      registerUrl,
       registrationDeadline:
         typeof body.registrationDeadline === "string" && body.registrationDeadline.trim()
           ? body.registrationDeadline
@@ -65,6 +73,7 @@ export async function POST(request: Request) {
       dos: Array.isArray(body.dos) ? body.dos : [],
       donts: Array.isArray(body.donts) ? body.donts : [],
       schedule: Array.isArray(body.schedule) ? body.schedule : [],
+      customFields: Array.isArray(body.customFields) ? body.customFields : [],
     };
     await saveEvent(event, token);
     await logAction(
