@@ -28,35 +28,7 @@ export default function Home() {
   const [showWelcomeTour, setShowWelcomeTour] = useState(false);
   const [splashReveal, setSplashReveal] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const [isLowMemory, setIsLowMemory] = useState(() => {
-    if (typeof navigator !== "undefined") {
-      const dm = (navigator as unknown as { deviceMemory?: number })?.deviceMemory;
-      return typeof dm === "number" && dm < 4;
-    }
-    return false;
-  });
   const [focusTickerOn, setFocusTickerOn] = useState(false);
-
-  // Detect touch/pointer-coarse devices (mobile/Android) — run once on mount
-  useEffect(() => {
-    const mq = window.matchMedia("(pointer: coarse)");
-    const t = window.setTimeout(() => setIsTouchDevice(mq.matches), 0);
-    const handler = (e: MediaQueryListEvent) => setIsTouchDevice(e.matches);
-    mq.addEventListener("change", handler);
-    return () => {
-      window.clearTimeout(t);
-      mq.removeEventListener("change", handler);
-    };
-  }, []);
-
-  // Detect low-RAM devices (<4GB) — remove cursor blur orb to save GPU/memory
-  useEffect(() => {
-    const dm = (navigator as unknown as { deviceMemory?: number })?.deviceMemory;
-    if (typeof dm === "number" && dm < 4) {
-      setIsLowMemory(true);
-    }
-  }, []);
 
   const navRef = useRef<HTMLElement>(null);
   const navWrapRef = useRef<HTMLDivElement>(null);
@@ -92,18 +64,6 @@ export default function Home() {
     { id: 4, size: 300, speed: 22, tiltX: 45, tiltY: -30, borderOpacity: 0.4, delay: 0.8 },
   ], []);
 
-  const cursorLensRef = useRef<HTMLDivElement>(null);
-  const cursorPngRef = useRef<HTMLDivElement>(null);
-  const cursorDisplacementRef = useRef<SVGFEDisplacementMapElement>(null);
-  const cursorAllowedRef = useRef(false);
-  const navHoverRef = useRef(false);
-  const macHoverRef = useRef(false);
-  const [cursorVisible, setCursorVisible] = useState(false);
-  const [navHover, setNavHover] = useState(false);
-  const [macHover, setMacHover] = useState(false);
-  // True while the first-visit welcome tour overlay is open — pauses the smudge cursor lens.
-  const [tourActive, setTourActive] = useState(false);
-
   const scrollToTop = (e: React.MouseEvent<HTMLAnchorElement>) => {
     e.preventDefault();
     if (lenis) {
@@ -112,161 +72,6 @@ export default function Home() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
-
-  // Keep the custom cursor hidden for the first 4 seconds after load
-  useEffect(() => {
-    const t = setTimeout(() => {
-      cursorAllowedRef.current = true;
-      setCursorVisible(true);
-    }, 4000);
-    return () => clearTimeout(t);
-  }, []);
-
-  // Global Liquid Smudge Cursor Effect — distorts page content directly under mouse pointer on movement, decaying back to sharp 0 on stop
-  // Disabled entirely on low-RAM devices (<4GB) where the blur orb is removed to save GPU/memory.
-  useEffect(() => {
-    if (!splashDone) return;
-    // Skip blur-orb physics on touch or low-memory devices; PNG cursor still handled via its own quickTo below if needed
-    const blurDisabled = isLowMemory || isTouchDevice;
-
-    let prevX = 0;
-    let prevY = 0;
-    let stopTimer: NodeJS.Timeout | null = null;
-    const animProxy = { scale: 0, lensSize: 0.8 };
-
-    // Pre-create quickTo tweens so moving the cursor never allocates new tweens.
-    let quickPngX: ReturnType<typeof gsap.quickTo> | null = null;
-    let quickPngY: ReturnType<typeof gsap.quickTo> | null = null;
-    let quickLensX: ReturnType<typeof gsap.quickTo> | null = null;
-    let quickLensY: ReturnType<typeof gsap.quickTo> | null = null;
-
-    if (cursorPngRef.current) {
-      gsap.set(cursorPngRef.current, { xPercent: -50, yPercent: -50 });
-      quickPngX = gsap.quickTo(cursorPngRef.current, "x", { duration: 0.08, ease: "power2.out" });
-      quickPngY = gsap.quickTo(cursorPngRef.current, "y", { duration: 0.08, ease: "power2.out" });
-    }
-    if (!blurDisabled && cursorLensRef.current) {
-      gsap.set(cursorLensRef.current, { xPercent: -50, yPercent: -50 });
-      quickLensX = gsap.quickTo(cursorLensRef.current, "x", { duration: 0.18, ease: "power2.out" });
-      quickLensY = gsap.quickTo(cursorLensRef.current, "y", { duration: 0.18, ease: "power2.out" });
-    }
-
-    const handleWindowMouseMove = (e: MouseEvent) => {
-      const x = e.clientX;
-      const y = e.clientY;
-
-      if (cursorAllowedRef.current && !cursorVisible) setCursorVisible(true);
-
-      // Hide the smudge orb while hovering over the navbar
-      const overNav = !!navRef.current && navRef.current.contains(e.target as Node);
-      if (overNav !== navHoverRef.current) {
-        navHoverRef.current = overNav;
-        setNavHover(overNav);
-      }
-
-      // Interactive elements: swap to the rotated cursor PNG and drop the smudge lens
-      const targetEl = e.target as Element | null;
-      const overMac =
-        !!targetEl &&
-        typeof targetEl.closest === "function" &&
-        !!targetEl.closest(
-          "a[href], button, [role='button'], input, textarea, select, [data-mac-ui]"
-        );
-      if (overMac !== macHoverRef.current) {
-        macHoverRef.current = overMac;
-        setMacHover(overMac);
-      }
-
-      // Position cursor PNG overlay and liquid lens centered exactly on cursor pointer
-      quickPngX?.(x);
-      quickPngY?.(y);
-      if (!blurDisabled) {
-        quickLensX?.(x);
-        quickLensY?.(y);
-      }
-
-      // Compute cursor velocity — only for blur orb displacement (skip on low-RAM)
-      if (!blurDisabled) {
-        const vx = x - prevX;
-        const vy = y - prevY;
-        const speed = Math.sqrt(vx * vx + vy * vy);
-        prevX = x;
-        prevY = y;
-
-        if (speed > 0.8) {
-          const targetScale = Math.min(speed * 1.6 + 14, 52);
-
-          gsap.to(animProxy, {
-            scale: targetScale,
-            lensSize: 1.12,
-            duration: 0.12,
-            ease: "power1.out",
-            onUpdate: () => {
-              if (cursorDisplacementRef.current) {
-                cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
-              }
-            },
-          });
-
-          // Decay scale back to 0 when cursor stops
-          if (stopTimer) clearTimeout(stopTimer);
-          stopTimer = setTimeout(() => {
-            gsap.to(animProxy, {
-              scale: 0,
-              lensSize: 0.8,
-              duration: 0.6,
-              ease: "power3.out",
-              onUpdate: () => {
-                if (cursorDisplacementRef.current) {
-                  cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
-                }
-              },
-            });
-          }, 55);
-        }
-      } else {
-        prevX = x;
-        prevY = y;
-      }
-    };
-
-    const handleMouseLeave = () => {
-      setCursorVisible(false);
-      if (stopTimer) clearTimeout(stopTimer);
-      if (!blurDisabled) {
-        gsap.to(animProxy, {
-          scale: 0,
-          lensSize: 0.5,
-          duration: 0.5,
-          ease: "power2.out",
-          onUpdate: () => {
-            if (cursorDisplacementRef.current) {
-              cursorDisplacementRef.current.setAttribute("scale", `${animProxy.scale}`);
-            }
-          },
-        });
-      }
-    };
-
-    window.addEventListener("mousemove", handleWindowMouseMove);
-    document.addEventListener("mouseleave", handleMouseLeave);
-
-    return () => {
-      window.removeEventListener("mousemove", handleWindowMouseMove);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-      if (stopTimer) clearTimeout(stopTimer);
-    };
-  }, [splashDone, cursorVisible, isLowMemory, isTouchDevice]);
-
-  // Mac UI hover — rotate the cursor PNG 40° counter-clockwise and drop the smudge lens
-  useEffect(() => {
-    if (!splashDone || !cursorPngRef.current) return;
-    gsap.to(cursorPngRef.current, {
-      rotation: macHover ? -40 : 0,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  }, [macHover, splashDone]);
 
   // Interactive Particle Constellation + Mouse Spotlight — drifting particles link into a constellation,
   // scatter away from the cursor, and a soft mint glow follows the mouse around the hero
@@ -820,7 +625,6 @@ export default function Home() {
       <WelcomeTour
         start={splashDone && musicResolved}
         autoOpen={false}
-        onActiveChange={setTourActive}
         onAutoOpen={() => setShowWelcomeTour(false)}
       />
 
@@ -1198,61 +1002,6 @@ export default function Home() {
 
       {/* Large Typography Animated Home Footer */}
       <HomeFooter />
-
-      {/* Liquid Smudge Cursor Lens — hidden on touch/mobile and low-RAM (<4GB) devices to save GPU/memory */}
-      {!isTouchDevice && !isLowMemory && (
-        <div
-          ref={cursorLensRef}
-          className="fixed top-0 left-0 w-28 h-28 sm:w-36 sm:h-36 rounded-full pointer-events-none z-[9999] transition-opacity duration-300 shadow-2xl border border-black/10 -translate-x-1/2 -translate-y-1/2"
-          style={{
-            backdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
-            WebkitBackdropFilter: "url(#cursor-liquid-smudge) blur(2px) contrast(140%)",
-            opacity: cursorVisible && !navHover && !macHover && !tourActive ? 1 : 0,
-          }}
-        />
-      )}
-
-      {/* Cursor PNG Overlay — disabled: system cursor now uses cursor.png via CSS (globals.css) */}
-      {false && !isTouchDevice && (
-        <div
-          ref={cursorPngRef}
-          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[9999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
-          style={{ opacity: cursorVisible ? 1 : 0 }}
-        >
-          <img
-            src="/assets/cursor.png"
-            alt=""
-            className="w-full h-full object-contain"
-            draggable={false}
-          />
-        </div>
-      )}
-
-      {/* SVG Liquid Smudge Displacement Filter — not mounted on low-RAM devices */}
-      {!isTouchDevice && !isLowMemory && (
-        <svg className="fixed w-0 h-0 overflow-hidden pointer-events-none" aria-hidden="true" style={{ position: "fixed", width: 0, height: 0 }}>
-          <defs>
-            <filter id="cursor-liquid-smudge" x="-20%" y="-20%" width="140%" height="140%">
-              <feTurbulence
-                type="fractalNoise"
-                baseFrequency="0.035 0.035"
-                numOctaves="2"
-                result="noise"
-              />
-              <feDisplacementMap
-                ref={cursorDisplacementRef}
-                in="SourceGraphic"
-                in2="noise"
-                scale="0"
-                xChannelSelector="R"
-                yChannelSelector="G"
-                result="displaced"
-              />
-              <feGaussianBlur in="displaced" stdDeviation="2" />
-            </filter>
-          </defs>
-        </svg>
-      )}
 
       <style jsx global>{`
         .holo-border-wrapper {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Calendar, Clock, Plus, Trash2, Edit2, Save, X, CheckCircle, Sparkles, ImagePlus, Loader2, UploadCloud, Search, Ticket, ExternalLink, ChevronUp, ChevronDown, Phone, Mail, User, IndianRupee, Award, Trophy, Utensils, GripVertical } from "lucide-react";
+import { Calendar, Clock, Plus, Trash2, Edit2, Save, X, CheckCircle, Sparkles, ImagePlus, Loader2, UploadCloud, Search, Ticket, ExternalLink, ChevronUp, ChevronDown, Phone, Mail, User, IndianRupee, Award, Trophy, Utensils, GripVertical, MessagesSquare } from "lucide-react";
 import type { ClubEvent, EventCustomField, CustomFieldType, EventContact } from "@/lib/events";
 import { generateEventSlug, DEFAULT_WORKSHOP_FIELDS } from "@/lib/events";
 import { useAdmin } from "./admin-context";
@@ -44,6 +44,7 @@ export default function EventsPanel() {
     date: DEFAULT_EVENT_DATE,
     registrationMode: "inbuilt",
     registerUrl: "#",
+    whatsappGroupLink: "",
     registrationDeadline: "",
     featured: false,
     contactName: "",
@@ -157,6 +158,7 @@ export default function EventsPanel() {
       registerUrl: regMode === "inbuilt" ? `/events/${slug}/register` : event.registerUrl,
       registrationDeadline: regLocalIso,
       featured: event.featured === true,
+      whatsappGroupLink: event.whatsappGroupLink ?? "",
       contactName: event.contactName ?? "",
       contactEmail: event.contactEmail ?? "",
       contactPhone: event.contactPhone ?? "",
@@ -194,6 +196,7 @@ export default function EventsPanel() {
       date: new Date(Date.now() + 86400000 * 7).toISOString().slice(0, 16),
       registrationMode: "inbuilt",
       registerUrl: "#",
+      whatsappGroupLink: "",
       registrationDeadline: "",
       featured: false,
       contactName: "",
@@ -450,6 +453,7 @@ export default function EventsPanel() {
         date: new Date(form.date).toISOString(),
         registrationMode: regMode,
         registerUrl,
+        whatsappGroupLink: form.whatsappGroupLink?.trim() || undefined,
         registrationDeadline: form.registrationDeadline
           ? new Date(form.registrationDeadline).toISOString()
           : undefined,
@@ -822,6 +826,32 @@ export default function EventsPanel() {
                   />
                 </div>
               )}
+            </div>
+
+            {/* WhatsApp Group Link */}
+            <div className="rounded-2xl border border-white/10 bg-[#122a1a]/40 p-4">
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="h-8 w-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-300 shrink-0">
+                  <MessagesSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-white">WhatsApp Group Link</p>
+                  <p className="text-[11px] font-mono text-gray-500">
+                    Shown to students right after they register for this event.
+                  </p>
+                </div>
+              </div>
+              <input
+                type="url"
+                value={form.whatsappGroupLink ?? ""}
+                onChange={(e) => setForm({ ...form, whatsappGroupLink: e.target.value })}
+                placeholder="https://chat.whatsapp.com/..."
+                className={inputCls}
+              />
+              <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                Optional — attendees will see a &quot;Join WhatsApp Group&quot; button once their
+                registration is confirmed.
+              </p>
             </div>
 
             <div>

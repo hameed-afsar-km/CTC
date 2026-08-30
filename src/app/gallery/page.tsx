@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { gsap } from "gsap";
 import Image from "next/image";
 import Link from "next/link";
 import type { GalleryItem } from "@/lib/gallery-store";
@@ -89,52 +88,6 @@ function uploadedToYears(items: GalleryItem[]): GalleryYear[] {
 }
 
 export default function GalleryPage() {
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const cursorPngRef = useRef<HTMLDivElement>(null);
-  const fsCursorRef = useRef<HTMLDivElement>(null);
-  const macHoverRef = useRef(false);
-  const [cursorVisible, setCursorVisible] = useState(false);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(pointer: coarse)");
-    const t = window.setTimeout(() => setIsTouchDevice(mq.matches), 0);
-    const handler = (e: MediaQueryListEvent) => setIsTouchDevice(e.matches);
-    mq.addEventListener("change", handler);
-    return () => {
-      window.clearTimeout(t);
-      mq.removeEventListener("change", handler);
-    };
-  }, []);
-
-  useEffect(() => {
-    const move = (el: HTMLDivElement | null, x: number, y: number) => {
-      if (!el) return;
-      gsap.to(el, { x, y, duration: 0.15, ease: "power2.out" });
-    };
-    const handleMouseMove = (e: MouseEvent) => {
-      setCursorVisible(true);
-      move(cursorPngRef.current, e.clientX, e.clientY);
-      move(fsCursorRef.current, e.clientX, e.clientY);
-      const targetEl = e.target as Element | null;
-      const overInteractive =
-        !!targetEl && !!targetEl.closest("a, button, [role='button']");
-      if (overInteractive !== macHoverRef.current) {
-        macHoverRef.current = overInteractive;
-      }
-    };
-    const handleMouseLeave = () => setCursorVisible(false);
-    window.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseleave", handleMouseLeave);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
-
-  const [viewerEvent, setViewerEvent] = useState<GalleryEvent | null>(null);
-  const [slideIndex, setSlideIndex] = useState(0);
-  const [slideshowOpen, setSlideshowOpen] = useState(false);
-  const [autoplay, setAutoplay] = useState(true);
   const [fsOpen, setFsOpen] = useState(false);
   const [isFs, setIsFs] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
@@ -346,17 +299,6 @@ export default function GalleryPage() {
     animation: `slideshow-progress ${SLIDE_MS}ms linear forwards`,
     animationPlayState: autoplay ? "running" : "paused",
   };
-
-  const cursorPng = (
-    <Image
-      src="/assets/cursor.png"
-      alt=""
-      width={48}
-      height={48}
-      className="w-full h-full object-contain"
-      draggable={false}
-    />
-  );
 
   return (
     <div
@@ -848,27 +790,6 @@ export default function GalleryPage() {
               <ChevronRight className="h-6 w-6" />
             </button>
           </div>
-
-          {!isTouchDevice && (
-            <div
-              ref={fsCursorRef}
-              className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300"
-              style={{ opacity: cursorVisible ? 1 : 0 }}
-            >
-              {cursorPng}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Custom Cursor */}
-      {!isTouchDevice && (
-        <div
-          ref={cursorPngRef}
-          className="fixed top-0 left-0 z-[99] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference"
-          style={{ opacity: cursorVisible && !fsOpen ? 1 : 0 }}
-        >
-          {cursorPng}
         </div>
       )}
 

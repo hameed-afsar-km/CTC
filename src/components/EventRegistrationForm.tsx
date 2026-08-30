@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   GoogleAuthProvider,
   signInWithPopup,
@@ -25,6 +25,10 @@ import {
   LogOut,
   CalendarPlus,
   Download,
+  MessageCircle,
+  X,
+  Minimize2,
+  Maximize2,
 } from "lucide-react";
 import { QRCodeCanvas, QRCodeSVG } from "qrcode.react";
 import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
@@ -133,6 +137,20 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // WhatsApp Popup Modal State (collapsible pop up shown on registration)
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [isModalCollapsed, setIsModalCollapsed] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showWhatsAppModal) {
+        setShowWhatsAppModal(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showWhatsAppModal]);
 
   const passRef = useRef<HTMLDivElement>(null);
 
@@ -669,6 +687,8 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
       }
 
       setExistingRegistration(data.registration);
+      setShowWhatsAppModal(true);
+      setIsModalCollapsed(false);
     } catch (err) {
       console.error("Submission failed:", err);
       setFormError("Network error. Please try again.");
@@ -943,6 +963,50 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
                         </p>
                       </div>
                     </div>
+
+                    {/* WhatsApp Group Invite */}
+                    {activeEvent.whatsappGroupLink && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="rounded-2xl bg-[#073d1e]/60 border-2 border-[#25D366]/40 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 shadow-[0_0_30px_rgba(37,211,102,0.12)]"
+                      >
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 shrink-0">
+                          <MessageCircle className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-sm font-bold text-white">
+                            Join the {activeEvent.title} WhatsApp Group
+                          </h3>
+                          <p className="text-[11px] font-mono text-gray-400 mt-0.5">
+                            Get instant updates, announcements, and reminders about the event.
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowWhatsAppModal(true);
+                              setIsModalCollapsed(false);
+                            }}
+                            title="Open WhatsApp Group details modal"
+                            className="p-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-300 hover:text-white transition-colors flex items-center justify-center"
+                          >
+                            <Maximize2 className="w-4 h-4" />
+                          </button>
+                          <a
+                            href={activeEvent.whatsappGroupLink}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-black text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-95"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                            <span>Join Group</span>
+                          </a>
+                        </div>
+                      </motion.div>
+                    )}
 
                     {/* Pass Card */}
                     <div
@@ -1433,6 +1497,152 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
           </div>
         )}
       </main>
+
+      {/* Collapsible WhatsApp Pop-up Modal */}
+      <AnimatePresence>
+        {showWhatsAppModal && !isModalCollapsed && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowWhatsAppModal(false)}
+              className="fixed inset-0 bg-black/80 backdrop-blur-md"
+            />
+
+            {/* Modal Card */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 16 }}
+              transition={{ type: "spring", duration: 0.4, bounce: 0.2 }}
+              className="relative w-full max-w-md rounded-3xl bg-[#09110d]/95 border-2 border-[#25D366]/40 p-6 sm:p-8 shadow-[0_0_60px_rgba(37,211,102,0.25)] text-center overflow-hidden z-10 my-auto"
+            >
+              {/* Background ambient glow */}
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-64 h-64 bg-[#25D366]/15 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Header Controls: Status Badge + Collapse & Close */}
+              <div className="flex items-center justify-between gap-2 mb-6">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#25D366]/15 border border-[#25D366]/30 text-[#25D366] text-[11px] font-mono font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3 h-3" />
+                  Official WhatsApp Group
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalCollapsed(true)}
+                    title="Collapse modal to bottom"
+                    className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5"
+                  >
+                    <Minimize2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowWhatsAppModal(false)}
+                    title="Close"
+                    className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Glowing WhatsApp Icon */}
+              <div className="relative mx-auto mb-5 inline-flex">
+                <div className="absolute inset-0 rounded-3xl bg-[#25D366]/30 blur-xl animate-pulse" />
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-b from-[#25D366]/25 to-[#073d1e]/80 border-2 border-[#25D366]/50 text-[#25D366] shadow-[0_0_30px_rgba(37,211,102,0.3)]">
+                  <MessageCircle className="w-10 h-10" />
+                </div>
+              </div>
+
+              {/* Modal Text matching user request */}
+              <h3 className="font-grotesk text-xl sm:text-2xl font-black text-white leading-snug mb-3">
+                Join the {activeEvent?.title || "Workshop: AI-Assisted Analysis and Visualization of Drug–Cell Response Data"} WhatsApp Group
+              </h3>
+
+              <p className="text-xs sm:text-sm text-gray-300 font-sans leading-relaxed mb-6">
+                Get instant updates, announcements, and reminders about the event.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="space-y-2.5">
+                <a
+                  href={activeEvent?.whatsappGroupLink || "https://chat.whatsapp.com/"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#1ebe5b] text-black font-grotesk font-black text-sm uppercase tracking-wider transition-all shadow-[0_0_30px_rgba(37,211,102,0.4)] active:scale-[0.98]"
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  <span>Join Group</span>
+                </a>
+
+                <button
+                  type="button"
+                  onClick={() => setShowWhatsAppModal(false)}
+                  className="w-full inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-gray-400 hover:text-white font-mono text-xs uppercase tracking-wider transition-colors"
+                >
+                  View Digital Pass
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Collapsed Sticky Bottom Pill */}
+      <AnimatePresence>
+        {showWhatsAppModal && isModalCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 40, scale: 0.95 }}
+            transition={{ type: "spring", duration: 0.3 }}
+            className="fixed bottom-5 right-5 z-[90] max-w-sm sm:max-w-md rounded-2xl bg-[#09110d]/95 border-2 border-[#25D366]/40 p-3.5 shadow-[0_0_35px_rgba(37,211,102,0.25)] backdrop-blur-xl flex items-center gap-3"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/40 shrink-0">
+              <MessageCircle className="w-5 h-5" />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-white truncate">
+                {activeEvent?.title || "Event"} WhatsApp Group
+              </p>
+              <p className="text-[10px] font-mono text-emerald-400/80 truncate">
+                Tap to join group or expand
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <a
+                href={activeEvent?.whatsappGroupLink || "https://chat.whatsapp.com/"}
+                target="_blank"
+                rel="noreferrer"
+                className="px-3 py-1.5 rounded-lg bg-[#25D366] hover:bg-[#1ebe5b] text-black text-xs font-bold font-mono uppercase tracking-wider transition-all"
+              >
+                Join
+              </a>
+              <button
+                type="button"
+                onClick={() => setIsModalCollapsed(false)}
+                title="Expand modal"
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowWhatsAppModal(false)}
+                title="Close"
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

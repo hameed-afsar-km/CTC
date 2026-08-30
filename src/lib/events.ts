@@ -43,6 +43,7 @@ export interface ClubEvent {
   date: string;
   registrationMode?: "inbuilt" | "external";
   registerUrl: string;
+  whatsappGroupLink?: string;
   registrationDeadline?: string;
   featured?: boolean;
   contactName?: string;

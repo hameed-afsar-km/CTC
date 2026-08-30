@@ -367,70 +367,11 @@ function RoleInfoPanel({ role, description, rules, roleLabels, accepted, onToggl
 
 export default function JoinPage() {
   const lenis = useSmoothScroll();
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const cursorPngRef = useRef<HTMLDivElement>(null);
-  const macHoverRef = useRef(false);
-  const [cursorVisible, setCursorVisible] = useState(false);
-  const [macHover, setMacHover] = useState(false);
 
   const scrollToTop = (behavior: ScrollBehavior = "smooth") => {
     if (lenis) lenis.scrollTo(0);
     else window.scrollTo({ top: 0, behavior });
   };
-
-  // Detect touch/pointer-coarse devices — skip the custom cursor there
-  useEffect(() => {
-    const mq = window.matchMedia("(pointer: coarse)");
-    const t = window.setTimeout(() => setIsTouchDevice(mq.matches), 0);
-    const handler = (e: MediaQueryListEvent) => setIsTouchDevice(e.matches);
-    mq.addEventListener("change", handler);
-    return () => {
-      window.clearTimeout(t);
-      mq.removeEventListener("change", handler);
-    };
-  }, []);
-
-  // Custom cursor — follows the mouse, rotates over interactive elements
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setCursorVisible(true);
-      if (cursorPngRef.current) {
-        gsap.to(cursorPngRef.current, {
-          x: e.clientX,
-          y: e.clientY,
-          xPercent: -50,
-          yPercent: -50,
-          duration: 0.08,
-          ease: "power2.out",
-        });
-      }
-      const targetEl = e.target as Element | null;
-      const overInteractive =
-        !!targetEl &&
-        typeof targetEl.closest === "function" &&
-        !!targetEl.closest("a[href], button, [role='button'], input, textarea, select");
-      if (overInteractive !== macHoverRef.current) {
-        macHoverRef.current = overInteractive;
-        setMacHover(overInteractive);
-      }
-    };
-    const handleMouseLeave = () => setCursorVisible(false);
-    window.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseleave", handleMouseLeave);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!cursorPngRef.current) return;
-    gsap.to(cursorPngRef.current, {
-      rotation: macHover ? -40 : 0,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  }, [macHover]);
 
   const [step, setStep] = useState<1 | 2>(1);
   const [form, setForm] = useState<FormState>(INITIAL_FORM);
@@ -1919,22 +1860,6 @@ export default function JoinPage() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Custom cursor overlay — hidden on touch devices */}
-      {!isTouchDevice && (
-        <div
-          ref={cursorPngRef}
-          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[9999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
-          style={{ opacity: cursorVisible ? 1 : 0 }}
-        >
-          <img
-            src="/assets/cursor.png"
-            alt=""
-            className="w-full h-full object-contain"
-            draggable={false}
-          />
         </div>
       )}
 

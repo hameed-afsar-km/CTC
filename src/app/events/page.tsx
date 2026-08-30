@@ -77,10 +77,6 @@ function EventsPageContent() {
 
   const [now] = useState(() => Date.now());
 
-  const [isTouchDevice, setIsTouchDevice] = useState(false);
-  const cursorPngRef = useRef<HTMLDivElement>(null);
-  const [cursorVisible, setCursorVisible] = useState(false);
-
   useEffect(() => {
     if (modalEvent) {
       document.body.style.overflow = "hidden";
@@ -91,35 +87,6 @@ function EventsPageContent() {
       document.body.style.overflow = "";
     };
   }, [modalEvent]);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(pointer: coarse)");
-    const t = window.setTimeout(() => setIsTouchDevice(mq.matches), 0);
-    const handler = (e: MediaQueryListEvent) => setIsTouchDevice(e.matches);
-    mq.addEventListener("change", handler);
-    return () => {
-      window.clearTimeout(t);
-      mq.removeEventListener("change", handler);
-    };
-  }, []);
-
-  useEffect(() => {
-    const move = (el: HTMLDivElement | null, x: number, y: number) => {
-      if (!el) return;
-      gsap.to(el, { x, y, duration: 0.15, ease: "power2.out" });
-    };
-    const handleMouseMove = (e: MouseEvent) => {
-      setCursorVisible(true);
-      move(cursorPngRef.current, e.clientX, e.clientY);
-    };
-    const handleMouseLeave = () => setCursorVisible(false);
-    window.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseleave", handleMouseLeave);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
 
   useEffect(() => {
     fetch("/api/events", { cache: "no-store" })
@@ -513,24 +480,6 @@ function EventsPageContent() {
       {/* Expanded Modal Overlay */}
       {modalEvent && (
         <EventDetailsModal event={modalEvent} onClose={closeModal} />
-      )}
-
-      {/* Custom Mouse Cursor — disabled: system cursor now via CSS */}
-      {false && !isTouchDevice && (
-        <div
-          ref={cursorPngRef}
-          className="fixed top-0 left-0 z-[9999] h-12 w-12 -translate-x-1/2 -translate-y-1/2 pointer-events-none transition-opacity duration-300 mix-blend-difference hidden"
-          style={{ opacity: 0 }}
-        >
-          <Image
-            src="/assets/cursor.png"
-            alt=""
-            width={48}
-            height={48}
-            className="w-full h-full object-contain"
-            draggable={false}
-          />
-        </div>
       )}
     </div>
   );
