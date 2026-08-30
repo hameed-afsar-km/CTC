@@ -90,6 +90,10 @@ function uploadedToYears(items: GalleryItem[]): GalleryYear[] {
 export default function GalleryPage() {
   const [fsOpen, setFsOpen] = useState(false);
   const [isFs, setIsFs] = useState(false);
+  const [slideIndex, setSlideIndex] = useState(0);
+  const [slideshowOpen, setSlideshowOpen] = useState(false);
+  const [viewerEvent, setViewerEvent] = useState<GalleryEvent | null>(null);
+  const [autoplay, setAutoplay] = useState(false);
   const fullscreenRef = useRef<HTMLDivElement>(null);
   const touchStartX = useRef<number | null>(null);
 
