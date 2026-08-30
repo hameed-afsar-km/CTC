@@ -97,11 +97,7 @@ export default function HostItPage() {
 
   const [isTouchDevice, setIsTouchDevice] = useState(false);
   const gridRef = useRef<HTMLCanvasElement>(null);
-  const cursorPngRef = useRef<HTMLDivElement>(null);
   const guidelinesRef = useRef<HTMLDivElement>(null);
-  const macHoverRef = useRef(false);
-  const [cursorVisible, setCursorVisible] = useState(false);
-  const [macHover, setMacHover] = useState(false);
 
   // 3D Chromatic Grid Canvas Render Loop (same backdrop as home hostit section)
   useEffect(() => {
@@ -248,49 +244,6 @@ export default function HostItPage() {
       mq.removeEventListener("change", handler);
     };
   }, []);
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setCursorVisible(true);
-      if (cursorPngRef.current) {
-        gsap.to(cursorPngRef.current, {
-          x: e.clientX,
-          y: e.clientY,
-          xPercent: -50,
-          yPercent: -50,
-          duration: 0.08,
-          ease: "power2.out",
-        });
-      }
-      const targetEl = e.target as Element | null;
-      const overMac =
-        !!targetEl &&
-        typeof targetEl.closest === "function" &&
-        !!targetEl.closest(
-          "a[href], button, [role='button'], input, textarea, select"
-        );
-      if (overMac !== macHoverRef.current) {
-        macHoverRef.current = overMac;
-        setMacHover(overMac);
-      }
-    };
-    const handleMouseLeave = () => setCursorVisible(false);
-    window.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener("mouseleave", handleMouseLeave);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener("mouseleave", handleMouseLeave);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!cursorPngRef.current) return;
-    gsap.to(cursorPngRef.current, {
-      rotation: macHover ? -40 : 0,
-      duration: 0.3,
-      ease: "power2.out",
-    });
-  }, [macHover]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -893,22 +846,6 @@ export default function HostItPage() {
               </Link>
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Cursor PNG Overlay — hidden on touch/mobile devices */}
-      {!isTouchDevice && (
-        <div
-          ref={cursorPngRef}
-          className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[96] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2"
-          style={{ opacity: cursorVisible ? 1 : 0 }}
-        >
-          <img
-            src="/assets/cursor.png"
-            alt=""
-            className="w-full h-full object-contain"
-            draggable={false}
-          />
         </div>
       )}
     </main>

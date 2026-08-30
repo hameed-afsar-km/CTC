@@ -39,7 +39,6 @@ import {
 } from "@/lib/registrations";
 import type { ClubEvent } from "@/lib/events";
 import { defaultEvents } from "@/lib/events";
-import CursorOverlay from "@/components/CursorOverlay";
 
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 const PHONE_RE = /^[+]?[\d\s()-]{10,15}$/;
@@ -730,8 +729,6 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
 
   return (
     <div className="min-h-screen bg-[#06090c] text-white font-syne antialiased selection:bg-emerald-500/30 selection:text-emerald-200">
-      <CursorOverlay />
-
       {/* Top Ambient Glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 h-[350px] w-[500px] sm:w-[700px] rounded-full bg-gradient-to-b from-emerald-500/15 via-cyan-500/5 to-transparent blur-3xl" />

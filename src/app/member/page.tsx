@@ -22,7 +22,6 @@ import {
 import { getClientAuth, getCurrentIdToken } from "@/lib/firebase-client";
 import { cleanStudentName } from "@/lib/applications";
 import MemberCard from "@/components/MemberCard";
-import CursorOverlay from "@/components/CursorOverlay";
 
 const COLLEGE_EMAIL_RE = /^[^\s@]+@crescent\.education$/i;
 
@@ -153,7 +152,6 @@ export default function MemberPage() {
 
   return (
     <div className="min-h-screen bg-[#06090c] text-white font-syne antialiased">
-      <CursorOverlay />
       <div className="relative z-10 max-w-2xl mx-auto px-4 sm:px-6 py-10 sm:py-16">
         {/* Ambient glow */}
         <div className="pointer-events-none fixed inset-0 overflow-hidden z-0" aria-hidden>

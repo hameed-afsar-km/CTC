@@ -65,6 +65,22 @@ export default function CursorOverlay() {
 
   if (isTouchDevice) return null;
 
-  // Disabled: system cursor now uses cursor.png via CSS (globals.css) — no overlay needed
-  return null;
+  return (
+    <div
+      ref={cursorRef}
+      className="fixed top-0 left-0 w-12 h-12 pointer-events-none z-[9999] transition-opacity duration-300 -translate-x-1/2 -translate-y-1/2 select-none"
+      style={{ opacity: cursorVisible ? 1 : 0 }}
+      aria-hidden="true"
+    >
+      <Image
+        src="/assets/cursor.png"
+        alt=""
+        width={48}
+        height={48}
+        priority
+        className="w-full h-full object-contain pointer-events-none"
+        draggable={false}
+      />
+    </div>
+  );
 }

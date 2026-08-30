@@ -11,14 +11,12 @@ const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export default function NotFound() {
-  const cursorRef = useRef<HTMLDivElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bgX = useRef(0);
   const bgY = useRef(0);
   const lastTrail = useRef(0);
   const trailCount = useRef(0);
-  const [cursorVisible, setCursorVisible] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -176,18 +174,6 @@ export default function NotFound() {
       );
     }, root);
 
-    const moveCursor = (e: MouseEvent) => {
-      setCursorVisible(true);
-      if (cursorRef.current && !prefersReducedMotion()) {
-        gsap.to(cursorRef.current, {
-          x: e.clientX - 20,
-          y: e.clientY - 20,
-          duration: 0.12,
-          ease: "power2.out",
-        });
-      }
-    };
-
     const spawnTrail = (x: number, y: number) => {
       if (trailCount.current > 26) return;
       const now = performance.now();
@@ -249,11 +235,9 @@ export default function NotFound() {
     };
 
     window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mousemove", moveCursor);
     return () => {
       ctx.revert();
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mousemove", moveCursor);
     };
   }, []);
 
@@ -335,24 +319,6 @@ export default function NotFound() {
           <Compass className="h-3.5 w-3.5" aria-hidden />
           Lost in the CTC nebula
         </p>
-      </div>
-
-      {/* Custom cursor — disabled: system cursor now via CSS */}
-      <div
-        ref={cursorRef}
-        className="pointer-events-none fixed left-0 top-0 z-[9999] h-10 w-10 hidden"
-        style={{ opacity: 0 }}
-        aria-hidden
-      >
-        <Image
-          src="/assets/cursor.png"
-          alt=""
-          width={48}
-          height={48}
-          className="h-full w-full object-contain"
-          draggable={false}
-          loading="eager"
-        />
       </div>
 
       <style>{`

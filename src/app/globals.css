@@ -33,8 +33,16 @@
 }
 
 @media (pointer: fine) {
-  * {
-    cursor: url("/assets/cursor.png") 8 8, auto !important;
+  *,
+  html,
+  body,
+  a,
+  button,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    cursor: none !important;
   }
 }
 
@@ -67,12 +75,6 @@ body {
   font-family: var(--font-geist-sans), sans-serif;
   overflow-x: hidden;
   overflow-x: clip;
-}
-
-@media (pointer: fine) {
-  body {
-    cursor: url("/assets/cursor.png") 8 8, auto;
-  }
 }
 
 /* ── Scrollbar redesign ── */

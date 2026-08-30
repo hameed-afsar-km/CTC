@@ -4,6 +4,7 @@ import localFont from "next/font/local";
 import { Analytics } from "@vercel/analytics/react";
 import SmoothScrollProvider from "@/components/SmoothScroll";
 import FirebaseHiddenDbSuppress from "@/components/FirebaseHiddenDbSuppress";
+import CursorOverlay from "@/components/CursorOverlay";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -77,6 +78,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <FirebaseHiddenDbSuppress />
+        <CursorOverlay />
         <SmoothScrollProvider>{children}</SmoothScrollProvider>
         <Analytics />
       </body>
