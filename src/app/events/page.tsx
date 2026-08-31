@@ -153,7 +153,13 @@ function EventsPageContent() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredEvents, now]);
 
-  const renderEventCard = (ev: ClubEvent, isPast: boolean) => (
+  const renderEventCard = (ev: ClubEvent, isPast: boolean) => {
+    const evDeadlineMs = ev.registrationDeadline ? new Date(ev.registrationDeadline).getTime() : NaN;
+    const evDeadlineExpired = !Number.isNaN(evDeadlineMs) && evDeadlineMs <= now;
+    const evRegsOpen = ev.registrationsOpen !== false;
+    const evRegClosed = isPast || !evRegsOpen || evDeadlineExpired;
+
+    return (
     <div
       key={ev.id}
       onClick={() => setSelectedEvent(ev)}
@@ -276,7 +282,13 @@ function EventsPageContent() {
               </span>
             </div>
 
-            {!isPast && (
+            {!isPast && !evRegsOpen && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/10 px-3 py-1 text-[11px] font-mono text-rose-300 border border-rose-500/20">
+                Registrations Paused
+              </span>
+            )}
+
+            {!isPast && evRegsOpen && (
               <a
                 href={eventCtaHref(ev.registerUrl)}
                 onClick={(e) => e.stopPropagation()}
@@ -297,7 +309,8 @@ function EventsPageContent() {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div

@@ -69,6 +69,9 @@ export default function EventDetailsModal({
     ? new Date(event.registrationDeadline).getTime()
     : NaN;
   const deadlineActive = !Number.isNaN(deadlineMs) && deadlineMs > now;
+  const registrationsOpen = event.registrationsOpen !== false;
+  const deadlineExpired = !Number.isNaN(deadlineMs) && deadlineMs <= now;
+  const registrationClosed = isPast || !registrationsOpen || deadlineExpired;
 
   const countdown = useMemo(() => {
     if (!deadlineActive) return null;
@@ -124,6 +127,11 @@ export default function EventDetailsModal({
             {isPast && (
               <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 text-xs font-mono text-white/50 border border-white/10">
                 Completed
+              </span>
+            )}
+            {!isPast && !registrationsOpen && (
+              <span className="inline-flex items-center rounded-full bg-rose-500/15 px-3 py-1 text-xs font-mono font-bold text-rose-300 border border-rose-500/30">
+                Registrations Paused
               </span>
             )}
           </div>
@@ -370,7 +378,7 @@ export default function EventDetailsModal({
               )}
             </div>
 
-            {!isPast && (
+            {!registrationClosed ? (
               <a
                 href={eventCtaHref(event.registerUrl)}
                 target={hasCtaLink(event.registerUrl) ? "_blank" : undefined}
@@ -379,6 +387,11 @@ export default function EventDetailsModal({
               >
                 Register Now <ExternalLink className="h-4 w-4" />
               </a>
+            ) : (
+              <div className="inline-flex w-full sm:w-auto justify-center items-center gap-2.5 rounded-full bg-white/10 border border-white/10 px-8 py-3.5 text-sm font-bold text-white/50 cursor-not-allowed">
+                <XCircle className="h-4 w-4" />
+                Registration Closed
+              </div>
             )}
           </div>
         )}

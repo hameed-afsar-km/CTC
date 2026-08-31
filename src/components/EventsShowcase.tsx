@@ -356,15 +356,21 @@ export default function EventsShowcase() {
 
                       {/* CTA row — left aligned to match poster layout */}
                       <div className="mt-5 flex flex-wrap items-center gap-3">
-                        <a
-                          href={eventCtaHref(nextEvent.registerUrl)}
-                          target={hasCtaLink(nextEvent.registerUrl) ? "_blank" : undefined}
-                          rel={hasCtaLink(nextEvent.registerUrl) ? "noreferrer" : undefined}
-                          className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-7 sm:py-3 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-black font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_32px_rgba(52,211,153,0.5)] hover:shadow-[0_0_48px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
-                        >
-                          Register Now
-                          <ExternalLink className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
-                        </a>
+                        {nextEvent.registrationsOpen !== false && new Date(nextEvent.date).getTime() > Date.now() ? (
+                          <a
+                            href={eventCtaHref(nextEvent.registerUrl)}
+                            target={hasCtaLink(nextEvent.registerUrl) ? "_blank" : undefined}
+                            rel={hasCtaLink(nextEvent.registerUrl) ? "noreferrer" : undefined}
+                            className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-7 sm:py-3 rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 hover:from-emerald-300 hover:to-teal-200 text-black font-bold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_32px_rgba(52,211,153,0.5)] hover:shadow-[0_0_48px_rgba(52,211,153,0.75)] hover:scale-105 active:scale-95 transition-all duration-300"
+                          >
+                            Register Now
+                            <ExternalLink className="w-4 h-4 transition-transform duration-300 group-hover:rotate-45" />
+                          </a>
+                        ) : (
+                          <span className="inline-flex items-center gap-2 px-6 py-2.5 sm:px-7 sm:py-3 rounded-full bg-white/10 border border-white/10 text-white/50 font-bold text-xs sm:text-sm uppercase tracking-wider cursor-not-allowed">
+                            Registration Closed
+                          </span>
+                        )}
                         <Link
                           href={`/events?event=${nextEvent.id}`}
                           className="inline-flex items-center gap-1.5 px-5 py-2.5 sm:px-6 sm:py-3 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-400/40 text-emerald-200 font-semibold text-xs sm:text-sm hover:border-emerald-300/70 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300"

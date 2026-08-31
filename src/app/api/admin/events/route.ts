@@ -64,7 +64,9 @@ export async function POST(request: Request) {
       registrationDeadline:
         typeof body.registrationDeadline === "string" && body.registrationDeadline.trim()
           ? body.registrationDeadline
-          : undefined,
+          : body.registrationDeadline === null
+            ? null
+            : undefined,
       featured: body.featured === true,
       contactName: typeof body.contactName === "string" ? body.contactName : undefined,
       contactEmail: typeof body.contactEmail === "string" ? body.contactEmail : undefined,

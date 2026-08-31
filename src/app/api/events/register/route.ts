@@ -22,6 +22,18 @@ const PHONE_RE = /^[+]?[\d\s()-]{10,15}$/;
 
 import { getEventBySlugOrId } from "@/lib/events-store";
 
+function isRegistrationClosed(event: { date: string; registrationDeadline?: string | null; registrationsOpen?: boolean } | null | undefined): string | null {
+  if (!event) return null;
+  if (event.registrationsOpen === false) return "Registrations are currently closed for this event.";
+  const now = Date.now();
+  if (new Date(event.date).getTime() <= now) return "This event has already concluded.";
+  if (event.registrationDeadline) {
+    const deadlineMs = new Date(event.registrationDeadline).getTime();
+    if (!Number.isNaN(deadlineMs) && deadlineMs <= now) return "The registration deadline has passed.";
+  }
+  return null;
+}
+
 export async function GET(request: Request) {
   try {
     const token = bearerToken(request);
@@ -42,6 +54,17 @@ export async function GET(request: Request) {
     const event = await getEventBySlugOrId(eventQuery);
     const eventId = event?.id || eventQuery;
     const email = identity.email.toLowerCase();
+
+    // Check if registration is closed for this event
+    const closedReason = isRegistrationClosed(event);
+    if (closedReason) {
+      return NextResponse.json({
+        registered: false,
+        registrationClosed: true,
+        closedReason,
+        event,
+      });
+    }
 
     // Check if user is already registered for this event
     const existing = await findRegistration(eventId, email);
@@ -128,6 +151,12 @@ export async function POST(request: Request) {
     const event = await getEventBySlugOrId(rawEventId);
     const eventId = event?.id || rawEventId;
     const eventTitle = event?.title || String(body.eventTitle ?? "").trim() || "Workshop Event";
+
+    // Check if registration is closed for this event
+    const closedReason = isRegistrationClosed(event);
+    if (closedReason) {
+      return NextResponse.json({ error: closedReason }, { status: 403 });
+    }
 
     // STRICT ONCE-PER-USER REGISTRATION CHECK
     const existing = await findRegistration(eventId, email);

@@ -46,6 +46,7 @@ export default function EventsPanel() {
     registerUrl: "#",
     whatsappGroupLink: "",
     registrationDeadline: "",
+    registrationsOpen: true,
     featured: false,
     contactName: "",
     contactEmail: "",
@@ -157,6 +158,7 @@ export default function EventsPanel() {
       registrationMode: regMode,
       registerUrl: regMode === "inbuilt" ? `/events/${slug}/register` : event.registerUrl,
       registrationDeadline: regLocalIso,
+      registrationsOpen: event.registrationsOpen !== false,
       featured: event.featured === true,
       whatsappGroupLink: event.whatsappGroupLink ?? "",
       contactName: event.contactName ?? "",
@@ -456,7 +458,8 @@ export default function EventsPanel() {
         whatsappGroupLink: form.whatsappGroupLink?.trim() || undefined,
         registrationDeadline: form.registrationDeadline
           ? new Date(form.registrationDeadline).toISOString()
-          : undefined,
+          : null,
+        registrationsOpen: form.registrationsOpen !== false,
         featured: form.featured === true,
         contactName: primary?.name || form.contactName?.trim() || undefined,
         contactEmail: primary?.email || form.contactEmail?.trim() || undefined,
@@ -678,6 +681,30 @@ export default function EventsPanel() {
                 <span
                   className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
                     form.featured === true ? "translate-x-5" : ""
+                  }`}
+                />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">Registrations Open</p>
+                <p className="text-[11px] font-mono text-gray-500 mt-0.5">
+                  Toggle off to pause registrations. When closed, students cannot register even via direct link. Past events automatically close.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.registrationsOpen !== false}
+                onClick={() => setForm({ ...form, registrationsOpen: form.registrationsOpen === false })}
+                className={`relative w-12 h-7 rounded-full shrink-0 transition-colors ${
+                  form.registrationsOpen !== false ? "bg-emerald-500" : "bg-white/15"
+                }`}
+              >
+                <span
+                  className={`absolute top-1 left-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                    form.registrationsOpen !== false ? "translate-x-5" : ""
                   }`}
                 />
               </button>
@@ -1525,6 +1552,16 @@ export default function EventsPanel() {
                       {evt.featured === true && (
                         <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 text-[10px] font-mono border border-amber-500/30">
                           ★ Homepage
+                        </span>
+                      )}
+                      {evt.registrationsOpen === false && (
+                        <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-mono border border-rose-500/30">
+                          Registrations Paused
+                        </span>
+                      )}
+                      {new Date(evt.date).getTime() <= Date.now() && (
+                        <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/50 text-[10px] font-mono border border-white/10">
+                          Completed
                         </span>
                       )}
                     </div>

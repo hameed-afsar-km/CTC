@@ -9,12 +9,48 @@ export async function getEvents(): Promise<ClubEvent[]> {
   return items.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
+async function removeDeadlineField(eventId: string): Promise<void> {
+  try {
+    const { getAdminDb } = await import("./firebase-admin");
+    const adminDb = getAdminDb();
+    if (adminDb) {
+      await adminDb.collection(COLLECTION).doc(eventId).update({
+        registrationDeadline: (await import("firebase-admin/firestore")).FieldValue.delete(),
+      });
+      return;
+    }
+  } catch {}
+  try {
+    const { getFirestore, doc, updateDoc, deleteField } = await import("firebase/firestore");
+    const db = getFirestore();
+    await updateDoc(doc(db, COLLECTION, eventId), {
+      registrationDeadline: deleteField(),
+    });
+  } catch {}
+}
+
 export async function saveEvent(event: ClubEvent, token?: string | null): Promise<void> {
-  await saveDocument(COLLECTION, event.id, event as unknown as Record<string, unknown>, token);
+  const { registrationDeadline, ...rest } = event;
+  const data: Record<string, unknown> = { ...rest };
+  if (registrationDeadline) {
+    data.registrationDeadline = registrationDeadline;
+  }
+  await saveDocument(COLLECTION, event.id, data, token);
+  if (registrationDeadline === null || registrationDeadline === undefined) {
+    await removeDeadlineField(event.id);
+  }
 }
 
 export async function updateEvent(id: string, patch: Partial<ClubEvent>, token?: string | null): Promise<ClubEvent | null> {
-  await saveDocument(COLLECTION, id, patch as unknown as Record<string, unknown>, token);
+  const { registrationDeadline, ...rest } = patch;
+  const data: Record<string, unknown> = { ...rest };
+  if (registrationDeadline) {
+    data.registrationDeadline = registrationDeadline;
+  }
+  await saveDocument(COLLECTION, id, data, token);
+  if (registrationDeadline === null || registrationDeadline === undefined) {
+    await removeDeadlineField(id);
+  }
   return getEventById(id);
 }
 

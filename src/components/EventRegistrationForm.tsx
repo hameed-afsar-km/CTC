@@ -117,6 +117,8 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
   // Registration State
   const [checkingRegistration, setCheckingRegistration] = useState(false);
   const [existingRegistration, setExistingRegistration] = useState<EventRegistration | null>(null);
+  const [registrationClosed, setRegistrationClosed] = useState(false);
+  const [closedReason, setClosedReason] = useState<string | null>(null);
 
   // Core Form State
   const [coreForm, setCoreForm] = useState({
@@ -369,6 +371,21 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
     if (matched) {
       setActiveEvent(matched);
       setEventNotFound(false);
+      // Client-side registration closure check
+      const now = Date.now();
+      if (matched.registrationsOpen === false) {
+        setRegistrationClosed(true);
+        setClosedReason("Registrations are currently closed for this event.");
+      } else if (new Date(matched.date).getTime() <= now) {
+        setRegistrationClosed(true);
+        setClosedReason("This event has already concluded.");
+      } else if (matched.registrationDeadline) {
+        const dlMs = new Date(matched.registrationDeadline).getTime();
+        if (!Number.isNaN(dlMs) && dlMs <= now) {
+          setRegistrationClosed(true);
+          setClosedReason("The registration deadline has passed.");
+        }
+      }
     } else {
       setActiveEvent(null);
       setEventNotFound(true);
@@ -493,6 +510,10 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
 
         if (data.registered && data.registration) {
           setExistingRegistration(data.registration);
+        } else if (data.registrationClosed) {
+          setRegistrationClosed(true);
+          setClosedReason(data.closedReason || "Registrations are closed for this event.");
+          setExistingRegistration(null);
         } else {
           setExistingRegistration(null);
           if (data.prefill) {
@@ -577,6 +598,7 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeEvent) return;
+    if (registrationClosed) return;
     if (!authUser) {
       handleGoogleSignIn();
       return;
@@ -944,6 +966,28 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
                     <Loader2 className="w-6 h-6 animate-spin text-emerald-400" />
                     <span>Checking your registration status...</span>
                   </div>
+                ) : registrationClosed ? (
+                  /* REGISTRATION CLOSED */
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl bg-rose-500/10 border border-rose-500/30 p-6 text-center space-y-3"
+                  >
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-400">
+                      <AlertCircle className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-base font-bold text-white">Registration Closed</h2>
+                    <p className="text-xs text-gray-400 font-sans max-w-sm mx-auto">
+                      {closedReason || "Registrations are not currently open for this event."}
+                    </p>
+                    <Link
+                      href="/events"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono font-bold text-xs uppercase tracking-wider transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Browse Other Events
+                    </Link>
+                  </motion.div>
                 ) : existingRegistration ? (
                   /* ALREADY REGISTERED — DIGITAL ENTRY PASS */
                   <motion.div
