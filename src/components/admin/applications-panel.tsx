@@ -111,6 +111,7 @@ export default function ApplicationsPanel() {
   const { getToken } = useAdmin();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("all");
   const [typeFilter, setTypeFilter] = useState<ClassifierId>("all");
   const [query, setQuery] = useState("");
@@ -171,22 +172,30 @@ export default function ApplicationsPanel() {
     }
   };
 
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const token = await getToken();
-      const res = await fetch("/api/admin/applications", {
-        cache: "no-store",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (Array.isArray(data.applications)) setApps(data.applications);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, [getToken]);
+  const fetchAll = useCallback(
+    async (silent = false) => {
+      if (silent) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+      try {
+        const token = await getToken();
+        const res = await fetch("/api/admin/applications", {
+          cache: "no-store",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (Array.isArray(data.applications)) setApps(data.applications);
+      } catch {
+        // ignore
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [getToken]
+  );
 
   useEffect(() => {
     const t = setTimeout(fetchAll, 0);
@@ -223,6 +232,7 @@ export default function ApplicationsPanel() {
         const data = await res.json();
         if (data.application) applyUpdate(data.application);
         setMessage({ text: `Application ${status}.`, type: "success" });
+        await fetchAll(true);
       }
     } finally {
       setBusyId(null);
@@ -257,6 +267,7 @@ export default function ApplicationsPanel() {
       if (data.application) applyUpdate(data.application);
       setMessage({ text: "Application rejected.", type: "success" });
       setRejectTarget(null);
+      await fetchAll(true);
     } catch (err) {
       setMessage({
         text: err instanceof Error ? err.message : "Failed to reject application",
@@ -645,6 +656,15 @@ export default function ApplicationsPanel() {
               >
                 <ChevronUp className="w-3.5 h-3.5" />
                 Collapse All
+              </button>
+              <button
+                onClick={() => fetchAll(true)}
+                disabled={loading || refreshing}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-gray-300 hover:text-white text-xs font-mono uppercase tracking-wider transition-all disabled:opacity-50"
+                title="Refresh applications"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+                Refresh
               </button>
               <button
                 onClick={() => downloadCsv(toExportRows(filtered), "applications.csv")}

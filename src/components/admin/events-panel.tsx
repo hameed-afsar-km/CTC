@@ -46,6 +46,7 @@ export default function EventsPanel() {
     registerUrl: "#",
     whatsappGroupLink: "",
     registrationDeadline: "",
+    registrationLimit: undefined,
     registrationsOpen: true,
     featured: false,
     contactName: "",
@@ -159,6 +160,7 @@ export default function EventsPanel() {
       registerUrl: regMode === "inbuilt" ? `/events/${slug}/register` : event.registerUrl,
       registrationDeadline: regLocalIso,
       registrationsOpen: event.registrationsOpen !== false,
+      registrationLimit: event.registrationLimit,
       featured: event.featured === true,
       whatsappGroupLink: event.whatsappGroupLink ?? "",
       contactName: event.contactName ?? "",
@@ -200,6 +202,7 @@ export default function EventsPanel() {
       registerUrl: "#",
       whatsappGroupLink: "",
       registrationDeadline: "",
+      registrationLimit: undefined,
       featured: false,
       contactName: "",
       contactEmail: "",
@@ -460,6 +463,7 @@ export default function EventsPanel() {
           ? new Date(form.registrationDeadline).toISOString()
           : null,
         registrationsOpen: form.registrationsOpen !== false,
+        registrationLimit: form.registrationLimit && form.registrationLimit > 0 ? Number(form.registrationLimit) : undefined,
         featured: form.featured === true,
         contactName: primary?.name || form.contactName?.trim() || undefined,
         contactEmail: primary?.email || form.contactEmail?.trim() || undefined,
@@ -708,6 +712,27 @@ export default function EventsPanel() {
                   }`}
                 />
               </button>
+            </div>
+
+            <div>
+              <label className={`${labelCls} text-emerald-400`}>
+                Registration Limit (Seats)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={form.registrationLimit ?? ""}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setForm({ ...form, registrationLimit: v === "" ? undefined : Number(v) });
+                }}
+                placeholder="No limit"
+                className={`${inputCls} font-mono text-emerald-300 border-emerald-500/40`}
+              />
+              <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                Optional — registrations automatically close once this many students have signed up.
+                Leave empty for unlimited seats.
+              </p>
             </div>
 
             {/* Perk Toggles — Fee / Certificate / Prize / Appetizers */}
@@ -1557,6 +1582,11 @@ export default function EventsPanel() {
                       {evt.registrationsOpen === false && (
                         <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-400 text-[10px] font-mono border border-rose-500/30">
                           Registrations Paused
+                        </span>
+                      )}
+                      {evt.registrationLimit && evt.registrationLimit > 0 && (
+                        <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 text-[10px] font-mono border border-sky-500/30">
+                          {evt.registrationLimit} seats
                         </span>
                       )}
                       {new Date(evt.date).getTime() <= Date.now() && (

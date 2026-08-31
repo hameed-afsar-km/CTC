@@ -5,6 +5,7 @@ import {
   findRegistration,
   saveRegistration,
   registrationDocId,
+  getRegistrations,
 } from "@/lib/registrations-store";
 import {
   generateTicketCode,
@@ -22,9 +23,10 @@ const PHONE_RE = /^[+]?[\d\s()-]{10,15}$/;
 
 import { getEventBySlugOrId } from "@/lib/events-store";
 
-function isRegistrationClosed(event: { date: string; registrationDeadline?: string | null; registrationsOpen?: boolean } | null | undefined): string | null {
+function isRegistrationClosed(event: { date: string; registrationDeadline?: string | null; registrationsOpen?: boolean } | null | undefined, isFull = false): string | null {
   if (!event) return null;
   if (event.registrationsOpen === false) return "Registrations are currently closed for this event.";
+  if (isFull) return "Registrations are closed — this event has reached its full capacity. No more seats are available.";
   const now = Date.now();
   if (new Date(event.date).getTime() <= now) return "This event has already concluded.";
   if (event.registrationDeadline) {
@@ -32,6 +34,17 @@ function isRegistrationClosed(event: { date: string; registrationDeadline?: stri
     if (!Number.isNaN(deadlineMs) && deadlineMs <= now) return "The registration deadline has passed.";
   }
   return null;
+}
+
+async function isEventFull(event: { registrationLimit?: number } | null | undefined, eventId: string): Promise<boolean> {
+  if (!event?.registrationLimit || event.registrationLimit <= 0) return false;
+  try {
+    const regs = await getRegistrations(eventId);
+    const activeCount = regs.filter((r) => r.status !== "cancelled").length;
+    return activeCount >= event.registrationLimit;
+  } catch {
+    return false;
+  }
 }
 
 export async function GET(request: Request) {
@@ -56,7 +69,8 @@ export async function GET(request: Request) {
     const email = identity.email.toLowerCase();
 
     // Check if registration is closed for this event
-    const closedReason = isRegistrationClosed(event);
+    const isFull = await isEventFull(event, eventId);
+    const closedReason = isRegistrationClosed(event, isFull);
     if (closedReason) {
       return NextResponse.json({
         registered: false,
@@ -152,14 +166,16 @@ export async function POST(request: Request) {
     const eventId = event?.id || rawEventId;
     const eventTitle = event?.title || String(body.eventTitle ?? "").trim() || "Workshop Event";
 
-    // Check if registration is closed for this event
-    const closedReason = isRegistrationClosed(event);
+    // STRICT ONCE-PER-USER REGISTRATION CHECK
+    const existing = await findRegistration(eventId, email);
+
+    // Check if registration is closed for this event (including capacity)
+    const isFull = !existing && (await isEventFull(event, eventId));
+    const closedReason = isRegistrationClosed(event, isFull);
     if (closedReason) {
       return NextResponse.json({ error: closedReason }, { status: 403 });
     }
 
-    // STRICT ONCE-PER-USER REGISTRATION CHECK
-    const existing = await findRegistration(eventId, email);
     if (existing) {
       return NextResponse.json(
         {

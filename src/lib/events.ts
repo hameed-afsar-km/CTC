@@ -45,6 +45,7 @@ export interface ClubEvent {
   registerUrl: string;
   whatsappGroupLink?: string;
   registrationDeadline?: string | null;
+  registrationLimit?: number;
   registrationsOpen?: boolean;
   featured?: boolean;
   contactName?: string;
