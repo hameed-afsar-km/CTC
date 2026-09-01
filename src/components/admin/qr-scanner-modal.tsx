@@ -276,30 +276,47 @@ export default function QrScannerModal({
           videoConstraints: { width: { ideal: 640 }, height: { ideal: 480 } } as unknown as MediaTrackConstraints,
         };
 
-        // If explicit cameraId provided, try it first; otherwise use facingMode.
-        // Never auto-pick OBS virtual camera as first choice.
+        // Build camera candidates, honoring the current facingMode (front/rear toggle).
+        // Explicit cameraId takes precedence; otherwise prefer devices matching the
+        // active facingMode, falling back to facingMode constraints and other devices.
+        const isVirtual = (label: string) => /obs|virtual|snap/i.test(label);
+        const physical = camerasRef.current.filter((d) => !isVirtual(d.label || ""));
+        const pool = physical.length > 0 ? physical : camerasRef.current;
+
+        const byFacing =
+          facingMode === "user"
+            ? pool.find((d) => /front|user|face|selfie/i.test(d.label || ""))
+            : pool.find((d) => /back|rear|environment/i.test(d.label || ""));
+
         const candidates: (string | { facingMode: string })[] = [];
         if (cameraId) {
           candidates.push(cameraId);
-          // Fallback to other physical cameras if the chosen one is OBS / busy
-          for (const d of camerasRef.current) {
-            if (d.id !== cameraId && !/obs|virtual|snap/i.test(d.label)) {
-              candidates.push(d.id);
-            }
-          }
+        }
+
+        // Push the device id matching the current facingMode first (most reliable on Android)
+        if (byFacing?.id && byFacing.id !== cameraId) {
+          candidates.push(byFacing.id);
+        }
+        // Then the other physical camera
+        const otherFacing =
+          facingMode === "user"
+            ? pool.find((d) => /back|rear|environment/i.test(d.label || "") && d.id !== byFacing?.id)
+            : pool.find((d) => /front|user|face|selfie/i.test(d.label || "") && d.id !== byFacing?.id);
+        if (otherFacing?.id && otherFacing.id !== cameraId && !candidates.includes(otherFacing.id)) {
+          candidates.push(otherFacing.id);
+        }
+        // Remaining physical cameras as fallback
+        for (const d of pool) {
+          if (d.id !== cameraId && !candidates.includes(d.id)) candidates.push(d.id);
+        }
+        // facingMode constraints as final fallback (browser-picked)
+        if (facingMode === "user") {
           candidates.push({ facingMode: "user" });
           candidates.push({ facingMode: "environment" });
         } else {
-          // No explicit id: prefer environment on mobile, user on desktop — start with facingMode
-          // to let browser pick best physical camera instead of OBS virtual device.
           candidates.push({ facingMode: "environment" });
           candidates.push({ facingMode: "user" });
-          // Also try explicit non-virtual device ids as last resort
-          for (const d of camerasRef.current) {
-            if (!/obs|virtual|snap/i.test(d.label)) candidates.push(d.id);
-          }
         }
-        // If first candidate fails with NotReadableError, the loop below will try next
 
         let lastErr: unknown = null;
         for (const targetCamera of candidates) {
@@ -357,7 +374,7 @@ export default function QrScannerModal({
         isStartingRef.current = false;
       }
     },
-    [processDecodedText, pickBestCameraId]
+    [processDecodedText, pickBestCameraId, facingMode]
   );
 
   // Stop scanner
@@ -441,12 +458,21 @@ export default function QrScannerModal({
   const switchCamera = useCallback(async () => {
     await stopScanner();
     const newFacing = facingMode === "user" ? "environment" : "user";
+    // Resolve the physical device id for the target facing mode (more reliable on Android)
+    const isVirtual = (label: string) => /obs|virtual|snap/i.test(label);
+    const physical = camerasRef.current.filter((d) => !isVirtual(d.label || ""));
+    const pool = physical.length > 0 ? physical : camerasRef.current;
+    const target =
+      newFacing === "user"
+        ? pool.find((d) => /front|user|face|selfie/i.test(d.label || ""))
+        : pool.find((d) => /back|rear|environment/i.test(d.label || ""));
+
     setFacingMode(newFacing);
     setMirrorEnabled(newFacing === "user");
-    setSelectedCamera("");
+    setSelectedCamera(target?.id ?? "");
     // Small delay to ensure previous stream is fully released
     await new Promise((r) => setTimeout(r, 300));
-    startScanner();
+    startScanner(target?.id);
   }, [facingMode, stopScanner, startScanner]);
 
   // Toggle mirror on/off
