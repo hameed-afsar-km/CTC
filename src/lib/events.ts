@@ -11,7 +11,8 @@ export type CustomFieldType =
   | "radio"
   | "checkbox"
   | "number"
-  | "url";
+  | "url"
+  | "dob";
 
 export interface EventCustomField {
   id: string;

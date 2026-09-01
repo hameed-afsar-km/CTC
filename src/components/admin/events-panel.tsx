@@ -1252,6 +1252,7 @@ export default function EventsPanel() {
                                 <option value="checkbox">Single Checkbox (checkbox)</option>
                                 <option value="url">URL Link (url)</option>
                                 <option value="number">Numeric (number)</option>
+                                <option value="dob">Date of Birth (dob)</option>
                               </select>
                             </div>
 

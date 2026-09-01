@@ -378,6 +378,19 @@ export default function RegistrationsPanel() {
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
 
+  const customFieldLabelMap = useMemo(() => {
+    const map: Record<string, Record<string, string>> = {};
+    events.forEach((ev) => {
+      if (ev.customFields && ev.customFields.length > 0) {
+        map[ev.id] = {};
+        ev.customFields.forEach((cf) => {
+          map[ev.id][cf.id] = cf.label;
+        });
+      }
+    });
+    return map;
+  }, [events]);
+
   const handleExportCsv = () => {
     const targetEvent = events.find((e) => e.id === selectedEventId || (e.slug && e.slug === selectedEventId));
     const rows = toCsvRows(filteredRegistrations, targetEvent?.customFields);
@@ -671,12 +684,15 @@ export default function RegistrationsPanel() {
               <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
                 <p className="text-[11px] font-mono font-bold uppercase tracking-widest text-cyan-300">Event Answers</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {Object.entries(viewingReg.customResponses).map(([k, v]) => (
-                    <div key={k} className="rounded-xl bg-black/40 border border-white/5 p-3">
-                      <span className="text-[10px] font-mono text-gray-400 block capitalize">{k}</span>
-                      <span className="text-xs font-medium text-white break-words">{String(v)}</span>
-                    </div>
-                  ))}
+                  {Object.entries(viewingReg.customResponses).map(([k, v]) => {
+                    const field = customFieldLabelMap[viewingReg.eventId]?.[k];
+                    return (
+                      <div key={k} className="rounded-xl bg-black/40 border border-white/5 p-3">
+                        <span className="text-[10px] font-mono text-gray-400 block">{field || k}</span>
+                        <span className="text-xs font-medium text-white break-words">{String(v)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

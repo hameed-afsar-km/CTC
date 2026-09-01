@@ -705,6 +705,10 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
         setFormError(`Please enter a valid URL for "${field.label}".`);
         return;
       }
+      if (field.type === "dob" && val && String(val).length !== 10) {
+        setFormError(`Please enter a valid date for "${field.label}".`);
+        return;
+      }
     }
 
     if (!coreForm.consented) {
@@ -1603,6 +1607,19 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
                                     setCustomResponses({ ...customResponses, [field.id]: e.target.value })
                                   }
                                   placeholder={field.placeholder || "https://..."}
+                                  className={inputCls}
+                                />
+                              )}
+
+                              {field.type === "dob" && (
+                                <input
+                                  type="date"
+                                  required={field.required}
+                                  value={String(val)}
+                                  onChange={(e) =>
+                                    setCustomResponses({ ...customResponses, [field.id]: e.target.value })
+                                  }
+                                  max={new Date().toISOString().split("T")[0]}
                                   className={inputCls}
                                 />
                               )}
