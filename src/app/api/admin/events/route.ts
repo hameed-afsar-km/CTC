@@ -76,6 +76,14 @@ export async function POST(request: Request) {
       donts: Array.isArray(body.donts) ? body.donts : [],
       schedule: Array.isArray(body.schedule) ? body.schedule : [],
       customFields: Array.isArray(body.customFields) ? body.customFields : [],
+      excludeAttendeesOfEventId:
+        typeof body.excludeAttendeesOfEventId === "string" && body.excludeAttendeesOfEventId.trim()
+          ? body.excludeAttendeesOfEventId.trim()
+          : undefined,
+      excludeAttendeesMessage:
+        typeof body.excludeAttendeesMessage === "string" && body.excludeAttendeesMessage.trim()
+          ? body.excludeAttendeesMessage.trim()
+          : undefined,
     };
     await saveEvent(event, token);
     await logAction(

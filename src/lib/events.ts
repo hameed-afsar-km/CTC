@@ -66,6 +66,10 @@ export interface ClubEvent {
   prizeAmount?: string;
   appetizersEnabled?: boolean;
   appetizersNote?: string;
+  // Session attendance gating — members who were marked attending the linked prior
+  // event (excludeAttendeesOfEventId) cannot register for this event.
+  excludeAttendeesOfEventId?: string;
+  excludeAttendeesMessage?: string;
 }
 
 export function generateEventSlug(title: string): string {

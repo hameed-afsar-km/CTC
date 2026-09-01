@@ -119,6 +119,8 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
   const [existingRegistration, setExistingRegistration] = useState<EventRegistration | null>(null);
   const [registrationClosed, setRegistrationClosed] = useState(false);
   const [closedReason, setClosedReason] = useState<string | null>(null);
+  const [gateBlocked, setGateBlocked] = useState(false);
+  const [gateMessage, setGateMessage] = useState<string | null>(null);
 
   // Core Form State
   const [coreForm, setCoreForm] = useState({
@@ -513,12 +515,26 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
           // A registered student keeps access to their pass even if the event closed
           setRegistrationClosed(false);
           setClosedReason(null);
+          setGateBlocked(false);
+          setGateMessage(null);
+        } else if (data.gateBlocked) {
+          // Member attended the prior session — show the block message, no form/pass.
+          setExistingRegistration(null);
+          setGateBlocked(true);
+          setGateMessage(
+            data.gateMessage ||
+              "You have already attended the previous session. We need to allot space to other members."
+          );
         } else if (data.registrationClosed) {
+          setGateBlocked(false);
+          setGateMessage(null);
           setRegistrationClosed(true);
           setClosedReason(data.closedReason || "Registrations are closed for this event.");
           setExistingRegistration(null);
         } else {
           setExistingRegistration(null);
+          setGateBlocked(false);
+          setGateMessage(null);
           if (data.prefill) {
             setCoreForm((prev) => ({
               ...prev,
@@ -595,6 +611,8 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
     setAuthUser(null);
     setAuthStatus("signed-out");
     setExistingRegistration(null);
+    setGateBlocked(false);
+    setGateMessage(null);
   };
 
   // Handle Form Submit
@@ -602,6 +620,7 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
     e.preventDefault();
     if (!activeEvent) return;
     if (registrationClosed) return;
+    if (gateBlocked) return;
     if (!authUser) {
       handleGoogleSignIn();
       return;
@@ -855,7 +874,7 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
           /* CASE B: IN-BUILT WEBSITE REGISTRATION */
           <div>
             {/* REGISTRATION CLOSED — shown for non-registered users; registered students still see their pass */}
-            {registrationClosed && !existingRegistration && !checkingRegistration && (
+            {registrationClosed && !existingRegistration && !checkingRegistration && !gateBlocked && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1194,6 +1213,28 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
                         </a>
                       </div>
                     </div>
+                  </motion.div>
+                ) : gateBlocked ? (
+                  /* SESSION ATTENDANCE GATE — already attended prior session */
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl bg-amber-500/10 border border-amber-500/40 p-6 text-center space-y-3 mb-6"
+                  >
+                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                      <AlertCircle className="w-6 h-6" />
+                    </div>
+                    <h2 className="text-base font-bold text-white">Registration Not Available for This Session</h2>
+                    <p className="text-xs text-gray-300 font-sans max-w-sm mx-auto">
+                      {gateMessage || "You have already attended the previous session. We need to allot space to other members."}
+                    </p>
+                    <Link
+                      href="/events"
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-mono font-bold text-xs uppercase tracking-wider transition-colors"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      Browse Other Events
+                    </Link>
                   </motion.div>
                 ) : registrationClosed ? (
                   null

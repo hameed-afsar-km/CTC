@@ -79,6 +79,22 @@ export async function GET(request: Request) {
       });
     }
 
+    // SESSION ATTENDANCE GATE (GET) — surface a clear error to members who already
+    // attended the prior session instead of the registration form.
+    if (event?.excludeAttendeesOfEventId) {
+      const prior = await findRegistration(event.excludeAttendeesOfEventId, email);
+      if (prior && prior.attended && prior.status !== "cancelled") {
+        return NextResponse.json({
+          registered: false,
+          gateBlocked: true,
+          gateMessage:
+            event.excludeAttendeesMessage ||
+            "You have already attended the previous session of this workshop. We need to allot space to other members, so you cannot register for this session.",
+          event,
+        });
+      }
+    }
+
     // Check if registration is closed for this event
     const isFull = await isEventFull(event, eventId);
     const closedReason = isRegistrationClosed(event, isFull);
@@ -185,6 +201,22 @@ export async function POST(request: Request) {
         },
         { status: 409 }
       );
+    }
+
+    // SESSION ATTENDANCE GATE: if this event is a follow-on session and the member
+    // already attended the prior session, block the registration to free seats for others.
+    if (event?.excludeAttendeesOfEventId) {
+      const prior = await findRegistration(event.excludeAttendeesOfEventId, email);
+      if (prior && prior.attended && prior.status !== "cancelled") {
+        return NextResponse.json(
+          {
+            error:
+              event.excludeAttendeesMessage ||
+              "You have already attended the previous session of this workshop. We need to allot space to other members, so you cannot register for this session.",
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // Validate standard name

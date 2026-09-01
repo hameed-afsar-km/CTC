@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Calendar, Clock, Plus, Trash2, Edit2, Save, X, CheckCircle, Sparkles, ImagePlus, Loader2, UploadCloud, Search, Ticket, ExternalLink, ChevronUp, ChevronDown, Phone, Mail, User, IndianRupee, Award, Trophy, Utensils, GripVertical, MessagesSquare } from "lucide-react";
+import { Calendar, Clock, Plus, Trash2, Edit2, Save, X, CheckCircle, Sparkles, ImagePlus, Loader2, UploadCloud, Search, Ticket, ExternalLink, ChevronUp, ChevronDown, Phone, Mail, User, IndianRupee, Award, Trophy, Utensils, GripVertical, MessagesSquare, AlertTriangle } from "lucide-react";
 import type { ClubEvent, EventCustomField, CustomFieldType, EventContact } from "@/lib/events";
 import { generateEventSlug, DEFAULT_WORKSHOP_FIELDS } from "@/lib/events";
 import { useAdmin } from "./admin-context";
@@ -66,6 +66,8 @@ export default function EventsPanel() {
     prizeAmount: "",
     appetizersEnabled: false,
     appetizersNote: "",
+    excludeAttendeesOfEventId: "",
+    excludeAttendeesMessage: "",
   });
 
   const [highlightsText, setHighlightsText] = useState("");
@@ -180,6 +182,8 @@ export default function EventsPanel() {
       prizeAmount: event.prizeAmount ?? "",
       appetizersEnabled: event.appetizersEnabled === true,
       appetizersNote: event.appetizersNote ?? "",
+      excludeAttendeesOfEventId: event.excludeAttendeesOfEventId ?? "",
+      excludeAttendeesMessage: event.excludeAttendeesMessage ?? "",
     });
     setHighlightsText((Array.isArray(event.highlights) ? event.highlights : []).join("\n"));
     setDosText((Array.isArray(event.dos) ? event.dos : []).join("\n"));
@@ -221,6 +225,8 @@ export default function EventsPanel() {
       prizeAmount: "",
       appetizersEnabled: false,
       appetizersNote: "",
+      excludeAttendeesOfEventId: "",
+      excludeAttendeesMessage: "",
     });
     setHighlightsText("");
     setDosText("");
@@ -484,6 +490,10 @@ export default function EventsPanel() {
         prizeAmount: form.prizeEnabled ? (form.prizeAmount?.trim() || "") : "",
         appetizersEnabled: form.appetizersEnabled === true,
         appetizersNote: form.appetizersEnabled ? (form.appetizersNote?.trim() || "") : "",
+        excludeAttendeesOfEventId: form.excludeAttendeesOfEventId?.trim() || undefined,
+        excludeAttendeesMessage: form.excludeAttendeesOfEventId?.trim()
+          ? (form.excludeAttendeesMessage?.trim() || undefined)
+          : undefined,
       };
 
       const res = await fetch("/api/admin/events", {
@@ -733,6 +743,50 @@ export default function EventsPanel() {
                 Optional — registrations automatically close once this many students have signed up.
                 Leave empty for unlimited seats.
               </p>
+            </div>
+
+            {/* Session Attendance Gate */}
+            <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] p-4 space-y-3.5">
+              <div className="flex items-start gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-300 shrink-0">
+                  <AlertTriangle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-white">Session Attendance Gate</h3>
+                  <p className="text-[11px] font-mono text-gray-500">
+                    Optional — blocks members who were marked <span className="text-amber-300">attending</span> a
+                    previous event from registering here. Use for follow-on sessions with limited seats.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <div>
+                  <label className={labelCls}>Previous Event ID (attendees are excluded)</label>
+                  <input
+                    type="text"
+                    value={form.excludeAttendeesOfEventId ?? ""}
+                    onChange={(e) => setForm({ ...form, excludeAttendeesOfEventId: e.target.value })}
+                    placeholder="e.g. evt-1787849196175"
+                    className={`${inputCls} font-mono text-amber-300 border-amber-500/40`}
+                  />
+                  <p className="mt-1.5 text-[11px] font-mono text-gray-500">
+                    Enter the <span className="text-white">id</span> of the prior event whose attendees
+                    (marked as present at the door) should be prevented from registering.
+                  </p>
+                </div>
+
+                <div>
+                  <label className={labelCls}>Custom Block Message (optional)</label>
+                  <textarea
+                    rows={2}
+                    value={form.excludeAttendeesMessage ?? ""}
+                    onChange={(e) => setForm({ ...form, excludeAttendeesMessage: e.target.value })}
+                    placeholder="e.g. You have already attended the first session. We must allot space to other members."
+                    className={`${inputCls} resize-y`}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Perk Toggles — Fee / Certificate / Prize / Appetizers */}
