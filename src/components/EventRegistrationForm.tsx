@@ -26,6 +26,7 @@ import {
   CalendarPlus,
   Download,
   MessageCircle,
+  Lock,
   X,
   Minimize2,
   Maximize2,
@@ -102,6 +103,34 @@ interface Props {
   initialSlugOrId?: string;
 }
 
+// Single, smooth outline glow that breathes around the border of an active card.
+function OutlineGlow({
+  radius,
+  color = "52,211,153",
+  className,
+}: {
+  radius: number;
+  color?: string;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      aria-hidden
+      className={`pointer-events-none absolute inset-0 z-10 border-2 ${className ?? ""}`}
+      style={{ borderRadius: radius, borderColor: `rgba(${color},0.85)` }}
+      animate={{
+        boxShadow: [
+          `0 0 10px 0px rgba(${color},0.25)`,
+          `0 0 30px 6px rgba(${color},0.6)`,
+          `0 0 10px 0px rgba(${color},0.25)`,
+        ],
+        opacity: [0.8, 1, 0.8],
+      }}
+      transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
+
 export default function EventRegistrationForm({ initialSlugOrId }: Props) {
   const [events, setEvents] = useState<ClubEvent[]>(defaultEvents);
   const [activeEvent, setActiveEvent] = useState<ClubEvent | null>(null);
@@ -141,6 +170,9 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // Onboarding flow: step 1 = download pass image, step 2 = join WhatsApp group
+  const [passDownloaded, setPassDownloaded] = useState(false);
+
   // WhatsApp Popup Modal State (collapsible pop up shown on registration)
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [isModalCollapsed, setIsModalCollapsed] = useState(false);
@@ -156,6 +188,17 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
   }, [showWhatsAppModal]);
 
   const passRef = useRef<HTMLDivElement>(null);
+  const whatsappRef = useRef<HTMLDivElement>(null);
+
+  // After the pass image is downloaded, glide the view down to Step 2.
+  useEffect(() => {
+    if (passDownloaded) {
+      const t = setTimeout(() => {
+        whatsappRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 750);
+      return () => clearTimeout(t);
+    }
+  }, [passDownloaded]);
 
   // Download pass as branded high-res image
   const handleDownloadPassImage = async () => {
@@ -320,6 +363,7 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
       document.body.appendChild(downloadLink);
       downloadLink.click();
       document.body.removeChild(downloadLink);
+      setPassDownloaded(true);
     } catch (err) {
       console.error("Failed to generate pass image:", err);
     } finally {
@@ -613,6 +657,9 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
     setExistingRegistration(null);
     setGateBlocked(false);
     setGateMessage(null);
+    setPassDownloaded(false);
+    setShowWhatsAppModal(false);
+    setIsModalCollapsed(false);
   };
 
   // Handle Form Submit
@@ -730,7 +777,8 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
       }
 
       setExistingRegistration(data.registration);
-      setShowWhatsAppModal(true);
+      setPassDownloaded(false);
+      setShowWhatsAppModal(false);
       setIsModalCollapsed(false);
     } catch (err) {
       console.error("Submission failed:", err);
@@ -1029,57 +1077,57 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
                       </div>
                     </div>
 
-                    {/* WhatsApp Group Invite */}
-                    {activeEvent.whatsappGroupLink && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3 }}
-                        className="rounded-2xl bg-[#073d1e]/60 border-2 border-[#25D366]/40 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center gap-3.5 shadow-[0_0_30px_rgba(37,211,102,0.12)]"
-                      >
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 shrink-0">
-                          <MessageCircle className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-bold text-white">
-                            Join the {activeEvent.title} WhatsApp Group
-                          </h3>
-                          <p className="text-[11px] font-mono text-gray-400 mt-0.5">
-                            Get instant updates, announcements, and reminders about the event.
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowWhatsAppModal(true);
-                              setIsModalCollapsed(false);
-                            }}
-                            title="Open WhatsApp Group details modal"
-                            className="p-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-300 hover:text-white transition-colors flex items-center justify-center"
+                    {/* Vertical timeline: Step 1 digital pass → Step 2 WhatsApp group */}
+                    <ol className="relative">
+                      {/* STEP 1 — DIGITAL PASS */}
+                      <li className="flex gap-4">
+                        <div className="flex w-9 shrink-0 flex-col items-center">
+                          <span
+                            className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 font-mono text-xs font-black transition-colors ${
+                              passDownloaded
+                                ? "bg-emerald-500 border-emerald-400 text-black shadow-[0_0_18px_rgba(52,211,153,0.45)]"
+                                : "bg-emerald-500/15 border-emerald-400/50 text-emerald-300"
+                            }`}
                           >
-                            <Maximize2 className="w-4 h-4" />
-                          </button>
-                          <a
-                            href={activeEvent.whatsappGroupLink}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-black text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-95"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                            <span>Join Group</span>
-                          </a>
+                            {passDownloaded ? "✓" : "1"}
+                          </span>
+                          <div className={`w-0.5 flex-1 my-1.5 rounded-full ${passDownloaded ? "bg-emerald-500/60" : "bg-white/15"}`} />
                         </div>
-                      </motion.div>
-                    )}
 
-                    {/* Pass Card */}
-                    <div
-                      ref={passRef}
-                      className="rounded-3xl bg-gradient-to-b from-[#0e161c] to-[#080d11] border-2 border-emerald-500/40 p-6 shadow-[0_0_40px_rgba(16,185,129,0.1)] relative overflow-hidden"
-                    >
-                      <div className="absolute top-1/2 -left-3 h-6 w-6 rounded-full bg-[#06090c] border border-white/10 -translate-y-1/2" />
-                      <div className="absolute top-1/2 -right-3 h-6 w-6 rounded-full bg-[#06090c] border border-white/10 -translate-y-1/2" />
+                        <div className="min-w-0 flex-1 pb-8">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-mono font-bold uppercase tracking-widest text-gray-200">
+                              Download your digital pass
+                            </span>
+                            <span
+                              className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider ${
+                                passDownloaded ? "text-emerald-400" : "text-amber-300"
+                              }`}
+                            >
+                              {!passDownloaded && (
+                                <span className="relative flex h-1.5 w-1.5">
+                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-amber-400" />
+                                </span>
+                              )}
+                              {passDownloaded ? "Complete" : "In progress"}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-[10px] font-mono text-gray-500">
+                            Save your pass to keep the QR handy at the door.
+                          </p>
+
+                          <div
+                            ref={passRef}
+                            className={`relative mt-3 overflow-hidden rounded-3xl bg-gradient-to-b from-[#0e161c] to-[#080d11] border-2 p-6 transition-all duration-500 ${
+                              passDownloaded
+                                ? "border-emerald-400/70 shadow-[0_0_30px_rgba(16,185,129,0.22)]"
+                                : "border-emerald-400/25"
+                            }`}
+                          >
+                            {!passDownloaded && <OutlineGlow radius={22} />}
+                            <div className="absolute top-1/2 -left-3 h-6 w-6 rounded-full bg-[#06090c] border border-white/10 -translate-y-1/2 z-[5]" />
+                            <div className="absolute top-1/2 -right-3 h-6 w-6 rounded-full bg-[#06090c] border border-white/10 -translate-y-1/2 z-[5]" />
 
                       <div className="flex items-start justify-between gap-3 border-b border-dashed border-white/15 pb-4 mb-4">
                         <div>
@@ -1213,6 +1261,103 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
                         </a>
                       </div>
                     </div>
+                  </div>
+                </li>
+
+                {/* STEP 2 — WHATSAPP GROUP */}
+                {activeEvent.whatsappGroupLink && (
+                  <li className="flex gap-4">
+                    <div className="flex w-9 shrink-0 flex-col items-center">
+                      <span
+                        className={`relative z-10 flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors ${
+                          passDownloaded
+                            ? "bg-[#25D366]/15 border-[#25D366]/50 text-[#25D366] shadow-[0_0_18px_rgba(37,211,102,0.4)]"
+                            : "bg-white/5 border-white/15 text-gray-500"
+                        }`}
+                      >
+                        {passDownloaded ? <MessageCircle className="w-4 h-4" /> : <Lock className="w-3.5 h-3.5" />}
+                      </span>
+                    </div>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className={`text-xs font-mono font-bold uppercase tracking-widest ${passDownloaded ? "text-gray-100" : "text-gray-500"}`}>
+                          Join the whatsapp group
+                        </span>
+                        <span className={`inline-flex shrink-0 items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider ${passDownloaded ? "text-[#25D366]" : "text-gray-500"}`}>
+                          {passDownloaded && (
+                            <span className="relative flex h-1.5 w-1.5">
+                              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#25D366] opacity-75" />
+                              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#25D366]" />
+                            </span>
+                          )}
+                          {passDownloaded ? "Unlocked" : "Locked"}
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] font-mono text-gray-500">
+                        {passDownloaded
+                          ? "Tap the button below to join the group."
+                          : "Unlocks once you download your pass."}
+                      </p>
+
+                      {passDownloaded ? (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div ref={whatsappRef} className="relative mt-3">
+                            <OutlineGlow radius={16} color="37,211,102" />
+                            <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-3.5 rounded-2xl bg-[#073d1e]/60 border-2 border-[#25D366]/40 p-4 sm:p-5 shadow-[0_0_30px_rgba(37,211,102,0.12)]">
+                              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#25D366]/20 text-[#25D366] border border-[#25D366]/30 shrink-0">
+                                <MessageCircle className="w-5 h-5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-bold text-white">
+                                  Join the {activeEvent.title} WhatsApp Group
+                                </h3>
+                                <p className="text-[11px] font-mono text-gray-400 mt-0.5">
+                                  Get instant updates, announcements, and reminders about the event.
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowWhatsAppModal(true);
+                                    setIsModalCollapsed(false);
+                                  }}
+                                  title="Open WhatsApp Group details modal"
+                                  className="p-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-gray-300 hover:text-white transition-colors flex items-center justify-center"
+                                >
+                                  <Maximize2 className="w-4 h-4" />
+                                </button>
+                                <a
+                                  href={activeEvent.whatsappGroupLink}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-black text-xs font-mono font-bold uppercase tracking-wider transition-all active:scale-95"
+                                >
+                                  <MessageCircle className="w-4 h-4" />
+                                  <span>Join Group</span>
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <div className="mt-3 flex items-center gap-2.5 rounded-2xl border border-white/10 bg-white/[0.02] px-4 py-3">
+                          <Lock className="w-3.5 h-3.5 text-gray-600 shrink-0" />
+                          <span className="text-[11px] font-mono text-gray-500">
+                            Download the pass above to reveal the join link.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                )}
+              </ol>
                   </motion.div>
                 ) : gateBlocked ? (
                   /* SESSION ATTENDANCE GATE — already attended prior session */
