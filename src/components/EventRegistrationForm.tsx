@@ -81,6 +81,24 @@ function formatTime(dateStr: string): string {
   }
 }
 
+function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let current = "";
+  for (const word of words) {
+    const test = current ? `${current} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = test;
+    }
+  }
+  if (current) lines.push(current);
+  if (lines.length === 0) lines.push(text);
+  return lines;
+}
+
 function buildCalendarUrl(event: ClubEvent): string {
   const title = encodeURIComponent(event.title);
   const details = encodeURIComponent(
@@ -247,72 +265,78 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
       ctx.font = "bold 12px monospace";
       ctx.fillText("OFFICIAL DIGITAL PASS", width / 2, 105);
 
-      // 3. Event Title
+      // 3. Event Title (wrapped to fit within the card)
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 28px sans-serif";
-      ctx.fillText(activeEvent.title, width / 2, 155);
+      ctx.font = "bold 26px sans-serif";
+      const titleLines = wrapCanvasText(ctx, activeEvent.title, width - 120);
+      const titleLineHeight = 32;
+      const titleStartY = 155;
+      titleLines.slice(0, 3).forEach((line, i) => {
+        ctx.fillText(line, width / 2, titleStartY + i * titleLineHeight);
+      });
+      const titleOffset = Math.max(0, (Math.min(titleLines.length, 3) - 1) * (titleLineHeight - 14));
 
       // Event Date & Venue
       ctx.fillStyle = "#9ca3af";
       ctx.font = "14px monospace";
       const dateStr = `${formatDate(activeEvent.date)} • ${formatTime(activeEvent.date) || "10:00 AM"}`;
-      ctx.fillText(dateStr, width / 2, 185);
+      ctx.fillText(dateStr, width / 2, 185 + titleOffset);
       ctx.fillStyle = "#6ee7b7";
-      ctx.fillText(`📍 ${activeEvent.venue || "Campus Lab"}`, width / 2, 210);
+      ctx.fillText(`📍 ${activeEvent.venue || "Campus Lab"}`, width / 2, 210 + titleOffset);
 
       // Dashed Divider
       ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
       ctx.setLineDash([6, 6]);
       ctx.beginPath();
-      ctx.moveTo(50, 235);
-      ctx.lineTo(width - 50, 235);
+      ctx.moveTo(50, 235 + titleOffset);
+      ctx.lineTo(width - 50, 235 + titleOffset);
       ctx.stroke();
       ctx.setLineDash([]);
 
       // 4. Attendee Details Card
       ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
-      ctx.fillRect(50, 255, width - 100, 160);
+      ctx.fillRect(50, 255 + titleOffset, width - 100, 160);
       ctx.strokeStyle = "rgba(255, 255, 255, 0.1)";
-      ctx.strokeRect(50, 255, width - 100, 160);
+      ctx.strokeRect(50, 255 + titleOffset, width - 100, 160);
 
       ctx.textAlign = "left";
       // Attendee Name
       ctx.fillStyle = "#9ca3af";
       ctx.font = "11px monospace";
-      ctx.fillText("ATTENDEE NAME", 75, 285);
+      ctx.fillText("ATTENDEE NAME", 75, 285 + titleOffset);
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 20px sans-serif";
-      ctx.fillText(existingRegistration.fullName, 75, 312);
+      ctx.fillText(existingRegistration.fullName, 75, 312 + titleOffset);
 
       // Register Number
       ctx.fillStyle = "#9ca3af";
       ctx.font = "11px monospace";
-      ctx.fillText("REGISTER NUMBER (RRN)", 450, 285);
+      ctx.fillText("REGISTER NUMBER (RRN)", 450, 285 + titleOffset);
       ctx.fillStyle = "#34d399";
       ctx.font = "bold 16px monospace";
-      ctx.fillText(existingRegistration.registerNumber, 450, 312);
+      ctx.fillText(existingRegistration.registerNumber, 450, 312 + titleOffset);
 
       // Department
       ctx.fillStyle = "#9ca3af";
       ctx.font = "11px monospace";
-      ctx.fillText("DEPARTMENT / BRANCH", 75, 355);
+      ctx.fillText("DEPARTMENT / BRANCH", 75, 355 + titleOffset);
       ctx.fillStyle = "#e5e7eb";
       ctx.font = "14px sans-serif";
-      ctx.fillText(existingRegistration.branch, 75, 378);
+      ctx.fillText(existingRegistration.branch, 75, 378 + titleOffset);
 
       // Year & Section
       ctx.fillStyle = "#9ca3af";
       ctx.font = "11px monospace";
-      ctx.fillText("YEAR & SECTION", 450, 355);
+      ctx.fillText("YEAR & SECTION", 450, 355 + titleOffset);
       ctx.fillStyle = "#e5e7eb";
       ctx.font = "14px sans-serif";
-      ctx.fillText(`${existingRegistration.year} • Sec ${existingRegistration.section}`, 450, 378);
+      ctx.fillText(`${existingRegistration.year} • Sec ${existingRegistration.section}`, 450, 378 + titleOffset);
 
       // 5. Draw QR Code
       const qrCanvas = document.getElementById("pass-qr-canvas") as HTMLCanvasElement;
       const qrSize = 240;
       const qrX = width / 2 - qrSize / 2;
-      const qrY = 445;
+      const qrY = 445 + titleOffset;
 
       // QR White Container Box
       ctx.fillStyle = "#ffffff";
