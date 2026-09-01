@@ -14,6 +14,8 @@ import {
   UserCheck,
   GraduationCap,
   Sparkles,
+  RotateCw,
+  FlipHorizontal2,
 } from "lucide-react";
 import { Html5Qrcode, Html5QrcodeCameraScanConfig } from "html5-qrcode";
 import type { EventRegistration } from "@/lib/registrations";
@@ -50,6 +52,8 @@ export default function QrScannerModal({
   const [manualCode, setManualCode] = useState("");
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [mirrorEnabled, setMirrorEnabled] = useState(false);
 
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isMountedRef = useRef(false);
@@ -252,19 +256,18 @@ export default function QrScannerModal({
         }
 
         const qrCode = html5QrCodeRef.current;
+        // Always fully stop and destroy before restarting — fixes Android camera switching
         if (qrCode.isScanning) {
           try {
             await qrCode.stop();
           } catch {}
-          await new Promise((r) => setTimeout(r, 180));
-          try {
-            await qrCode.clear();
-          } catch {}
-          html5QrCodeRef.current = new Html5Qrcode("reader-element");
-        } else if (qrCode.getState && (qrCode.getState() as unknown as number) === 1) {
-          await new Promise((r) => setTimeout(r, 250));
+          await new Promise((r) => setTimeout(r, 150));
         }
-
+        try {
+          await qrCode.clear();
+        } catch {}
+        // Create a fresh instance to avoid stale stream handles on Android
+        html5QrCodeRef.current = new Html5Qrcode("reader-element");
         const activeQr = html5QrCodeRef.current;
         const config: Html5QrcodeCameraScanConfig = {
           fps: 10,
@@ -434,6 +437,23 @@ export default function QrScannerModal({
     setManualCode("");
   };
 
+  // Switch between front and rear cameras
+  const switchCamera = useCallback(async () => {
+    await stopScanner();
+    const newFacing = facingMode === "user" ? "environment" : "user";
+    setFacingMode(newFacing);
+    setMirrorEnabled(newFacing === "user");
+    setSelectedCamera("");
+    // Small delay to ensure previous stream is fully released
+    await new Promise((r) => setTimeout(r, 300));
+    startScanner();
+  }, [facingMode, stopScanner, startScanner]);
+
+  // Toggle mirror on/off
+  const toggleMirror = useCallback(() => {
+    setMirrorEnabled((prev) => !prev);
+  }, []);
+
   if (!isOpen) return null;
 
   return (
@@ -476,12 +496,12 @@ export default function QrScannerModal({
         </div>
 
         {/* Camera Viewfinder */}
-        <div className="relative overflow-hidden rounded-2xl bg-black border border-white/10 aspect-square max-h-[300px] flex items-center justify-center">
+        <div className={`relative overflow-hidden rounded-2xl bg-black border border-white/10 aspect-square max-h-[300px] flex items-center justify-center${mirrorEnabled ? " -scale-x-100" : ""}`}>
           <div id="reader-element" className="w-full h-full object-cover" />
 
           {/* Animated Laser Overlay */}
           {scanning && !cameraError && (
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center p-6">
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center p-6 scale-x-[-1]">
               <div className="relative w-48 h-48 sm:w-56 sm:h-56 border-2 border-emerald-400/50 rounded-2xl">
                 <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-emerald-400 rounded-tl" />
                 <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-emerald-400 rounded-tr" />
@@ -511,26 +531,55 @@ export default function QrScannerModal({
           )}
         </div>
 
-        {/* Camera Selector Switcher */}
-        {cameras.length > 1 && (
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-gray-400 shrink-0">Camera:</span>
-            <select
-              value={selectedCamera}
-              onChange={(e) => {
-                setSelectedCamera(e.target.value);
-                startScanner(e.target.value);
-              }}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-300 focus:outline-none focus:border-emerald-400"
-            >
-              {cameras.map((c, i) => (
-                <option key={c.id} value={c.id} className="bg-[#0b1015] text-white">
-                  {c.label || `Camera ${i + 1}`}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        {/* Camera Controls */}
+        <div className="flex items-center gap-2">
+          {/* Flip Camera Button (front/rear toggle) */}
+          <button
+            type="button"
+            onClick={switchCamera}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:text-white hover:bg-white/10 transition-colors text-[11px] font-mono shrink-0"
+            title={facingMode === "user" ? "Switch to rear camera" : "Switch to front camera"}
+          >
+            <RotateCw className="w-3.5 h-3.5" />
+            <span>{facingMode === "user" ? "Rear" : "Front"}</span>
+          </button>
+
+          {/* Mirror Toggle */}
+          <button
+            type="button"
+            onClick={toggleMirror}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border transition-colors text-[11px] font-mono shrink-0 ${
+              mirrorEnabled
+                ? "bg-emerald-500/20 border-emerald-400/50 text-emerald-400"
+                : "bg-white/5 border-white/10 text-gray-300 hover:text-white hover:bg-white/10"
+            }`}
+            title={mirrorEnabled ? "Disable mirror" : "Enable mirror (flip horizontally)"}
+          >
+            <FlipHorizontal2 className="w-3.5 h-3.5" />
+            <span>Mirror</span>
+          </button>
+
+          {/* Camera Dropdown — shown only when 3+ cameras exist (otherwise flip button suffices) */}
+          {cameras.length > 2 && (
+            <>
+              <span className="text-[10px] font-mono text-gray-500 shrink-0">|</span>
+              <select
+                value={selectedCamera}
+                onChange={(e) => {
+                  setSelectedCamera(e.target.value);
+                  stopScanner().then(() => startScanner(e.target.value));
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1 text-xs font-mono text-gray-300 focus:outline-none focus:border-emerald-400"
+              >
+                {cameras.map((c, i) => (
+                  <option key={c.id} value={c.id} className="bg-[#0b1015] text-white">
+                    {c.label || `Camera ${i + 1}`}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+        </div>
 
         {/* LIVE SCAN FEEDBACK CARD */}
         {lastResult && (
