@@ -58,6 +58,11 @@ export default function QrScannerModal({
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const isMountedRef = useRef(false);
   const isStartingRef = useRef(false);
+  const facingModeRef = useRef<"user" | "environment">("environment");
+  // Keep ref in sync for start/switch — avoids stale state closures
+  useEffect(() => {
+    facingModeRef.current = facingMode;
+  }, [facingMode]);
   const lastScannedCodeRef = useRef<string>("");
   const cooldownTimerRef = useRef<NodeJS.Timeout | null>(null);
   const camerasRef = useRef<{ id: string; label: string }[]>([]);
@@ -269,37 +274,29 @@ export default function QrScannerModal({
         // Create a fresh instance to avoid stale stream handles on Android
         html5QrCodeRef.current = new Html5Qrcode("reader-element");
         const activeQr = html5QrCodeRef.current;
-        const config: Html5QrcodeCameraScanConfig = {
-          fps: 10,
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          videoConstraints: { width: { ideal: 640 }, height: { ideal: 480 } } as unknown as MediaTrackConstraints,
-        };
 
         // Build camera candidates, honoring the current facingMode (front/rear toggle).
-        // Explicit cameraId takes precedence; otherwise prefer devices matching the
-        // active facingMode, falling back to facingMode constraints and other devices.
         const isVirtual = (label: string) => /obs|virtual|snap/i.test(label);
         const physical = camerasRef.current.filter((d) => !isVirtual(d.label || ""));
         const pool = physical.length > 0 ? physical : camerasRef.current;
 
+        const desiredFacing: "user" | "environment" = facingModeRef.current;
         const byFacing =
-          facingMode === "user"
+          desiredFacing === "user"
             ? pool.find((d) => /front|user|face|selfie/i.test(d.label || ""))
             : pool.find((d) => /back|rear|environment/i.test(d.label || ""));
 
-        const candidates: (string | { facingMode: string })[] = [];
+        const candidates: (string | { facingMode: string | { exact: string } })[] = [];
         if (cameraId) {
           candidates.push(cameraId);
         }
-
         // Push the device id matching the current facingMode first (most reliable on Android)
         if (byFacing?.id && byFacing.id !== cameraId) {
           candidates.push(byFacing.id);
         }
         // Then the other physical camera
         const otherFacing =
-          facingMode === "user"
+          desiredFacing === "user"
             ? pool.find((d) => /back|rear|environment/i.test(d.label || "") && d.id !== byFacing?.id)
             : pool.find((d) => /front|user|face|selfie/i.test(d.label || "") && d.id !== byFacing?.id);
         if (otherFacing?.id && otherFacing.id !== cameraId && !candidates.includes(otherFacing.id)) {
@@ -309,26 +306,58 @@ export default function QrScannerModal({
         for (const d of pool) {
           if (d.id !== cameraId && !candidates.includes(d.id)) candidates.push(d.id);
         }
-        // facingMode constraints as final fallback (browser-picked)
-        if (facingMode === "user") {
-          candidates.push({ facingMode: "user" });
-          candidates.push({ facingMode: "environment" });
-        } else {
-          candidates.push({ facingMode: "environment" });
-          candidates.push({ facingMode: "user" });
-        }
+        // Exact facingMode constraints as final fallback — forces the intended camera on Android
+        candidates.push({ facingMode: { exact: desiredFacing } });
+        candidates.push({ facingMode: { exact: desiredFacing === "user" ? "environment" : "user" } });
 
+        // IMPORTANT: html5-qrcode ignores the cameraIdOrConfig passed to start() whenever
+        // configuration.videoConstraints is set. So the deviceId/facingMode MUST live inside
+        // videoConstraints. Shown facing/direction is also verified post-start.
         let lastErr: unknown = null;
         for (const targetCamera of candidates) {
+          const videoConstraints: MediaTrackConstraints = {
+            width: { ideal: 640 },
+            height: { ideal: 480 },
+          };
+          if (typeof targetCamera === "string") {
+            videoConstraints.deviceId = { exact: targetCamera };
+          } else if (targetCamera.facingMode) {
+            const fm = targetCamera.facingMode;
+            videoConstraints.facingMode =
+              typeof fm === "string" ? ({ exact: fm } as unknown as MediaTrackConstraints["facingMode"]) : fm;
+          }
+          const config: Html5QrcodeCameraScanConfig = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+            videoConstraints,
+          };
           try {
-            await activeQr.start(
-              targetCamera as string | { facingMode: string },
-              config,
-              (decodedText) => {
-                processDecodedText(decodedText);
-              },
-              undefined
-            );
+            await activeQr.start(targetCamera as string | MediaTrackConstraints, config, (decodedText) => {
+              processDecodedText(decodedText);
+            }, undefined);
+
+            // Verify the camera actually opened is the intended one (Android can silently
+            // fall back to the front camera). Continue to next candidate if it's wrong.
+            let settings: MediaTrackSettings | undefined;
+            let openedMatches = false;
+            try {
+              settings = activeQr.getRunningTrackSettings();
+              if (typeof targetCamera === "string" && settings.deviceId) {
+                openedMatches = settings.deviceId === targetCamera;
+              } else if (settings.facingMode) {
+                openedMatches = settings.facingMode === desiredFacing;
+              }
+            } catch {}
+            if (!openedMatches && (settings?.deviceId ?? settings?.facingMode)) {
+              // Opened camera doesn't match request — stop and try next candidate.
+              try {
+                if (activeQr.isScanning) await activeQr.stop();
+              } catch {}
+              await new Promise((r) => setTimeout(r, 150));
+              continue;
+            }
+
             setScanning(true);
             return;
           } catch (e) {
@@ -374,7 +403,7 @@ export default function QrScannerModal({
         isStartingRef.current = false;
       }
     },
-    [processDecodedText, pickBestCameraId, facingMode]
+    [processDecodedText, pickBestCameraId]
   );
 
   // Stop scanner
@@ -421,7 +450,10 @@ export default function QrScannerModal({
               setCameras(devices);
               const chosen = pickBestCameraId(devices) ?? devices[0].id;
               setSelectedCamera(chosen);
-              startScannerRef.current(chosen);
+              // Start via facingMode (rear) — most reliable way to pick the back camera on Android.
+              setFacingMode("environment");
+              facingModeRef.current = "environment";
+              startScannerRef.current();
             } else {
               startScannerRef.current();
             }
@@ -456,6 +488,10 @@ export default function QrScannerModal({
 
   // Switch between front and rear cameras
   const switchCamera = useCallback(async () => {
+    // Wait for any in-progress start to finish before tearing down
+    while (isStartingRef.current) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
     await stopScanner();
     const newFacing = facingMode === "user" ? "environment" : "user";
     // Resolve the physical device id for the target facing mode (more reliable on Android)
@@ -468,6 +504,7 @@ export default function QrScannerModal({
         : pool.find((d) => /back|rear|environment/i.test(d.label || ""));
 
     setFacingMode(newFacing);
+    facingModeRef.current = newFacing; // update synchronously — startScanner reads the ref
     setMirrorEnabled(newFacing === "user");
     setSelectedCamera(target?.id ?? "");
     // Small delay to ensure previous stream is fully released

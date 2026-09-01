@@ -510,6 +510,9 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
 
         if (data.registered && data.registration) {
           setExistingRegistration(data.registration);
+          // A registered student keeps access to their pass even if the event closed
+          setRegistrationClosed(false);
+          setClosedReason(null);
         } else if (data.registrationClosed) {
           setRegistrationClosed(true);
           setClosedReason(data.closedReason || "Registrations are closed for this event.");
@@ -851,8 +854,8 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
         ) : (
           /* CASE B: IN-BUILT WEBSITE REGISTRATION */
           <div>
-            {/* REGISTRATION CLOSED — shown regardless of sign-in state */}
-            {registrationClosed && (
+            {/* REGISTRATION CLOSED — shown for non-registered users; registered students still see their pass */}
+            {registrationClosed && !existingRegistration && !checkingRegistration && (
               <motion.div
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -983,7 +986,7 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
               )}
             </div>
 
-            {authStatus === "signed-in" && !registrationClosed && (
+            {authStatus === "signed-in" && (
               <div>
                 {checkingRegistration ? (
                   <div className="flex flex-col items-center justify-center gap-3 py-12 text-center text-xs font-mono text-gray-400">
@@ -1192,6 +1195,8 @@ export default function EventRegistrationForm({ initialSlugOrId }: Props) {
                       </div>
                     </div>
                   </motion.div>
+                ) : registrationClosed ? (
+                  null
                 ) : (
                   /* DYNAMIC REGISTRATION FORM */
                   <motion.form

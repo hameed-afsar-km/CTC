@@ -68,6 +68,17 @@ export async function GET(request: Request) {
     const eventId = event?.id || eventQuery;
     const email = identity.email.toLowerCase();
 
+    // Check if user is already registered FIRST — a registered student keeps seeing
+    // their digital pass (QR + details) even if the event closed / deadline passed.
+    const existing = await findRegistration(eventId, email);
+    if (existing) {
+      return NextResponse.json({
+        registered: true,
+        registration: existing,
+        event,
+      });
+    }
+
     // Check if registration is closed for this event
     const isFull = await isEventFull(event, eventId);
     const closedReason = isRegistrationClosed(event, isFull);
@@ -76,16 +87,6 @@ export async function GET(request: Request) {
         registered: false,
         registrationClosed: true,
         closedReason,
-        event,
-      });
-    }
-
-    // Check if user is already registered for this event
-    const existing = await findRegistration(eventId, email);
-    if (existing) {
-      return NextResponse.json({
-        registered: true,
-        registration: existing,
         event,
       });
     }
