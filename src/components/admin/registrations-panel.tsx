@@ -20,6 +20,8 @@ import {
   Plus,
   Save,
   Edit2,
+  Filter,
+  Users,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import type { EventRegistration } from "@/lib/registrations";
@@ -108,6 +110,7 @@ export default function RegistrationsPanel() {
   const [editingReg, setEditingReg] = useState<EventRegistration | null>(null);
   const [savingReg, setSavingReg] = useState(false);
   const [regFormError, setRegFormError] = useState<string | null>(null);
+  const [customResponses, setCustomResponses] = useState<Record<string, string | boolean | number>>({});
   const [regForm, setRegForm] = useState({
     eventId: "",
     collegeMail: "",
@@ -120,6 +123,10 @@ export default function RegistrationsPanel() {
     year: "2nd Year",
     status: "confirmed",
   });
+
+  const activeFormEvent = useMemo(() => {
+    return events.find((e) => e.id === regForm.eventId || (e.slug && e.slug === regForm.eventId));
+  }, [events, regForm.eventId]);
 
   useEffect(() => {
     async function fetchEvents() {
@@ -224,8 +231,9 @@ export default function RegistrationsPanel() {
   const openCreate = () => {
     setEditingReg(null);
     setRegFormError(null);
+    const initialEventId = selectedEventId !== "all" ? selectedEventId : (events[0]?.id || "");
     setRegForm({
-      eventId: selectedEventId !== "all" ? selectedEventId : (events[0]?.id || ""),
+      eventId: initialEventId,
       collegeMail: "",
       fullName: "",
       registerNumber: "",
@@ -236,6 +244,7 @@ export default function RegistrationsPanel() {
       year: "2nd Year",
       status: "confirmed",
     });
+    setCustomResponses({});
     setFormOpen(true);
   };
 
@@ -254,6 +263,25 @@ export default function RegistrationsPanel() {
       year: r.year,
       status: r.status,
     });
+    const existingResponses: Record<string, string | boolean | number> = {
+      ...(r.customResponses || {}),
+    };
+    if (r.laptop !== undefined && existingResponses.laptop === undefined) {
+      existingResponses.laptop = r.laptop;
+    }
+    if (r.skillLevel !== undefined && existingResponses.skillLevel === undefined) {
+      existingResponses.skillLevel = r.skillLevel;
+    }
+    if (r.githubUrl !== undefined && existingResponses.githubUrl === undefined) {
+      existingResponses.githubUrl = r.githubUrl;
+    }
+    if (r.linkedinUrl !== undefined && existingResponses.linkedinUrl === undefined) {
+      existingResponses.linkedinUrl = r.linkedinUrl;
+    }
+    if (r.expectations !== undefined && existingResponses.expectations === undefined) {
+      existingResponses.expectations = r.expectations;
+    }
+    setCustomResponses(existingResponses);
     setFormOpen(true);
   };
 
@@ -268,6 +296,18 @@ export default function RegistrationsPanel() {
     if (!regForm.registerNumber.trim()) return setRegFormError("Register number is required.");
     if (!regForm.contactNumber.trim()) return setRegFormError("Contact number is required.");
 
+    // Validate required custom fields if configured
+    if (activeFormEvent?.customFields && activeFormEvent.customFields.length > 0) {
+      for (const f of activeFormEvent.customFields) {
+        if (f.required) {
+          const val = customResponses[f.id];
+          if (val === undefined || val === null || String(val).trim() === "") {
+            return setRegFormError(`"${f.label}" is required.`);
+          }
+        }
+      }
+    }
+
     setSavingReg(true);
     try {
       const token = await getToken();
@@ -278,6 +318,7 @@ export default function RegistrationsPanel() {
         body: JSON.stringify({
           ...(editingReg ? { id: editingReg.id } : {}),
           ...regForm,
+          customResponses,
         }),
       });
       const data = await res.json();
@@ -303,66 +344,59 @@ export default function RegistrationsPanel() {
     }
   };
 
-  const filteredRegistrations = useMemo(() => {
-    return registrations
-      .filter((r) => {
-        if (selectedEventId !== "all" && r.eventId !== selectedEventId) return false;
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
-          const searchableValues = [
-            r.fullName,
-            r.collegeMail,
-            r.registerNumber,
-            r.contactNumber,
-            r.ticketCode,
-            r.eventTitle,
-            r.eventId,
-            r.id,
-            r.degree,
-            r.branch,
-            r.section,
-            r.year,
-            r.status,
-            r.skillLevel,
-            r.laptop,
-            r.githubUrl,
-            r.linkedinUrl,
-            r.expectations,
-            r.attended ? "attended" : "",
-            r.attended ? "checked in" : "pending",
-            r.attendedAt || "",
-            r.registeredAt,
-          ];
-          if (r.customResponses) {
-            Object.values(r.customResponses).forEach((v) => searchableValues.push(String(v)));
-          }
-          const match = searchableValues.some((v) => v && String(v).toLowerCase().includes(q));
-          if (!match) return false;
+  // Base list scoped by selected event, search, branch, and year (WITHOUT attendanceFilter)
+  const baseScopedRegistrations = useMemo(() => {
+    return registrations.filter((r) => {
+      if (selectedEventId !== "all" && r.eventId !== selectedEventId) return false;
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const searchableValues = [
+          r.fullName,
+          r.collegeMail,
+          r.registerNumber,
+          r.contactNumber,
+          r.ticketCode,
+          r.eventTitle,
+          r.eventId,
+          r.id,
+          r.degree,
+          r.branch,
+          r.section,
+          r.year,
+          r.status,
+          r.skillLevel,
+          r.laptop,
+          r.githubUrl,
+          r.linkedinUrl,
+          r.expectations,
+          r.attended ? "attended" : "",
+          r.attended ? "checked in" : "pending",
+          r.attendedAt || "",
+          r.registeredAt,
+        ];
+        if (r.customResponses) {
+          Object.values(r.customResponses).forEach((v) => searchableValues.push(String(v)));
         }
-        if (branchFilter !== "All Branches") {
-          if (branchFilter === "Other") {
-            if (BRANCH_OPTIONS.slice(1, -1).some((b) => b.toLowerCase() === r.branch.toLowerCase())) return false;
-          } else if (r.branch.toLowerCase() !== branchFilter.toLowerCase()) return false;
-        }
-        if (yearFilter !== "All Years" && r.year !== yearFilter) return false;
-        if (attendanceFilter === "attended" && !r.attended) return false;
-        if (attendanceFilter === "pending" && r.attended) return false;
-        return true;
-      })
-      .sort((a, b) => {
-        if (sortBy === "name") return a.fullName.localeCompare(b.fullName);
-        if (sortBy === "roll") return a.registerNumber.localeCompare(b.registerNumber);
-        if (sortBy === "date-asc") return new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime();
-        return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
-      });
-  }, [registrations, selectedEventId, searchQuery, branchFilter, yearFilter, attendanceFilter, sortBy]);
+        const match = searchableValues.some((v) => v && String(v).toLowerCase().includes(q));
+        if (!match) return false;
+      }
+      if (branchFilter !== "All Branches") {
+        if (branchFilter === "Other") {
+          if (BRANCH_OPTIONS.slice(1, -1).some((b) => b.toLowerCase() === r.branch.toLowerCase())) return false;
+        } else if (r.branch.toLowerCase() !== branchFilter.toLowerCase()) return false;
+      }
+      if (yearFilter !== "All Years" && r.year !== yearFilter) return false;
+      return true;
+    });
+  }, [registrations, selectedEventId, searchQuery, branchFilter, yearFilter]);
 
+  // Accurate stats that don't collapse to 0 when attendance filter is active
   const stats = useMemo(() => {
-    const total = filteredRegistrations.length;
-    const attended = filteredRegistrations.filter((r) => r.attended).length;
+    const total = baseScopedRegistrations.length;
+    const attended = baseScopedRegistrations.filter((r) => r.attended).length;
     const pending = total - attended;
     const branchCounts: Record<string, number> = {};
-    filteredRegistrations.forEach((r) => {
+    baseScopedRegistrations.forEach((r) => {
       const b = r.branch || "Other";
       branchCounts[b] = (branchCounts[b] || 0) + 1;
     });
@@ -374,7 +408,22 @@ export default function RegistrationsPanel() {
       attendancePct: total > 0 ? Math.round((attended / total) * 100) : 0,
       topBranch: topBranch ? `${topBranch[0]} (${topBranch[1]})` : "—",
     };
-  }, [filteredRegistrations]);
+  }, [baseScopedRegistrations]);
+
+  const filteredRegistrations = useMemo(() => {
+    return baseScopedRegistrations
+      .filter((r) => {
+        if (attendanceFilter === "attended" && !r.attended) return false;
+        if (attendanceFilter === "pending" && r.attended) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === "name") return a.fullName.localeCompare(b.fullName);
+        if (sortBy === "roll") return a.registerNumber.localeCompare(b.registerNumber);
+        if (sortBy === "date-asc") return new Date(a.registeredAt).getTime() - new Date(b.registeredAt).getTime();
+        return new Date(b.registeredAt).getTime() - new Date(a.registeredAt).getTime();
+      });
+  }, [baseScopedRegistrations, attendanceFilter, sortBy]);
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
 
@@ -495,23 +544,77 @@ export default function RegistrationsPanel() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* Interactive Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-6">
-          <div className="rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 p-4">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-300/70">Total Registered</p>
+          <button
+            type="button"
+            onClick={() => setAttendanceFilter("all")}
+            className={`text-left rounded-2xl p-4 transition-all cursor-pointer ${
+              attendanceFilter === "all"
+                ? "bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.25)] ring-1 ring-emerald-400/50"
+                : "bg-white/[0.03] border border-white/10 hover:border-white/20 hover:bg-white/[0.05]"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-300/70">Total Registered</p>
+              {attendanceFilter === "all" && (
+                <span className="text-[9px] font-mono font-bold bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-400/30">
+                  Active
+                </span>
+              )}
+            </div>
             <p className="text-2xl font-black text-white mt-1">{stats.total}</p>
-            <p className="text-[11px] font-mono text-gray-500 mt-1">{selectedEventId === "all" ? "across all events" : "for this event"}</p>
-          </div>
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-400">Checked In</p>
+            <p className="text-[11px] font-mono text-gray-500 mt-1">
+              {selectedEventId === "all" ? "across all events" : "for this event"}
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAttendanceFilter("attended")}
+            className={`text-left rounded-2xl p-4 transition-all cursor-pointer ${
+              attendanceFilter === "attended"
+                ? "bg-emerald-500/15 border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.25)] ring-1 ring-emerald-400/50"
+                : "bg-white/[0.03] border border-white/10 hover:border-emerald-500/30 hover:bg-white/[0.05]"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-1">
+                <CheckCircle2 className="w-3 h-3" /> Marked Attendees
+              </p>
+              {attendanceFilter === "attended" && (
+                <span className="text-[9px] font-mono font-bold bg-emerald-400/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-400/30">
+                  Active
+                </span>
+              )}
+            </div>
             <p className="text-2xl font-black text-emerald-400 mt-1">{stats.attended}</p>
-            <p className="text-[11px] font-mono text-gray-500 mt-1">{stats.attendancePct}% attendance</p>
-          </div>
-          <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-gray-400">Pending</p>
+            <p className="text-[11px] font-mono text-gray-500 mt-1">{stats.attendancePct}% checked in</p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAttendanceFilter("pending")}
+            className={`text-left rounded-2xl p-4 transition-all cursor-pointer ${
+              attendanceFilter === "pending"
+                ? "bg-amber-500/15 border-2 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/50"
+                : "bg-white/[0.03] border border-white/10 hover:border-amber-500/30 hover:bg-white/[0.05]"
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-mono uppercase tracking-widest text-amber-300 flex items-center gap-1">
+                <Clock className="w-3 h-3" /> Unmarked Attendees
+              </p>
+              {attendanceFilter === "pending" && (
+                <span className="text-[9px] font-mono font-bold bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/30">
+                  Active
+                </span>
+              )}
+            </div>
             <p className="text-2xl font-black text-amber-300 mt-1">{stats.pending}</p>
             <p className="text-[11px] font-mono text-gray-500 mt-1">not yet checked in</p>
-          </div>
+          </button>
+
           <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4">
             <p className="text-[10px] font-mono uppercase tracking-widest text-gray-400">Top Branch</p>
             <p className="text-sm font-bold text-white mt-1 truncate" title={stats.topBranch}>{stats.topBranch}</p>
@@ -521,7 +624,62 @@ export default function RegistrationsPanel() {
       </PanelCard>
 
       {/* Filters */}
-      <PanelCard>
+      <PanelCard className="space-y-3">
+        {/* Quick Attendance Status Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-2 pb-2 border-b border-white/5">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-gray-400 mr-1 flex items-center gap-1.5">
+            <Filter className="w-3 h-3 text-emerald-400" /> Filter Attendees:
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setAttendanceFilter("all")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
+              attendanceFilter === "all"
+                ? "bg-white/15 text-white border border-white/30 shadow-[0_0_12px_rgba(255,255,255,0.15)] font-bold"
+                : "bg-white/[0.03] text-gray-400 border border-white/5 hover:bg-white/[0.08] hover:text-white"
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>All Registered</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${attendanceFilter === "all" ? "bg-white/20 text-white font-bold" : "bg-white/5 text-gray-400"}`}>
+              {stats.total}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAttendanceFilter("attended")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
+              attendanceFilter === "attended"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-400/60 shadow-[0_0_15px_rgba(52,211,153,0.25)] font-bold"
+                : "bg-white/[0.03] text-gray-400 border border-white/5 hover:bg-emerald-500/10 hover:text-emerald-300"
+            }`}
+          >
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Marked Attendees</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${attendanceFilter === "attended" ? "bg-emerald-500/30 text-emerald-200 font-bold" : "bg-white/5 text-gray-400"}`}>
+              {stats.attended}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setAttendanceFilter("pending")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono transition-all ${
+              attendanceFilter === "pending"
+                ? "bg-amber-500/20 text-amber-300 border border-amber-400/60 shadow-[0_0_15px_rgba(245,158,11,0.25)] font-bold"
+                : "bg-white/[0.03] text-gray-400 border border-white/5 hover:bg-amber-500/10 hover:text-amber-300"
+            }`}
+          >
+            <Clock className="w-3.5 h-3.5 text-amber-400" />
+            <span>Unmarked Attendees</span>
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] ${attendanceFilter === "pending" ? "bg-amber-500/30 text-amber-200 font-bold" : "bg-white/5 text-gray-400"}`}>
+              {stats.pending}
+            </span>
+          </button>
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
@@ -549,9 +707,9 @@ export default function RegistrationsPanel() {
               ))}
             </select>
             <select value={attendanceFilter} onChange={(e) => setAttendanceFilter(e.target.value as never)} className="bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-300 focus:outline-none focus:border-emerald-400">
-              <option value="all" className="bg-[#0e161c]">All statuses</option>
-              <option value="attended" className="bg-[#0e161c]">Checked in</option>
-              <option value="pending" className="bg-[#0e161c]">Pending</option>
+              <option value="all" className="bg-[#0e161c]">All Participants ({stats.total})</option>
+              <option value="attended" className="bg-[#0e161c]">Marked Attendees ({stats.attended})</option>
+              <option value="pending" className="bg-[#0e161c]">Unmarked Attendees ({stats.pending})</option>
             </select>
             <select value={sortBy} onChange={(e) => setSortBy(e.target.value as never)} className="bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-xs font-mono text-gray-300 focus:outline-none focus:border-emerald-400">
               <option value="date-desc" className="bg-[#0e161c]">Newest first</option>
@@ -680,22 +838,35 @@ export default function RegistrationsPanel() {
               </div>
             </div>
 
-            {viewingReg.customResponses && Object.keys(viewingReg.customResponses).length > 0 && (
-              <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
-                <p className="text-[11px] font-mono font-bold uppercase tracking-widest text-cyan-300">Event Answers</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {Object.entries(viewingReg.customResponses).map(([k, v]) => {
-                    const field = customFieldLabelMap[viewingReg.eventId]?.[k];
-                    return (
-                      <div key={k} className="rounded-xl bg-black/40 border border-white/5 p-3">
-                        <span className="text-[10px] font-mono text-gray-400 block">{field || k}</span>
-                        <span className="text-xs font-medium text-white break-words">{String(v)}</span>
-                      </div>
-                    );
-                  })}
+            {(() => {
+              const answers: Record<string, unknown> = {
+                ...(viewingReg.customResponses || {}),
+              };
+              if (viewingReg.laptop && answers.laptop === undefined) answers.laptop = viewingReg.laptop;
+              if (viewingReg.skillLevel && answers.skillLevel === undefined) answers.skillLevel = viewingReg.skillLevel;
+              if (viewingReg.expectations && answers.expectations === undefined) answers.expectations = viewingReg.expectations;
+              if (viewingReg.githubUrl && answers.githubUrl === undefined) answers.githubUrl = viewingReg.githubUrl;
+              if (viewingReg.linkedinUrl && answers.linkedinUrl === undefined) answers.linkedinUrl = viewingReg.linkedinUrl;
+
+              if (Object.keys(answers).length === 0) return null;
+
+              return (
+                <div className="rounded-2xl bg-white/[0.03] border border-white/10 p-4 space-y-3">
+                  <p className="text-[11px] font-mono font-bold uppercase tracking-widest text-cyan-300">Event Answers</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {Object.entries(answers).map(([k, v]) => {
+                      const field = customFieldLabelMap[viewingReg.eventId]?.[k];
+                      return (
+                        <div key={k} className="rounded-xl bg-black/40 border border-white/5 p-3">
+                          <span className="text-[10px] font-mono text-gray-400 block capitalize">{field || k}</span>
+                          <span className="text-xs font-medium text-white break-words">{String(v)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="rounded-2xl bg-black/60 border border-white/10 p-4 flex flex-col sm:flex-row items-center gap-4">
               <div className="bg-white p-2 rounded-xl shrink-0">
@@ -726,7 +897,7 @@ export default function RegistrationsPanel() {
 
       {formOpen && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
-          <div className="relative w-full max-w-lg rounded-3xl border border-white/15 bg-[#0d1317] p-6 shadow-2xl space-y-5 my-8">
+          <div className="relative w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-white/15 bg-[#0d1317] p-6 shadow-2xl space-y-5 my-8">
             <div className="flex items-start justify-between gap-3 border-b border-white/10 pb-4">
               <div className="min-w-0">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 block mb-1">
@@ -858,6 +1029,146 @@ export default function RegistrationsPanel() {
                   <option value="cancelled" className="bg-[#0e161c] text-white">Cancelled</option>
                 </select>
               </div>
+
+              {/* Dynamic Event Custom Fields (e.g. Location, Laptop, Skill Level, etc.) */}
+              {activeFormEvent && activeFormEvent.customFields && activeFormEvent.customFields.length > 0 && (
+                <div className="sm:col-span-2 pt-4 border-t border-white/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] font-mono font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                      <span className="h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(6,182,212,0.8)]" />
+                      {activeFormEvent.title} — Event Specific Questions
+                    </p>
+                    <span className="text-[10px] font-mono text-gray-500">
+                      {activeFormEvent.customFields.length} question{activeFormEvent.customFields.length > 1 ? "s" : ""}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {activeFormEvent.customFields.map((field) => {
+                      const val = customResponses[field.id] ?? "";
+                      return (
+                        <div key={field.id} className={field.type === "textarea" ? "sm:col-span-2" : ""}>
+                          <label className="text-[10px] text-gray-400 uppercase tracking-widest block mb-1">
+                            {field.label} {field.required && <span className="text-rose-400">*</span>}
+                          </label>
+                          {field.helpText && (
+                            <p className="text-[10px] text-gray-500 mb-1 font-mono">{field.helpText}</p>
+                          )}
+
+                          {field.type === "text" && (
+                            <input
+                              type="text"
+                              value={String(val)}
+                              onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                              placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-gray-600 text-xs font-mono focus:outline-none focus:border-cyan-400"
+                            />
+                          )}
+
+                          {field.type === "textarea" && (
+                            <textarea
+                              rows={2}
+                              value={String(val)}
+                              onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                              placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}...`}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-gray-600 text-xs font-mono focus:outline-none focus:border-cyan-400 resize-none"
+                            />
+                          )}
+
+                          {field.type === "number" && (
+                            <input
+                              type="number"
+                              value={String(val)}
+                              onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                              placeholder={field.placeholder || "0"}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-gray-600 text-xs font-mono focus:outline-none focus:border-cyan-400"
+                            />
+                          )}
+
+                          {field.type === "url" && (
+                            <input
+                              type="url"
+                              value={String(val)}
+                              onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                              placeholder={field.placeholder || "https://..."}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder:text-gray-600 text-xs font-mono focus:outline-none focus:border-cyan-400"
+                            />
+                          )}
+
+                          {field.type === "dob" && (
+                            <input
+                              type="date"
+                              value={String(val)}
+                              onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-cyan-400"
+                            />
+                          )}
+
+                          {field.type === "select" && (
+                            <select
+                              value={String(val)}
+                              onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.value })}
+                              className="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono focus:outline-none focus:border-cyan-400"
+                            >
+                              <option value="" className="bg-[#0e161c] text-gray-500">
+                                {field.placeholder || "-- Select an option --"}
+                              </option>
+                              {(field.options ?? []).map((opt) => (
+                                <option key={opt} value={opt} className="bg-[#0e161c] text-white">
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+
+                          {field.type === "radio" && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                              {(field.options ?? []).map((opt) => {
+                                const active = String(val) === opt;
+                                return (
+                                  <button
+                                    type="button"
+                                    key={opt}
+                                    onClick={() => setCustomResponses({ ...customResponses, [field.id]: opt })}
+                                    className={`p-2.5 rounded-xl border text-left text-xs font-mono transition-all flex items-center justify-between ${
+                                      active
+                                        ? "bg-cyan-500/15 border-cyan-400 text-white shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                                        : "bg-black/30 border-white/10 text-gray-400 hover:border-white/20 hover:text-white"
+                                    }`}
+                                  >
+                                    <span className="truncate pr-1">{opt}</span>
+                                    <span
+                                      className={`w-3 h-3 rounded-full border flex items-center justify-center shrink-0 ${
+                                        active ? "border-cyan-400 bg-cyan-400" : "border-white/30"
+                                      }`}
+                                    >
+                                      {active && <span className="w-1.5 h-1.5 rounded-full bg-black" />}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+
+                          {field.type === "checkbox" && (
+                            <label className="flex items-center gap-2.5 cursor-pointer pt-1.5">
+                              <input
+                                type="checkbox"
+                                checked={val === true || String(val) === "true"}
+                                onChange={(e) => setCustomResponses({ ...customResponses, [field.id]: e.target.checked })}
+                                className="h-4 w-4 rounded bg-white/10 border-white/20 text-cyan-500 focus:ring-0 cursor-pointer"
+                              />
+                              <span className="text-xs font-mono text-gray-300">
+                                {field.placeholder || "Yes, confirm / select"}
+                              </span>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/10">
